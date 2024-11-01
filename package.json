@@ -1,0 +1,132 @@
+{
+  "name": "ysh",
+  "version": "1.0.1",
+  "private": true,
+  "author": "YQHY",
+  "type": "module",
+  "description": "my spirtual home",
+  "scripts": {
+    "preview": "vite preview",
+    "dev": "vite --host",
+    "build": "vite build",
+    "lint": "npm run lint:eslint && npm run lint:prettier && npm run lint:ts",
+    "lint:eslint": "eslint \"src/**/*.{js,jsx,ts,tsx,vue}\" --fix",
+    "lint:prettier": "prettier --write \"src/**/*.{js,tsx,css,scss,vue,md,json,html}\"",
+    "lint:ts": "tsc --noEmit --skipLibCheck",
+    "lint:lint-staged": "lint-staged",
+    "prepare": "husky install"
+  },
+  "dependencies": {
+    "@chinese-fonts/lxgwwenkai": "^2.0.1",
+    "@pixi/filter-kawase-blur": "^5.1.1",
+    "@unblockneteasemusic/server": "^0.27.8",
+    "@vueuse/gesture": "^2.0.0",
+    "@vueuse/motion": "^2.2.5",
+    "axios": "^1.7.7",
+    "dotenv": "^16.4.5",
+    "epubjs": "^0.3.93",
+    "hls.js": "^1.5.15",
+    "http-proxy-agent": "^6.1.1",
+    "http-proxy-middleware": "^2.0.6",
+    "localforage": "^1.10.0",
+    "marked": "^11.2.0",
+    "md-editor-v3": "^4.20.2",
+    "node-id3": "^0.2.6",
+    "openai": "^4.64.0",
+    "pixi.js": "^7.4.2",
+    "polka": "^0.5.2",
+    "simplex-noise": "^4.0.3",
+    "sirv": "^2.0.4",
+    "sortablejs": "^1.15.3",
+    "web-storage-cache": "^1.1.1",
+    "ytdl-core": "^4.11.5"
+  },
+  "devDependencies": {
+    "@material/material-color-utilities": "^0.2.7",
+    "@mdi/js": "^7.4.47",
+    "@tauri-apps/cli": "^2.0.3",
+    "@types/howler": "^2.2.12",
+    "@types/lodash-es": "^4.17.12",
+    "@types/md5": "^2.3.5",
+    "@types/overlayscrollbars": "^1.12.5",
+    "@types/polka": "^0.5.7",
+    "@types/sortablejs": "^1.15.8",
+    "@types/webfontloader": "^1.6.38",
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^5.62.0",
+    "@vitejs/plugin-vue": "^4.6.2",
+    "@vitejs/plugin-vue-jsx": "^3.1.0",
+    "@vueuse/components": "^10.11.1",
+    "@vueuse/core": "^10.11.1",
+    "autoprefixer": "^10.4.20",
+    "commitizen": "^4.3.0",
+    "cz-conventional-changelog": "^3.3.0",
+    "dayjs": "^1.11.13",
+    "electron": "^32.1.2",
+    "eslint-config-prettier": "^8.10.0",
+    "eslint-plugin-import": "^2.30.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-simple-import-sort": "^7.0.0",
+    "eslint-plugin-vue": "^8.7.1",
+    "howler": "^2.2.4",
+    "https-localhost": "^4.7.1",
+    "husky": "^7.0.4",
+    "lint-staged": "^12.5.0",
+    "lodash-es": "^4.17.21",
+    "lottie-web": "^5.12.2",
+    "md5": "^2.3.0",
+    "overlayscrollbars": "^1.13.3",
+    "pinia": "^2.2.2",
+    "plyr": "^3.7.8",
+    "postcss": "^8.4.47",
+    "prettier": "^2.8.8",
+    "sass": "^1.79.3",
+    "seamless-scroll-polyfill": "^2.3.4",
+    "stackblur-canvas": "^2.7.0",
+    "tailwindcss": "^3.4.13",
+    "typescript": "^4.9.5",
+    "unplugin-auto-import": "^0.15.3",
+    "unplugin-vue-components": "^0.19.9",
+    "vite": "^4.5.5",
+    "vite-plugin-pwa": "^0.14.7",
+    "vite-plugin-resolve": "^2.5.2",
+    "vite-plugin-spa-loading": "^1.2.2",
+    "vite-plugin-vuetify": "^1.0.2",
+    "vue": "^3.5.8",
+    "vue-content-loader": "^2.0.1",
+    "vue-i18n": "^9.14.0",
+    "vue-kinesis": "^2.0.5",
+    "vue-router": "^4.4.5",
+    "vue-toastification": "2.0.0-rc.5",
+    "vue-tsc": "^1.8.27",
+    "vue-virtual-scroller": "2.0.0-beta.8",
+    "vue3-slider": "github:GuMengYu/vue3-slider",
+    "vuetify": "^3.7.2",
+    "vuetify-ctx-menu": "github:GuMengYu/vue3-context-menu#main",
+    "webfontloader": "^1.6.28"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "package.json": [
+      "prettier --write"
+    ],
+    "*.vue": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{scss,less,styl,html}": [
+      "prettier --write"
+    ],
+    "*.md": [
+      "prettier --write"
+    ]
+  }
+}
