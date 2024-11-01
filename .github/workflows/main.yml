@@ -1,0 +1,30 @@
+name: 布署我的网站
+
+on:
+  push:
+    branches:
+      - fastDev
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16.17.1'
+      - name: 安装依赖
+        run: npm install
+      - name: 打包
+        run: npm run build
+      - name: 部署
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          port: ${{ secrets.PORT }}
+          source: "dist/"
+          target: "/usr/yqhy/"

@@ -1,0 +1,36 @@
+@import url("//unpkg.com/heti/umd/heti.min.css");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  .text-h1,
+  .text-h2,
+  .text-h3,
+  .text-h4,
+  .text-h5,
+  .text-h6,
+  .text-caption,
+  .text-subtitle-1,
+  .text-subtitle-2,
+  .text-body-1,
+  .text-body-2,
+  .text-button,
+  .text-overline {
+    font-family: "LXGW WenKai";
+  }
+}
+
+::-webkit-scrollbar {
+  width: 0;
+}
+
+.rounded-lg {
+  border-radius: 14px !important;
+}
+
+a {
+  text-decoration: none;
+}
