@@ -36,7 +36,6 @@ export function useEpub() {
     } else {
       rendition = book.renderTo(element, options);
     }
-    // rendition.themes.font("LXGW WenKai");
     setFontFamily("LXGW WenKai");
 
     parseBook();

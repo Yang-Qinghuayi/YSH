@@ -71,6 +71,9 @@ importers:
       sortablejs:
         specifier: ^1.15.3
         version: 1.15.3
+      vue3-slider:
+        specifier: ^1.10.1
+        version: 1.10.1(vue@3.5.8(typescript@4.9.5))
       web-storage-cache:
         specifier: ^1.1.1
         version: 1.1.1
@@ -252,9 +255,6 @@ importers:
       vue-virtual-scroller:
         specifier: 2.0.0-beta.8
         version: 2.0.0-beta.8(vue@3.5.8(typescript@4.9.5))
-      vue3-slider:
-        specifier: github:GuMengYu/vue3-slider
-        version: https://codeload.github.com/GuMengYu/vue3-slider/tar.gz/f77999e06017665ad257416c006a34b197ec209f(vue@3.5.8(typescript@4.9.5))
       vuetify:
         specifier: ^3.7.2
         version: 3.7.2(typescript@4.9.5)(vite-plugin-vuetify@1.0.2)(vue@3.5.8(typescript@4.9.5))
@@ -2777,6 +2777,7 @@ packages:
   eslint@8.56.0:
     resolution: {integrity: sha512-Go19xM6T9puCOWntie1/P997aXxFsOi37JIHRWI514Hc6ZnaHGKY9xFhrU65RT6CcBEzZoGG1e6Nq+DT04ZtZQ==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
 
   esniff@2.0.1:
@@ -5139,9 +5140,8 @@ packages:
     peerDependencies:
       vue: ^3.2.0
 
-  vue3-slider@https://codeload.github.com/GuMengYu/vue3-slider/tar.gz/f77999e06017665ad257416c006a34b197ec209f:
-    resolution: {tarball: https://codeload.github.com/GuMengYu/vue3-slider/tar.gz/f77999e06017665ad257416c006a34b197ec209f}
-    version: 1.8.0
+  vue3-slider@1.10.1:
+    resolution: {integrity: sha512-2nGoHbjh+lgXQErdrUs6yIN99EKU4St+dAZUcFe2s5Gn9V8+QFMmV6rwpb3prQn0Yz1wrVDLTZLbwmEpiEY7xg==}
     engines: {node: '>=10'}
     peerDependencies:
       vue: ^3.0.0
@@ -11055,7 +11055,7 @@ snapshots:
       vue-observe-visibility: 2.0.0-alpha.1(vue@3.5.8(typescript@4.9.5))
       vue-resize: 2.0.0-alpha.1(vue@3.5.8(typescript@4.9.5))
 
-  vue3-slider@https://codeload.github.com/GuMengYu/vue3-slider/tar.gz/f77999e06017665ad257416c006a34b197ec209f(vue@3.5.8(typescript@4.9.5)):
+  vue3-slider@1.10.1(vue@3.5.8(typescript@4.9.5)):
     dependencies:
       vue: 3.5.8(typescript@4.9.5)
 

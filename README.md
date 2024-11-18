@@ -1,8 +1,5 @@
+为什么 bookSetting 要和 book 的 store 分开?
 
-<!-- TODO -->
-
-- introduce new font
-- change the icon of the app
-
-
-
+- 修改字体大小的进度条功能
+- 新开页面实现分享新的文字
+- 在设置界面导入书籍

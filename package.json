@@ -38,6 +38,7 @@
     "simplex-noise": "^4.0.3",
     "sirv": "^2.0.4",
     "sortablejs": "^1.15.3",
+    "vue3-slider": "^1.10.1",
     "web-storage-cache": "^1.1.1",
     "ytdl-core": "^4.11.5"
   },
@@ -100,7 +101,6 @@
     "vue-toastification": "2.0.0-rc.5",
     "vue-tsc": "^1.8.27",
     "vue-virtual-scroller": "2.0.0-beta.8",
-    "vue3-slider": "github:GuMengYu/vue3-slider",
     "vuetify": "^3.7.2",
     "vuetify-ctx-menu": "github:GuMengYu/vue3-context-menu#main",
     "webfontloader": "^1.6.28"

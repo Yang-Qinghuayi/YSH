@@ -20,12 +20,7 @@
                   class="d-flex justify-center align-center"
                   :style="{ width: '40px', height: '40px' }"
                 >
-                  <gpt
-                    :style="{ fill: currentTheme.colors.primary }"
-                    v-if="item.icon === 'gpt'"
-                  />
                   <v-icon
-                    v-else
                     size="small"
                     :icon="item.icon"
                     color="primary"
@@ -39,6 +34,8 @@
           </v-list>
         </div>
       </transition>
+      <!-- here is font setter -->
+      <TrackSlider v-if="!rail" />
     </div>
   </v-navigation-drawer>
 </template>
@@ -53,12 +50,10 @@ const currentTheme = computed(() => {
 import {
   mdiCog,
   mdiBookshelf,
-  mdiCloudOutline,
   mdiBookOpenVariantOutline,
+  mdiEmailFastOutline,
 } from "@mdi/js";
-import gpt from "@/pages/components/GptIcon.vue";
 import { storeToRefs } from "pinia";
-import AppAccount from "@/components/button/Account.vue";
 import { useSettingStore } from "@/store/setting";
 import { useRouter } from "vue-router";
 
@@ -74,15 +69,21 @@ const nav = computed(() => {
     },
     {
       icon: mdiBookshelf,
-      val: "bookShelves",
+      val: "bookshelve",
       title: t("book.bookshelf"),
-      to: "/bookShelves",
+      to: "/bookshelve",
     },
     {
       icon: mdiCog,
       val: "setting",
       title: t("common.setting"),
       to: "/setting",
+    },
+    {
+      icon: mdiEmailFastOutline,
+      val: "setting",
+      title: "信来",
+      to: "/letter",
     },
   ];
 });

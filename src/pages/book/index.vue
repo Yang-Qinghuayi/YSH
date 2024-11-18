@@ -1,7 +1,6 @@
 <template>
   <div>
     <div v-if="!showBook">好像还没有书籍哦，快去书架添加吧</div>
-
     <div
       v-else
       :class="[lgAndUp ? 'mt-[4vh] h-[90vh]' : 'h-[94vh]']"
@@ -39,7 +38,6 @@
       </div>
 
       <!-- 目录部分 -->
-
       <transition
         name="fade"
         enter-active-class="transition ease-out duration-300"
@@ -124,6 +122,7 @@ localforage.config({
 });
 import { useBookSettingsStore } from "@/store/bookSettings";
 const BSstore = useBookSettingsStore();
+const { fontSize } = storeToRefs(BSstore);
 import { useBookStore } from "@/store/book";
 import { mdiBookOpenVariantOutline } from "@mdi/js";
 const bookStore = useBookStore();
@@ -135,6 +134,7 @@ const selecting = ref(false);
 
 onMounted(async () => {
   if (!bookStore.book) {
+    // 如果内存里没有就从localforage里取
     const bookInForage = await localforage.getItem(
       BSstore.metadata.title.replace(/\(.*?\) |（.*?）/g, "")
     );
@@ -146,23 +146,27 @@ onMounted(async () => {
   } else {
     createBook();
   }
-  render("epub", {
-    width: "100%",
-    height: "100% ",
-    allowScriptedContent: true,
-  });
-  display();
-  setFontSize(20);
-  const rendition = getRendition();
-  rendition.on("selected", bookSelectedEvent);
 
-  rendition.on("click", (e, i) => {
-    if (selecting.value) {
-      selecting.value = false;
-      return;
-    }
-    onMaskClick(e);
-  });
+  renderBook()
+
+  function renderBook() {
+    render("epub", {
+      width: "100%",
+      height: "100% ",
+    });
+    display();
+    setFontSize(fontSize.value);
+    const rendition = getRendition();
+    rendition.on("selected", bookSelectedEvent);
+
+    rendition.on("click", (e, i) => {
+      if (selecting.value) {
+        selecting.value = false;
+        return;
+      }
+      onMaskClick(e);
+    });
+  }
 
   function bookSelectedEvent(cfiRange, contents) {
     selecting.value = true;

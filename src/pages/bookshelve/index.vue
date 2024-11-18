@@ -151,6 +151,8 @@ function deleteBook(event, name) {
   };
   contextMenu(option);
 }
+
+//  delete book
 import { useToast } from "vue-toastification";
 const toast = useToast();
 function removeFromBookshelves(name) {
@@ -162,6 +164,8 @@ function removeFromBookshelves(name) {
     toast.error("移除失败");
   }
 }
+
+// goto read
 const router = useRouter();
 const goToRead = async (file) => {
   const bookInForage = await localForage.getItem(file.name);
@@ -181,28 +185,35 @@ localForage.config({
   name: "epubBooks",
 });
 const epubFiles = ref([]);
+getBooks();
+async function getBooks() {
+  // 解析封面,顺便也得到book对象
+  const parseCover = async (books) => {
+    let rst = [];
+    for (const { name, cover } of books) {
+      const url = URL.createObjectURL(cover);
+      rst.push({ name, cover: url });
+    }
+    return rst;
+  };
 
-// 解析封面,顺便也得到book对象
-const parseCover = async (books) => {
-  let rst = [];
-  for (const { name, cover } of books) {
-    const url = URL.createObjectURL(cover);
-    rst.push({ name, cover: url });
+  // 获取书架中的书
+  const bookNames = [...(await localForage.keys())].filter((name) => {
+    return name.split("*").length === 1;
+  });
+
+  // if epubFiles has the same length as bookNames, return
+  if (bookNames.length === epubFiles.value.length) {
+    return;
   }
-  return rst;
-};
 
-// 获取书架中的书
-const bookNames = [...(await localForage.keys())].filter((name) => {
-  return name.split("*").length === 1;
-});
-
-const books = await Promise.all(
-  bookNames.map(async (name) => {
-    return await localForage.getItem(name);
-  })
-);
-if (books) {
-  epubFiles.value = await parseCover(books);
+  const books = await Promise.all(
+    bookNames.map(async (name) => {
+      return await localForage.getItem(name);
+    })
+  );
+  if (books) {
+    epubFiles.value = await parseCover(books);
+  }
 }
 </script>

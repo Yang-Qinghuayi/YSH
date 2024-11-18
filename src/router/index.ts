@@ -3,7 +3,7 @@ import type { RouteLocation, RouteRecordRaw } from "vue-router";
 import { createRouter, createWebHashHistory } from "vue-router";
 import Home from "@/pages/Home.vue";
 import Setting from "@/pages/setting/Setting.vue";
-import Bookshelves from "@/pages/bookshelves/index.vue";
+import Bookshelve from "@/pages/bookshelve/index.vue";
 import Book from "@/pages/book/index.vue";
 
 const musicRoutes: RouteRecordRaw[] = [
@@ -13,14 +13,19 @@ const musicRoutes: RouteRecordRaw[] = [
     component: Book,
   },
   {
-    path: "/bookShelves",
-    name: "bookShelves",
-    component: Bookshelves,
+    path: "/bookshelve",
+    name: "bookshelve",
+    component: Bookshelve,
   },
   {
     path: "/setting",
     name: "setting",
     component: Setting,
+  },
+  {
+    path: "/letter",
+    name: "letter",
+    component: () => import("@/pages/letter/index.vue"),
   },
 ];
 
