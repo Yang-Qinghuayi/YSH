@@ -40,7 +40,7 @@ export function useRouter(app: App) {
         name: "Home",
         component: Home,
         children: musicRoutes,
-        redirect: { path: "/bookShelves" },
+        redirect: { path: "/bookshelve" },
       },
 
       {
