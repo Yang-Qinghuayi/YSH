@@ -18,7 +18,7 @@ export const useBookSettingsStore = defineStore("bookSettings", {
       section: 0,
       metadata: {},
       navItems: null, // 目录信息
-      tabHeight: 0, // 目录菜单栏高度
+      tabHeight: 20, // 目录菜单栏高度
       offsetY: 0, // 下拉的偏移量
       htmlFontSize: "10px",
       ifBookmark: false,
@@ -30,6 +30,9 @@ export const useBookSettingsStore = defineStore("bookSettings", {
   },
   getters: {},
   actions: {
+    setTabHeight(height) {
+      this.tabHeight = height;
+    },
     setRenderFunction(func) {
       this.renderFunction = func;
     },

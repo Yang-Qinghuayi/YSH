@@ -122,7 +122,11 @@ localforage.config({
 });
 import { useBookSettingsStore } from "@/store/bookSettings";
 const BSstore = useBookSettingsStore();
-const { fontSize } = storeToRefs(BSstore);
+
+const { tabHeight } = storeToRefs(BSstore);
+if (tabHeight === 0) {
+  tabHeight === 20;
+}
 import { useBookStore } from "@/store/book";
 import { mdiBookOpenVariantOutline } from "@mdi/js";
 const bookStore = useBookStore();
@@ -147,7 +151,7 @@ onMounted(async () => {
     createBook();
   }
 
-  renderBook()
+  renderBook();
 
   function renderBook() {
     render("epub", {
@@ -155,7 +159,8 @@ onMounted(async () => {
       height: "100% ",
     });
     display();
-    setFontSize(fontSize.value);
+
+    setFontSize(tabHeight.value);
     const rendition = getRendition();
     rendition.on("selected", bookSelectedEvent);
 

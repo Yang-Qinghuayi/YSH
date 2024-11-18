@@ -1,7 +1,7 @@
 <template>
   <Slider
     class="mx-auto"
-    :model-value="fontSize"
+    :model-value="tabHeight"
     :min="15"
     :max="30"
     :color="currentTheme.colors.secondary"
@@ -34,7 +34,7 @@ import { useTheme } from "vuetify";
 
 import { useBookSettingsStore } from "@/store/bookSettings";
 const BSstore = useBookSettingsStore();
-const { fontSize } = storeToRefs(BSstore);
+const { tabHeight } = storeToRefs(BSstore);
 
 const vuetifyTheme = useTheme();
 const currentTheme = computed(() => {
@@ -51,7 +51,7 @@ const router = useRouter();
 async function dragEnd(value: number) {
   console.log("dragEnd", value);
   await nextTick();
-  fontSize.value = value;
+  tabHeight.value = value;
   router.go(0);
 }
 </script>

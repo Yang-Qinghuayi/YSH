@@ -25,7 +25,7 @@ const gotoOrChange = (destination: string) => {
     height="64"
     temporary
   >
-    <v-btn value="discover" color="secondaryContainer" to="/bookShelves">
+    <v-btn value="discover" color="secondaryContainer" to="/bookshelve">
       <div class="bar-icon rounded-xl">
         <v-icon>{{ mdiBookshelf }}</v-icon>
       </div>
