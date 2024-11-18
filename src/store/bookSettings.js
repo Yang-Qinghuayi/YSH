@@ -3,7 +3,7 @@ import { defineStore } from "pinia";
 
 export const useBookSettingsStore = defineStore("bookSettings", {
   state: () => {
-    return useLocalStorage("bookSettings", {
+    return useLocalStorage("bookSetting", {
       fileName: "", // 当前浏览的电子书的URL
       cover: null, // 文章封面
       author: null, // 书籍作者
@@ -30,9 +30,6 @@ export const useBookSettingsStore = defineStore("bookSettings", {
   },
   getters: {},
   actions: {
-    setTabHeight(height) {
-      this.tabHeight = height;
-    },
     setRenderFunction(func) {
       this.renderFunction = func;
     },

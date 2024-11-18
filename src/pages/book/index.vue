@@ -123,10 +123,8 @@ localforage.config({
 import { useBookSettingsStore } from "@/store/bookSettings";
 const BSstore = useBookSettingsStore();
 
-const { tabHeight } = storeToRefs(BSstore);
-if (tabHeight === 0) {
-  tabHeight === 20;
-}
+const { fontSize } = storeToRefs(BSstore);
+
 import { useBookStore } from "@/store/book";
 import { mdiBookOpenVariantOutline } from "@mdi/js";
 const bookStore = useBookStore();
@@ -160,7 +158,7 @@ onMounted(async () => {
     });
     display();
 
-    setFontSize(tabHeight.value);
+    setFontSize(fontSize.value);
     const rendition = getRendition();
     rendition.on("selected", bookSelectedEvent);
 
