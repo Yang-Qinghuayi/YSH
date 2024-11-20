@@ -189,7 +189,7 @@ onMounted(async () => {
 });
 </script>
 
-<style scoped>
+<style>
 .theme-border {
   border: 3px solid rgba(var(--v-theme-primary), 0.2);
   border-radius: 6px;

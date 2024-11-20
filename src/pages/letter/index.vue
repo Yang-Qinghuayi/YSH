@@ -1,36 +1,30 @@
 <template>
-  <div>
-    <v-text-field
-      color="#4c0013"
-      class="w-[50vw] mx-auto"
+  <div class="flex items-center justify-center flex-col">
+    <textarea
       v-model="headline"
-    ></v-text-field>
-
-    <v-textarea
+      class="p-3 w-[50vw] mx-auto theme-border m-6 custom-textarea"
+      rows="1"
+    ></textarea>
+    <textarea
       v-model="content"
-      label="内容"
-      outlined
-      class="w-[50vw] mx-auto"
+      class="w-[50vw] p-3 mx-auto theme-border mb-6 custom-textarea"
       rows="10"
-      auto-grow
-    ></v-textarea>
+    ></textarea>
 
-    <div class="w-[50vw] mx-auto">
-      <v-btn
-        class="w-full"
-        variant="tonal"
-        color="secondary"
-        @click.prevent="generateImage"
-      >
-        生成图片
-      </v-btn>
-    </div>
+    <v-btn
+      class="w-[50vw]"
+      variant="tonal"
+      color="secondary"
+      @click.prevent="generateImage"
+    >
+      生成图片
+    </v-btn>
 
-    <v-card id="letter" class="mt-6 w-[50vw] mx-auto">
-      <v-card-title class="text-center my-6 text-6xl">{{
+    <v-card id="letter" class="mt-6 w-[600px] pic">
+      <v-card-title class="text-center my-10 text-4xl">{{
         headline
       }}</v-card-title>
-      <v-card-text class="mx-6 text-4xl">
+      <v-card-text class="mx-2 text-2xl">
         <p
           v-for="(paragraph, index) in paragraphs"
           :key="index"
@@ -65,7 +59,7 @@ const generateImage = async () => {
     const dataUrl = canvas.toDataURL("image/png");
     const link = document.createElement("a");
     link.href = dataUrl;
-    link.download = "article.png";
+    link.download = `${headline.value}.png`;
     link.click();
   }
 };
@@ -73,6 +67,19 @@ const generateImage = async () => {
 
 <style scoped>
 .text-indent {
-  text-indent: 2em; /* 设置首行缩进 */
+  /* 设置其底部空行 */
+  margin-bottom: 1em;
+}
+.custom-textarea:focus {
+  outline: none; /* 移除默认的聚焦样式 */
+}
+.custom-textarea {
+  resize: none; /* 禁止用户调整文本框大小 */
+}
+
+.pic {
+  /* 设置渐变色; */
+  background: linear-gradient(to right, #f0e7e8, #f3ede6, #f5f1e7);
+  color: #38161e;
 }
 </style>
