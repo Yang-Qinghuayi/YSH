@@ -1,52 +1,78 @@
 <template>
   <div>
-    <v-textarea rows="10" auto-grow></v-textarea>
+    <v-text-field
+      color="#4c0013"
+      class="w-[50vw] mx-auto"
+      v-model="headline"
+    ></v-text-field>
 
-    <v-btn
-      class="no-drag-area"
-      v-bind="$attrs"
-      variant="tonal"
-      color="secondary"
-      @click.prevent=""
-    >
-      导入许多书
-    </v-btn>
+    <v-textarea
+      v-model="content"
+      label="内容"
+      outlined
+      class="w-[50vw] mx-auto"
+      rows="10"
+      auto-grow
+    ></v-textarea>
 
-    <v-card class="mt-6">
-      <v-card-title class="text-center">{{ headline }}</v-card-title>
-      <v-card-text>{{ content }}</v-card-text>
+    <div class="w-[50vw] mx-auto">
+      <v-btn
+        class="w-full"
+        variant="tonal"
+        color="secondary"
+        @click.prevent="generateImage"
+      >
+        生成图片
+      </v-btn>
+    </div>
+
+    <v-card id="letter" class="mt-6 w-[50vw] mx-auto">
+      <v-card-title class="text-center my-6 text-6xl">{{
+        headline
+      }}</v-card-title>
+      <v-card-text class="mx-6 text-4xl">
+        <p
+          v-for="(paragraph, index) in paragraphs"
+          :key="index"
+          class="text-indent"
+        >
+          {{ paragraph }}
+        </p>
+      </v-card-text>
     </v-card>
   </div>
 </template>
 
 <script setup>
 import { ref } from "vue";
+import html2canvas from "html2canvas";
 
-const headline = ref("听我说");
+const headline = ref("");
 
-const content = ref(`
-在屋子里转来转去，已经知道妹妹同父亲一起去，我不愿意说明，希望有人代替我开口，为我抒发不公，或者我只能假装不知道有这样一回事。
-在屋里穿梭，走过房间许多，原来他们已经在屋后出发了。这时候想起母亲的好外婆的好，她们会看出我的想要，替我开口要求。
-从后门追去，妹妹坐在摩托车的后背，一路去到蜿蜒水泥路。妹妹脱手篮球飞向我，飞向背后的一脉田地，南瓜藤蔓里。
-我已经不能追上，阳光照在人家房屋上，下午的味道，闻到了干燥青草，二楼探出头，以前认识的女孩，我问你怎么在这里，明明不应该，这是我的老家。
-声音太小我担心她没听清，又担心她误会，又重新问了一遍，声音是犹豫。我则是假装早有目的，假装坚定，往回走。
-到转角处，离家已经只剩那几步，就像要马上回到床上。土地开始下陷，前面已经走不过去，并不简单，一切都在下陷，没有尽头。眼见高坡之上是立足之处。身后已经聚齐一群人，不知是什么，但是父亲和妹妹应该在，因为这是最紧要的，视角应该回到这里。
-在电视之中，一个老头在罐子里为大家讲述此次事件的严重之处，这是从来没有见过的，没有从前的例子可供参考，我们要开着先河来解决这个问题，他的身体时而蜷缩，像婴儿一样在罐子之中游动。
-我趁着雨下，路过泥泞池塘冰冷，雨水打在树叶上，波澜池塘，我上到地坝，才觉得逃脱。
-而奶奶在山那边，我在家打开盆盆罐罐，看有什么吃的没有。黄昏从窗外降临，蓝色玻璃的两开窗户，枯木窗框，看到下午的地面。
-我走过田边，水里是一些没有见过的生物在游移，田里水草覆盖留出一角，有一只形象怪异的大鱼总在这一角经过，我拿来长杆去掏，就好像有把握捞起来，并且捞起来有什么用途一样。
-土地滑溜，山体松软，就在夜里，洪水从山间漫过，我爬在树上等一切都过去。我必须去对面，我一个人出发了，穿过熟悉的田间的小路，走在早晨的薄雾之中，流水潺潺，遥远望着我的身影，对岸是神秘的。
-在那里是另一种时间，我每次经过都会回到第一次经过的时候。那里已经废弃，是杂草长满的地方，是废弃的房屋，没有人住，屋前柚子树成群，让人感到总之有所可取。
-我从房子的侧面离开，一块土地爬上坡，穿过竹林，滑下竹林，几乎要滑进水田里，我抓住树枝吊在水面上，绿色桑树叶，我非常冷静，因为田边有人路过，我希望树叶能把我挡住。又或者我这样是完全自然的，不应该引起质疑。趁他们没有注意到，我慢慢爬上去。
-从低矮的房间进去，这一定是牛棚，或者是猪圈，穿过低矮牛棚，窥见别人地坝，这下走到别人家里来了。这是不体面的，我原路返回，路过一个粪池，每一次凝视粪池，方方正正，凳子一般大小的开口，表面绿色由腐败构成，再铺上干枯的红薯藤蔓，我知道那是一个无底洞。
-在荒野，四下无人，我独自面对一个粪池，就像第一次面对危险的事物。我知道一切都是允许的，我可以落地在田地的任何一角，不过是有些藤蔓，有玉米梗可能插进我的背部，但是我穿着衣服，又缓慢，不会受伤，我会滑进水田，但是水田也有底，所以不必担心，一切都是允许的，就是不能与粪池做交易。
-我从田边经过，故意走了更远的一道田，只为了不被那群人遇到，可是我看到他们也吊在水边没有办法呢，竹林下是一个着急的女人，让他们快爬上来，他们可能正是住在牛棚对面房子里的主人。我心里知道技巧，明明这样就可以爬上去，但我要惩罚他们，让他们挂在那里。他们虽然着急，但毕竟是大人呢，就算掉进水田里也不怕。
-我爬上山坡，抓住线缆，直接滑向我家的楼顶。快到家的时候路过一群小朋友，他们并不在意我的把戏，我降下来成为他们的一员。我们一起在田里捡几只柚子，摔进池塘中漂浮起来。我觉得这种画面是太为复古，我不能再停留。就从后门进到屋里，后门是不被关心的，大家肯定在楼上呢，我独自在后门又成什么气候，我只是蹲在这里拉屎罢了。
-眼见屋檐的雨水落下在地上长出了小熊猫，我觉得这是奇观，父亲路过，说这有什么，看竹林里还长出了一群小鸡。我伸头去看，果然如此，在一丛竹子里无师自通地有一些羽毛和蛋壳。
-趁着天没有亮我开始刷牙，端着一瓢水，太早了，天空还是浑浊的蓝色，深深的云来去，我也看不到什么，就刷牙。穿过厨房，才知道消息。枪声震耳欲聋，每一次开枪我都要尽力去忍受，因为声音太大了，从隔壁传过来。
-好容易结束了这一切，我才推开门去看，里面是我的奶奶，坐在灶前烧火，没有办法，我们总归要吃饭的。这里灯光昏黄，爷爷在那边剁猪食，一堆红薯藤蔓，南瓜冬瓜。
-我在山顶醒来，山顶细长灌木环绕，不用考虑山谷多深，因为山路蜿蜒向下，没有尽头。
-`);
+const content = ref("");
+
+const paragraphs = computed(() => {
+  return content.value
+    .trim()
+    .split("\n")
+    .filter((paragraph) => paragraph.trim() !== "");
+});
+
+const generateImage = async () => {
+  const element = document.getElementById("letter");
+  if (element) {
+    const canvas = await html2canvas(element);
+    const dataUrl = canvas.toDataURL("image/png");
+    const link = document.createElement("a");
+    link.href = dataUrl;
+    link.download = "article.png";
+    link.click();
+  }
+};
 </script>
 
-<style></style>
+<style scoped>
+.text-indent {
+  text-indent: 2em; /* 设置首行缩进 */
+}
+</style>
