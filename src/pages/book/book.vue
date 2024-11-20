@@ -53,6 +53,7 @@
 </template>
 
 <script setup>
+
 import { useDisplay } from "vuetify";
 const { lgAndUp, mdAndUp } = useDisplay();
 
@@ -157,7 +158,6 @@ onMounted(async () => {
       height: "100% ",
     });
     display();
-
     setFontSize(fontSize.value);
     const rendition = getRendition();
     rendition.on("selected", bookSelectedEvent);

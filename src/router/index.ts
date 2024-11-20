@@ -4,7 +4,7 @@ import { createRouter, createWebHashHistory } from "vue-router";
 import Home from "@/pages/Home.vue";
 import Setting from "@/pages/setting/Setting.vue";
 import Bookshelve from "@/pages/bookshelve/index.vue";
-import Book from "@/pages/book/index.vue";
+import Book from "@/pages/book/book.vue";
 
 const musicRoutes: RouteRecordRaw[] = [
   {
