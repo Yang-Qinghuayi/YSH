@@ -11,6 +11,11 @@
       rows="10"
     ></textarea>
 
+    <textarea
+      v-model="name"
+      class="p-3 w-[50vw] mx-auto theme-border mb-6 custom-textarea"
+      rows="1"
+    ></textarea>
     <v-btn
       class="w-[50vw]"
       variant="tonal"
@@ -24,7 +29,7 @@
       <v-card-title class="text-center my-10 text-4xl">{{
         headline
       }}</v-card-title>
-      <v-card-text class="mx-2 text-2xl">
+      <v-card-text class="mx-2 text-2xl mb-14">
         <p
           v-for="(paragraph, index) in paragraphs"
           :key="index"
@@ -32,6 +37,9 @@
         >
           {{ paragraph }}
         </p>
+
+        <p class="text-right pr-5">{{ name }}</p>
+
       </v-card-text>
     </v-card>
   </div>
@@ -44,6 +52,8 @@ import html2canvas from "html2canvas";
 const headline = ref("");
 
 const content = ref("");
+
+const name = ref("");
 
 const paragraphs = computed(() => {
   return content.value
