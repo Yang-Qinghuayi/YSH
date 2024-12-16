@@ -185,11 +185,13 @@ localForage.config({
   name: "epubBooks",
 });
 const epubFiles = ref([]);
+
 getBooks();
+
 async function getBooks() {
   // 解析封面,顺便也得到book对象
   const parseCover = async (books) => {
-    let rst = [];
+    const rst = [];
     for (const { name, cover } of books) {
       const url = URL.createObjectURL(cover);
       rst.push({ name, cover: url });
@@ -202,18 +204,15 @@ async function getBooks() {
     return name.split("*").length === 1;
   });
 
-  // if epubFiles has the same length as bookNames, return
-  if (bookNames.length === epubFiles.value.length) {
-    return;
-  }
-
   const books = await Promise.all(
     bookNames.map(async (name) => {
       return await localForage.getItem(name);
     })
   );
+
   if (books) {
     epubFiles.value = await parseCover(books);
   }
+
 }
 </script>

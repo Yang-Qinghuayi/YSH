@@ -26,10 +26,10 @@
     </v-btn>
 
     <v-card id="letter" class="mt-6 w-[600px] pic">
-      <v-card-title class="text-center my-10 text-4xl">{{
+      <v-card-title class="text-center mt-13 mb-6 text-3xl">{{
         headline
       }}</v-card-title>
-      <v-card-text class="mx-2 text-2xl mb-14">
+      <v-card-text class="mx-2 text-2xl mb-12">
         <p
           v-for="(paragraph, index) in paragraphs"
           :key="index"
@@ -69,7 +69,7 @@ const generateImage = async () => {
     const dataUrl = canvas.toDataURL("image/png");
     const link = document.createElement("a");
     link.href = dataUrl;
-    link.download = `${headline.value}.png`;
+    link.download = `${headline.value ?? "文字"}.png`;
     link.click();
   }
 };

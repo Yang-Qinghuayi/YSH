@@ -37,17 +37,12 @@ export function useEpub() {
       rendition = book.renderTo(element, options);
     }
     setFontFamily("LXGW WenKai");
-
-    parseBook();
     return rendition;
   }
 
   async function display() {
     if (!rendition) return;
-    const bookInfo: any = await localforage.getItem(
-      bookSettingStore.metadata.title + "*Info"
-    );
-    return rendition.display(bookInfo?.progress);
+    parseBook();
   }
 
   function getBook() {
@@ -87,8 +82,12 @@ export function useEpub() {
         bookSettingStore.SET_COVER(url);
       });
       // 获取元数据信息
-      book.loaded.metadata.then((metadata) => {
+      book.loaded.metadata.then(async (metadata) => {
         bookSettingStore.SET_METADATA(metadata);
+        const bookInfo: any = await localforage.getItem(
+          bookSettingStore.metadata.title + "*Info"
+        );
+        rendition.display(bookInfo?.progress);
       });
       // 获取书籍目录
       book.loaded.navigation.then((nav) => {
@@ -98,7 +97,6 @@ export function useEpub() {
     book.ready.then(() => {
       bookSettingStore.SET_BOOKAVAIABLE(true);
       refreshLocation();
-      
     });
   }
   return {

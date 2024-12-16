@@ -11,6 +11,9 @@ importers:
       '@chinese-fonts/lxgwwenkai':
         specifier: ^2.0.1
         version: 2.0.1
+      '@material/web':
+        specifier: ^2.2.0
+        version: 2.2.0
       '@pixi/filter-kawase-blur':
         specifier: ^5.1.1
         version: 5.1.1(@pixi/core@7.4.2)
@@ -263,7 +266,7 @@ importers:
         version: 3.7.2(typescript@4.9.5)(vite-plugin-vuetify@1.0.2)(vue@3.5.8(typescript@4.9.5))
       vuetify-ctx-menu:
         specifier: github:GuMengYu/vue3-context-menu#main
-        version: https://codeload.github.com/GuMengYu/vue3-context-menu/tar.gz/7e056863e91813c884171e043a553d2dd5bedc61(typescript@4.9.5)(vuetify@3.7.2(typescript@4.9.5)(vite-plugin-vuetify@1.0.2)(vue@3.5.8(typescript@4.9.5)))
+        version: https://codeload.github.com/GuMengYu/vue3-context-menu/tar.gz/7e056863e91813c884171e043a553d2dd5bedc61(typescript@4.9.5)(vuetify@3.7.2)
       webfontloader:
         specifier: ^1.6.28
         version: 1.6.28
@@ -1258,8 +1261,17 @@ packages:
   '@lezer/yaml@1.0.3':
     resolution: {integrity: sha512-GuBLekbw9jDBDhGur82nuwkxKQ+a3W5H0GfaAthDXcAu+XdpS43VlnxA9E9hllkpSP5ellRDKjLLj7Lu9Wr6xA==}
 
+  '@lit-labs/ssr-dom-shim@1.2.1':
+    resolution: {integrity: sha512-wx4aBmgeGvFmOKucFKY+8VFJSYZxs9poN3SDNQFF6lT6NrQUnHiPB2PWz2sc4ieEcAaYYzN+1uWahEeTq2aRIQ==}
+
+  '@lit/reactive-element@2.0.4':
+    resolution: {integrity: sha512-GFn91inaUa2oHLak8awSIigYz0cU0Payr1rcFsrkf5OJ5eSPxElyZfKh0f2p9FsTiZWXQdWGJeXZICEfXXYSXQ==}
+
   '@material/material-color-utilities@0.2.7':
     resolution: {integrity: sha512-0FCeqG6WvK4/Cc06F/xXMd/pv4FeisI0c1tUpBbfhA2n9Y8eZEv4Karjbmf2ZqQCPUWMrGp8A571tCjizxoTiQ==}
+
+  '@material/web@2.2.0':
+    resolution: {integrity: sha512-k1Pi7f04qDRkHfIEdcnL++udN+x5Oq34R47n0Fk7Xo49uz9aKb6ZkO42jC6uvMH0ahOiFDktX9txHgYMDvNa+A==}
 
   '@mdi/js@7.4.47':
     resolution: {integrity: sha512-KPnNOtm5i2pMabqZxpUz7iQf+mfrYZyKCZ8QNz85czgEt7cuHcGorWfdzUMWYA0SD+a6Hn4FmJ+YhzzzjkTZrQ==}
@@ -3597,6 +3609,15 @@ packages:
     peerDependenciesMeta:
       enquirer:
         optional: true
+
+  lit-element@4.1.1:
+    resolution: {integrity: sha512-HO9Tkkh34QkTeUmEdNYhMT8hzLid7YlMlATSi1q4q17HE5d9mrrEHJ/o8O2D0cMi182zK1F3v7x0PWFjrhXFew==}
+
+  lit-html@3.2.1:
+    resolution: {integrity: sha512-qI/3lziaPMSKsrwlxH/xMgikhQ0EGOX2ICU73Bi/YHFvz2j/yMCIrw4+puF2IpQ4+upd3EWbvnHM9+PnJn48YA==}
+
+  lit@3.2.1:
+    resolution: {integrity: sha512-1BBa1E/z0O9ye5fZprPtdqnc0BFzxIxTTOO/tQFmyC/hj1O3jL4TfmLBw0WEwjAokdLwpclkvGgDJwTIh0/22w==}
 
   loadjs@4.3.0:
     resolution: {integrity: sha512-vNX4ZZLJBeDEOBvdr2v/F+0aN5oMuPu7JTqrMwp+DtgK+AryOlpy6Xtm2/HpNr+azEa828oQjOtWsB6iDtSfSQ==}
@@ -6722,7 +6743,18 @@ snapshots:
       '@lezer/highlight': 1.2.1
       '@lezer/lr': 1.4.2
 
+  '@lit-labs/ssr-dom-shim@1.2.1': {}
+
+  '@lit/reactive-element@2.0.4':
+    dependencies:
+      '@lit-labs/ssr-dom-shim': 1.2.1
+
   '@material/material-color-utilities@0.2.7': {}
+
+  '@material/web@2.2.0':
+    dependencies:
+      lit: 3.2.1
+      tslib: 2.7.0
 
   '@mdi/js@7.4.47': {}
 
@@ -7489,7 +7521,7 @@ snapshots:
 
   '@vue/shared@3.5.8': {}
 
-  '@vuetify/loader-shared@1.7.1(vue@3.5.8(typescript@4.9.5))(vuetify@3.7.2(typescript@4.9.5)(vite-plugin-vuetify@1.0.2)(vue@3.5.8(typescript@4.9.5)))':
+  '@vuetify/loader-shared@1.7.1(vue@3.5.8(typescript@4.9.5))(vuetify@3.7.2)':
     dependencies:
       find-cache-dir: 3.3.2
       upath: 2.0.1
@@ -9453,6 +9485,22 @@ snapshots:
       through: 2.3.8
       wrap-ansi: 7.0.0
 
+  lit-element@4.1.1:
+    dependencies:
+      '@lit-labs/ssr-dom-shim': 1.2.1
+      '@lit/reactive-element': 2.0.4
+      lit-html: 3.2.1
+
+  lit-html@3.2.1:
+    dependencies:
+      '@types/trusted-types': 2.0.7
+
+  lit@3.2.1:
+    dependencies:
+      '@lit/reactive-element': 2.0.4
+      lit-element: 4.1.1
+      lit-html: 3.2.1
+
   loadjs@4.3.0: {}
 
   local-pkg@0.4.3: {}
@@ -11006,7 +11054,7 @@ snapshots:
 
   vite-plugin-vuetify@1.0.2(vite@4.5.5(@types/node@22.7.2)(sass@1.79.3)(terser@5.33.0))(vue@3.5.8(typescript@4.9.5))(vuetify@3.7.2):
     dependencies:
-      '@vuetify/loader-shared': 1.7.1(vue@3.5.8(typescript@4.9.5))(vuetify@3.7.2(typescript@4.9.5)(vite-plugin-vuetify@1.0.2)(vue@3.5.8(typescript@4.9.5)))
+      '@vuetify/loader-shared': 1.7.1(vue@3.5.8(typescript@4.9.5))(vuetify@3.7.2)
       debug: 4.3.7(supports-color@9.4.0)
       upath: 2.0.1
       vite: 4.5.5(@types/node@22.7.2)(sass@1.79.3)(terser@5.33.0)
@@ -11108,7 +11156,7 @@ snapshots:
     optionalDependencies:
       typescript: 4.9.5
 
-  vuetify-ctx-menu@https://codeload.github.com/GuMengYu/vue3-context-menu/tar.gz/7e056863e91813c884171e043a553d2dd5bedc61(typescript@4.9.5)(vuetify@3.7.2(typescript@4.9.5)(vite-plugin-vuetify@1.0.2)(vue@3.5.8(typescript@4.9.5))):
+  vuetify-ctx-menu@https://codeload.github.com/GuMengYu/vue3-context-menu/tar.gz/7e056863e91813c884171e043a553d2dd5bedc61(typescript@4.9.5)(vuetify@3.7.2):
     dependencies:
       vue: 3.5.8(typescript@4.9.5)
       vuetify: 3.7.2(typescript@4.9.5)(vite-plugin-vuetify@1.0.2)(vue@3.5.8(typescript@4.9.5))

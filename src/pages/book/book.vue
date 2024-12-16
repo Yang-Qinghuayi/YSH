@@ -53,7 +53,6 @@
 </template>
 
 <script setup>
-
 import { useDisplay } from "vuetify";
 const { lgAndUp, mdAndUp } = useDisplay();
 
@@ -69,6 +68,18 @@ const handleGlobalKeyDown = (event) => {
     next();
   } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
     prev();
+  }
+  // j键
+  else if (event.key === "h") {
+    prev();
+  }
+  // k键
+  else if (event.key === "l") {
+    next();
+  }
+  // 空格键
+  else if (event.key === " ") {
+    showBottomNav.value = !showBottomNav.value;
   }
 };
 
@@ -106,16 +117,8 @@ async function onMaskClick(e) {
 }
 
 import { useEpub } from "@/hooks/useEpub";
-const {
-  createBook,
-  render,
-  display,
-  getRendition,
-  setFontSize,
-  next,
-  prev,
-  setFontFamily,
-} = useEpub();
+const { createBook, render, display, getRendition, setFontSize, next, prev } =
+  useEpub();
 
 import localforage from "localforage";
 localforage.config({
@@ -150,14 +153,14 @@ onMounted(async () => {
     createBook();
   }
 
-  renderBook();
+  await renderBook();
 
-  function renderBook() {
+  async function renderBook() {
     render("epub", {
       width: "100%",
       height: "100% ",
     });
-    display();
+    await display();
     setFontSize(fontSize.value);
     const rendition = getRendition();
     rendition.on("selected", bookSelectedEvent);
