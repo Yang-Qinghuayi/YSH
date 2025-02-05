@@ -35,7 +35,7 @@
         </div>
       </transition>
       <!-- here is font setter -->
-      <!-- <TrackSlider v-if="!rail" /> -->
+      <TrackSlider v-if="!rail" />
     </div>
   </v-navigation-drawer>
 </template>
