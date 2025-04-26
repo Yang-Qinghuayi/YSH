@@ -250,9 +250,7 @@ class View {
                 // it needs to be visible for Firefox to get computed style
                 this.#iframe.style.display = 'block'
                 const { vertical, rtl } = getDirection(doc)
-                this.docBackground = getBackground(doc)
-                doc.body.style.background = 'none'
-                const background = this.docBackground
+                const background = getBackground(doc)
                 this.#iframe.style.display = 'none'
 
                 this.#vertical = vertical
@@ -275,18 +273,18 @@ class View {
         })
     }
     render(layout) {
-        if (!layout || !this.document) return
+        if (!layout) return
         this.#column = layout.flow !== 'scrolled'
         this.#layout = layout
         if (this.#column) this.columnize(layout)
         else this.scrolled(layout)
     }
-    scrolled({ margin, gap, columnWidth }) {
+    scrolled({ gap, columnWidth }) {
         const vertical = this.#vertical
         const doc = this.document
         setStylesImportant(doc.documentElement, {
             'box-sizing': 'border-box',
-            'padding': vertical ? `${margin*1.5}px ${gap}px` : `0 ${gap}px`,
+            'padding': vertical ? `${gap}px 0` : `0 ${gap}px`,
             'column-width': 'auto',
             'height': 'auto',
             'width': 'auto',
@@ -298,7 +296,7 @@ class View {
         this.setImageSize()
         this.expand()
     }
-    columnize({ width, height, margin, gap, columnWidth }) {
+    columnize({ width, height, gap, columnWidth }) {
         const vertical = this.#vertical
         this.#size = vertical ? height : width
 
@@ -306,12 +304,12 @@ class View {
         setStylesImportant(doc.documentElement, {
             'box-sizing': 'border-box',
             'column-width': `${Math.trunc(columnWidth)}px`,
-            'column-gap': vertical ? `${margin}px` : `${gap}px`,
+            'column-gap': `${gap}px`,
             'column-fill': 'auto',
             ...(vertical
                 ? { 'width': `${width}px` }
                 : { 'height': `${height}px` }),
-            'padding': vertical ? `${margin / 2}px ${gap}px` : `0 ${gap / 2}px`,
+            'padding': vertical ? `${gap / 2}px 0` : `0 ${gap / 2}px`,
             'overflow': 'hidden',
             // force wrap long words
             'overflow-wrap': 'break-word',
@@ -383,8 +381,8 @@ class View {
             const otherSide = this.#vertical ? 'height' : 'width'
             const contentSize = documentElement.getBoundingClientRect()[side]
             const expandedSize = contentSize
-            const { margin, gap } = this.#layout
-            const padding = this.#vertical ? `0 ${gap}px` : `${margin}px 0`
+            const { margin } = this.#layout
+            const padding = this.#vertical ? `0 ${margin}px` : `${margin}px 0`
             this.#element.style.padding = padding
             this.#iframe.style[side] = `${expandedSize}px`
             this.#element.style[side] = `${expandedSize}px`
@@ -536,7 +534,7 @@ export class Paginator extends HTMLElement {
         <div id="top">
             <div id="background" part="filter"></div>
             <div id="header"></div>
-            <div id="container" part="container"></div>
+            <div id="container"></div>
             <div id="footer"></div>
         </div>
         `
@@ -613,7 +611,7 @@ export class Paginator extends HTMLElement {
 
         this.#mediaQueryListener = () => {
             if (!this.#view) return
-            this.#replaceBackground(this.#view.docBackground, this.columnCount)
+            this.#background.style.background = getBackground(this.#view.document)
         }
         this.#mediaQuery.addEventListener('change', this.#mediaQueryListener)
     }
@@ -627,7 +625,6 @@ export class Paginator extends HTMLElement {
             case 'max-block-size':
             case 'max-column-count':
                 this.#top.style.setProperty('--_' + name, value)
-                this.render()
                 break
             case 'max-inline-size':
                 // needs explicit `render()` as it doesn't necessarily resize
@@ -668,34 +665,14 @@ export class Paginator extends HTMLElement {
         this.#container.append(this.#view.element)
         return this.#view
     }
-    #replaceBackground(background, columnCount) {
-        const doc = this.#view?.document
-        if (!doc) return
-        const htmlStyle = doc.defaultView.getComputedStyle(doc.documentElement)
-        const themeBgColor = htmlStyle.getPropertyValue('--theme-bg-color')
-        if (background && themeBgColor) {
-            const parsedBackground = background.split(/\s(?=(?:url|rgb|hsl|#[0-9a-fA-F]{3,6}))/)
-            parsedBackground[0] = themeBgColor
-            background = parsedBackground.join(' ')
-        }
-        if (/cover.*fixed|fixed.*cover/.test(background)) {
-            background = background.replace('cover', 'auto 100%').replace('fixed', '')
-        }
-        this.#background.innerHTML = ''
-        this.#background.style.display = 'grid'
-        this.#background.style.gridTemplateColumns = `repeat(${columnCount}, 1fr)`
-        for (let i = 0; i < columnCount; i++) {
-            const column = document.createElement('div')
-            column.style.background = background
-            column.style.width = '100%'
-            column.style.height = '100%'
-            this.#background.appendChild(column)
-        }
-    }
     #beforeRender({ vertical, rtl, background }) {
         this.#vertical = vertical
         this.#rtl = rtl
         this.#top.classList.toggle('vertical', vertical)
+
+        // set background to `doc` background
+        // this is needed because the iframe does not fill the whole element
+        this.#background.style.background = background
 
         const { width, height } = this.#container.getBoundingClientRect()
         const size = vertical ? height : width
@@ -742,13 +719,8 @@ export class Paginator extends HTMLElement {
         }
 
         const divisor = Math.min(maxColumnCount, Math.ceil(size / maxInlineSize))
-        const columnWidth = vertical ? (size / divisor - margin) : (size / divisor - gap)
+        const columnWidth = (size / divisor) - gap
         this.setAttribute('dir', rtl ? 'rtl' : 'ltr')
-
-        // set background to `doc` background
-        // this is needed because the iframe does not fill the whole element
-        this.columnCount = divisor
-        this.#replaceBackground(background, this.columnCount)
 
         const marginalDivisor = vertical
             ? Math.min(2, Math.ceil(width / maxInlineSize))
@@ -808,26 +780,17 @@ export class Paginator extends HTMLElement {
     get pages() {
         return Math.round(this.viewSize / this.size)
     }
-    // this is the current position of the container
-    get containerPosition() {
-        return this.#container[this.scrollProp]
-    }
-
-    // this is the new position of the containr
-    set containerPosition(newVal) {
-        this.#container[this.scrollProp] = newVal
-    }
-
     scrollBy(dx, dy) {
         const delta = this.#vertical ? dy : dx
+        const element = this.#container
+        const { scrollProp } = this
         const [offset, a, b] = this.#scrollBounds
         const rtl = this.#rtl
         const min = rtl ? offset - b : offset - a
         const max = rtl ? offset + a : offset + b
-        this.containerPosition = Math.max(min, Math.min(max,
-            this.containerPosition + delta))
+        element[scrollProp] = Math.max(min, Math.min(max,
+            element[scrollProp] + delta))
     }
-
     snap(vx, vy) {
         const velocity = this.#vertical ? vy : vx
         const [offset, a, b] = this.#scrollBounds
@@ -864,11 +827,6 @@ export class Paginator extends HTMLElement {
             if (this.#touchScrolled) e.preventDefault()
             return
         }
-        const doc = this.#view?.document
-        const selection = doc?.getSelection()
-        if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
-            return
-        }
         e.preventDefault()
         const touch = e.changedTouches[0]
         const x = touch.screenX, y = touch.screenY
@@ -880,11 +838,7 @@ export class Paginator extends HTMLElement {
         state.vx = dx / dt
         state.vy = dy / dt
         this.#touchScrolled = true
-        if (Math.abs(dx) >= Math.abs(dy)) {
-            this.scrollBy(dx, 0)
-        } else if (Math.abs(dy) > Math.abs(dx)) {
-            this.scrollBy(0, dy)
-        }
+        this.scrollBy(dx, dy)
     }
     #onTouchEnd() {
         this.#touchScrolled = false
@@ -925,8 +879,9 @@ export class Paginator extends HTMLElement {
         return this.#scrollToPage(Math.floor(offset / this.size) + (this.#rtl ? -1 : 1), reason)
     }
     async #scrollTo(offset, reason, smooth) {
-        const { size } = this
-        if (this.containerPosition === offset) {
+        const element = this.#container
+        const { scrollProp, size } = this
+        if (element[scrollProp] === offset) {
             this.#scrollBounds = [offset, this.atStart ? 0 : size, this.atEnd ? 0 : size]
             this.#afterScroll(reason)
             return
@@ -934,14 +889,14 @@ export class Paginator extends HTMLElement {
         // FIXME: vertical-rl only, not -lr
         if (this.scrolled && this.#vertical) offset = -offset
         if ((reason === 'snap' || smooth) && this.hasAttribute('animated')) return animate(
-            this.containerPosition, offset, 300, easeOutQuad,
-            x => this.containerPosition = x,
+            element[scrollProp], offset, 300, easeOutQuad,
+            x => element[scrollProp] = x,
         ).then(() => {
             this.#scrollBounds = [offset, this.atStart ? 0 : size, this.atEnd ? 0 : size]
             this.#afterScroll(reason)
         })
         else {
-            this.containerPosition = offset
+            element[scrollProp] = offset
             this.#scrollBounds = [offset, this.atStart ? 0 : size, this.atEnd ? 0 : size]
             this.#afterScroll(reason)
         }
@@ -1036,7 +991,7 @@ export class Paginator extends HTMLElement {
     #canGoToIndex(index) {
         return index >= 0 && index <= this.sections.length - 1
     }
-    async #goTo({ index, anchor, select }) {
+    async #goTo({ index, anchor, select}) {
         if (index === this.#index) await this.#display({ index, anchor, select })
         else {
             const oldIndex = this.#index
@@ -1064,7 +1019,7 @@ export class Paginator extends HTMLElement {
         if (this.scrolled) {
             if (this.start > 0) return this.#scrollTo(
                 Math.max(0, this.start - (distance ?? this.size)), null, true)
-            return !this.atStart
+            return true
         }
         if (this.atStart) return
         const page = this.page - 1
@@ -1075,7 +1030,7 @@ export class Paginator extends HTMLElement {
         if (this.scrolled) {
             if (this.viewSize - this.end > 2) return this.#scrollTo(
                 Math.min(this.viewSize, distance ? this.start + distance : this.end), null, true)
-            return !this.atEnd
+            return true
         }
         if (this.atEnd) return
         const page = this.page + 1
@@ -1104,11 +1059,11 @@ export class Paginator extends HTMLElement {
         if (shouldGo || !this.hasAttribute('animated')) await wait(100)
         this.#locked = false
     }
-    async prev(distance) {
-        return await this.#turnPage(-1, distance)
+    prev(distance) {
+        return this.#turnPage(-1, distance)
     }
-    async next(distance) {
-        return await this.#turnPage(1, distance)
+    next(distance) {
+        return this.#turnPage(1, distance)
     }
     prevSection() {
         return this.goTo({ index: this.#adjacentIndex(-1) })
@@ -1144,9 +1099,8 @@ export class Paginator extends HTMLElement {
         } else $style.textContent = styles
 
         // NOTE: needs `requestAnimationFrame` in Chromium
-        requestAnimationFrame(() => {
-            this.#replaceBackground(this.#view.docBackground, this.columnCount)
-        })
+        requestAnimationFrame(() =>
+            this.#background.style.background = getBackground(this.#view.document))
 
         // needed because the resize observer doesn't work in Firefox
         this.#view?.document?.fonts?.ready?.then(() => this.#view.expand())

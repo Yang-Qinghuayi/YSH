@@ -18,14 +18,14 @@ const isPDF = async file => {
 }
 
 const isCBZ = ({ name, type }) =>
-    type === 'application/vnd.comicbook+zip' || name.endsWith('.cbz')
+    type === 'application/vnd.comicbook+zip' || name?.endsWith('.cbz')
 
 const isFB2 = ({ name, type }) =>
-    type === 'application/x-fictionbook+xml' || name.endsWith('.fb2')
+    type === 'application/x-fictionbook+xml' || name?.endsWith('.fb2')
 
 const isFBZ = ({ name, type }) =>
     type === 'application/x-zip-compressed-fb2'
-    || name.endsWith('.fb2.zip') || name.endsWith('.fbz')
+    || name?.endsWith('.fb2.zip') || name?.endsWith('.fbz')
 
 const makeZipLoader = async file => {
     const { configure, ZipReader, BlobReader, TextWriter, BlobWriter } =
@@ -256,7 +256,7 @@ export class View extends HTMLElement {
             await import('./paginator.js')
             this.renderer = document.createElement('foliate-paginator')
         }
-        this.renderer.setAttribute('exportparts', 'head,foot,filter,container')
+        this.renderer.setAttribute('exportparts', 'head,foot,filter')
         this.renderer.addEventListener('load', e => this.#onLoad(e.detail))
         this.renderer.addEventListener('relocate', e => this.#onRelocate(e.detail))
         this.renderer.addEventListener('create-overlayer', e =>
@@ -402,7 +402,7 @@ export class View extends HTMLElement {
             .find(x => x.index === index && x.overlayer)
     }
     #createOverlayer({ doc, index }) {
-        const overlayer = new Overlayer(doc)
+        const overlayer = new Overlayer()
         doc.addEventListener('click', e => {
             const [value, range] = overlayer.hitTest(e)
             if (value && !value.startsWith(SEARCH_PREFIX)) {

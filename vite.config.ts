@@ -36,7 +36,6 @@ export default defineConfig(({ command, mode }) => {
       imports: [
         "vue",
         "vue-router",
-        "vue/macros",
         "@vueuse/head",
         "@vueuse/core",
       ],

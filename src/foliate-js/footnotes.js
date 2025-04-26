@@ -62,18 +62,10 @@ export class FootnoteHandler extends EventTarget {
                     const type = getReferencedType(el)
                     const hidden = el?.matches?.('aside') && type === 'footnote'
                     if (el) {
-                        let range
-                        if (el.startContainer) {
-                            range = el
-                        } else if (el.matches('li, aside')) {
-                            range = doc.createRange()
-                            range.selectNodeContents(el)
-                        } else if (el.closest('li')) {
-                            range = doc.createRange()
-                            range.selectNodeContents(el.closest('li'))
-                        } else {
-                            range = doc.createRange()
-                            range.selectNode(el)
+                        const range = el.startContainer ? el : doc.createRange()
+                        if (!el.startContainer) {
+                            if (el.matches('li, aside')) range.selectNodeContents(el)
+                            else range.selectNode(el)
                         }
                         const frag = range.extractContents()
                         doc.body.replaceChildren()
@@ -93,9 +85,9 @@ export class FootnoteHandler extends EventTarget {
         })
     }
     handle(book, e) {
-        const { a, href, follow } = e.detail
+        const { a, href } = e.detail
         const { yes, maybe } = isFootnoteReference(a)
-        if (yes || follow) {
+        if (yes) {
             e.preventDefault()
             return Promise.resolve(book.resolveHref(href)).then(target =>
                 this.#showFragment(book, target, href))
