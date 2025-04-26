@@ -40,7 +40,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { useDisplay } from "vuetify";
 const display = useDisplay();
 const { lgAndUp } = display;

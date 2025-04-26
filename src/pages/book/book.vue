@@ -1,52 +1,29 @@
 <template>
   <div>
     <div v-if="!showBook">好像还没有书籍哦，快去书架添加吧</div>
-    <div
-      v-else
-      :class="[lgAndUp ? 'mt-[4vh] h-[90vh]' : 'h-[94vh]']"
-      class="flex justify-center items-center w-full"
-    >
-      <v-btn
-        v-if="lgAndUp"
-        class="fixed right-5 top-5"
-        icon
-        color="secondary"
-        variant="tonal"
-        @click="showBigCatalog = !showBigCatalog"
-      >
+    <div v-else :class="[lgAndUp ? 'mt-[4vh] h-[90vh]' : 'h-[94vh]']" class="flex justify-center items-center w-full">
+      <v-btn v-if="lgAndUp" class="fixed right-5 top-5" icon color="secondary" variant="tonal"
+        @click="showBigCatalog = !showBigCatalog">
         <v-icon color="secondary">
           {{ mdiBookOpenVariantOutline }}
         </v-icon>
       </v-btn>
       <!-- 书籍界面 -->
 
-      <div
-        :class="[lgAndUp ? 'w-[max(60vw,700px)]' : 'w-full']"
-        class="h-full transition-all duration-600"
-        @click="onMaskClick"
-      >
-        <div
-          id="epub"
-          ref="epub"
-          :class="[
-            mdAndUp
-              ? 'w-[max(40vw,670px)] theme-border'
-              : 'w-[min(100%,670px)] ',
-          ]"
-          class="m-auto h-full"
-        ></div>
+      <div :class="[lgAndUp ? 'w-[max(60vw,700px)]' : 'w-full']" class="h-full transition-all duration-600"
+        @click="onMaskClick">
+        <div id="epub" ref="epub" :class="[
+          mdAndUp
+            ? 'w-[max(40vw,670px)] theme-border'
+            : 'w-[min(100%,670px)] ',
+        ]" class="m-auto h-full"></div>
       </div>
 
       <!-- 目录部分 -->
-      <transition
-        name="fade"
-        enter-active-class="transition ease-out duration-300"
-        leave-active-class="transition ease-in duration-300"
-      >
-        <Directory
-          class="w-[16vw] h-[70vh] mx-[2vw] px-2 py-4 overflow-auto theme-border"
-          v-if="lgAndUp && showBigCatalog"
-        />
+      <transition name="fade" enter-active-class="transition ease-out duration-300"
+        leave-active-class="transition ease-in duration-300">
+        <Directory class="w-[16vw] h-[70vh] mx-[2vw] px-2 py-4 overflow-auto theme-border"
+          v-if="lgAndUp && showBigCatalog" />
       </transition>
     </div>
   </div>
