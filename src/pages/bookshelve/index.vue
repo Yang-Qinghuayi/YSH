@@ -1,42 +1,40 @@
 <template>
-  <div @contextmenu="addBooks" class="h-[88vh]">
+  <div class="h-[88vh]">
+    <v-btn variant="tonal" color="primary" @click="fileInput?.click()">
+      上传书籍
+    </v-btn>
+    <v-btn variant="tonal" class="ml-3" color="primary" @click="dirInput?.click()">
+      上传文件夹
+    </v-btn>
     <div class="mt-2">
       <card-row>
-        <v-card
-          @click.right.native="(event) => deleteBook(event, file.name)"
-          @click="goToRead(file)"
-          v-for="file in epubFiles"
-          :flat="true"
-        >
-          <v-img
-            class="cover-image"
-            :cover="true"
-            :src="file.cover"
-            style="aspect-ratio: 1"
-            :aspect-ratio="1"
-            :lazy-src="placeholderUrl"
-          >
+        <v-card @click="goToRead(file)" v-for="file in epubFiles" :flat="true">
+          <v-img class="cover-image" :cover="true" :src="file.cover" style="aspect-ratio: 1" :aspect-ratio="1"
+            :lazy-src="placeholderUrl">
           </v-img>
           <!-- 名称 -->
           <v-card-title :class="[lgAndUp ? '' : 'text-sm']">
             {{ file.name }}
+            <v-menu open-on-hover open-delay=100 close-delay="100">
+              <template v-slot:activator="{ props }">
+                <v-btn variant="text" color="primary" icon size="small" v-bind="props">
+                  <v-icon class="text-[#777c7a]">{{ mdiDotsHorizontal }}</v-icon>
+                </v-btn>
+              </template>
+
+              <v-list elevation=6 class="p-0">
+                <v-list-item class=" px-6 py-4 text-center" v-for="(item, index) in items" :key="index" :value="index"
+                  @click="item.function(file.name)">
+                  {{ item.title }}
+                </v-list-item>
+              </v-list>
+            </v-menu>
           </v-card-title>
         </v-card>
       </card-row>
     </div>
-    <input
-      ref="dirInput"
-      type="file"
-      @change="handleDirChange"
-      class="hidden"
-      webkitdirectory
-    />
-    <input
-      ref="fileInput"
-      type="file"
-      @change="handleFileChange"
-      class="hidden"
-    />
+    <input ref="dirInput" type="file" @change="handleDirChange" class="hidden" webkitdirectory />
+    <input ref="fileInput" type="file" @change="handleFileChange" class="hidden" />
   </div>
 </template>
 
@@ -93,65 +91,14 @@ const fileInput = ref(null);
 
 const dirInput = ref(null);
 
-function addBooks(event) {
-  // 劫持系统默认行为
-  event.preventDefault();
-  const { x, y } = event;
-  const option = {
-    theme: themeName.value,
-    x,
-    y,
-    items: [
-      {
-        label: "导入书籍",
-        onClick: () => {
-          fileInput.value.click();
-        },
-      },
-      {
-        label: "导入书架",
-        onClick: async () => {
-          dirInput.value.click();
-        },
-      },
-      {
-        divided: true,
-      },
-    ],
-    offsetFooter: 64,
-    customClass: "bg-surfaceVariant",
-  };
-  contextMenu(option);
-}
 
-// 移除书架
-import { useContextMenu } from "vuetify-ctx-menu/lib/main";
-const contextMenu = useContextMenu();
-const { themeName } = useCurrentTheme();
-
-function deleteBook(event, name) {
-  event.stopPropagation(); // 阻止事件冒泡
-  event.preventDefault();
-  let option;
-  const { x, y } = event;
-  option = {
-    theme: themeName.value,
-    x,
-    y,
-    items: [
-      {
-        label: "从书架移除",
-        onClick: () => {
-          removeFromBookshelves(name);
-        },
-      },
-    ],
-    offsetFooter: 64,
-    customClass: "bg-surfaceVariant",
-  };
-  contextMenu(option);
-}
-
+const items = [
+  {
+    title: '删除', function: (name: string) => {
+      removeFromBookshelves(name);
+    }
+  },
+]
 //  delete book
 import { useToast } from "vue-toastification";
 const toast = useToast();
@@ -181,6 +128,7 @@ import { useBookStore } from "@/store/book";
 const bookStore = useBookStore();
 import EPub from "epubjs";
 import localForage from "localforage";
+import { mdiDotsHorizontal } from "@mdi/js";
 localForage.config({
   name: "epubBooks",
 });
