@@ -29,11 +29,16 @@
     <div v-if="logged" @click="toPage('/music')" class="head">
       <button class="account">
         <v-avatar size="40">
-          <v-img :aspect-ratio="1" contain :src="avatarUrl" :lazy-src="placeholderUrl" />
+          <v-img
+            :aspect-ratio="1"
+            contain
+            :src="avatarUrl"
+            :lazy-src="placeholderUrl"
+          />
         </v-avatar>
-          <div class="ml-10" v-show="!rail">
-            <div>{{ username }}</div>
-          </div>
+        <div class="ml-10" v-show="!rail">
+          <div>{{ username }}</div>
+        </div>
       </button>
     </div>
     <div class="head" v-else icon flat @click="showLogin = !showLogin">
@@ -45,28 +50,30 @@
 </template>
 <script setup lang="ts">
 // 接受参数
-const props = defineProps<{ rail: string }>()
-const { rail } = toRefs(props)
+const props = defineProps<{ rail: string }>();
+const { rail } = toRefs(props);
 
-import { storeToRefs } from 'pinia'
-import { mdiNetEase } from '@/util/icons'
-import placeholderUrl from '@/assets/placeholder.png'
-import { useAppStore } from '@/store/app'
-import { useUserStore } from '@/store/user'
-import { toHttps } from '@/util/fn'
+import { storeToRefs } from "pinia";
+import { mdiNetEase } from "@/utils/icons";
+import placeholderUrl from "@/assets/placeholder.png";
+import { useAppStore } from "@/store/app";
+import { useUserStore } from "@/store/user";
+import { toHttps } from "@/utils/fn";
 
-const appStore = useAppStore()
-const userStore = useUserStore()
-const { showLogin } = storeToRefs(appStore)
-const { logged, account } = storeToRefs(userStore)
+const appStore = useAppStore();
+const userStore = useUserStore();
+const { showLogin } = storeToRefs(appStore);
+const { logged, account } = storeToRefs(userStore);
 
-const avatarUrl = computed(() => toHttps(account.value?.profile.avatarUrl ?? ''))
-const username = computed(() => account.value?.profile.nickname ?? '')
+const avatarUrl = computed(() =>
+  toHttps(account.value?.profile.avatarUrl ?? "")
+);
+const username = computed(() => account.value?.profile.nickname ?? "");
 
-import { useRouter } from 'vue-router'
+import { useRouter } from "vue-router";
 // 点击跳转函数,使用router
-const router = useRouter()
+const router = useRouter();
 const toPage = (path: string) => {
-  router.push(path)
-}
+  router.push(path);
+};
 </script>

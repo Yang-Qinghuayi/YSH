@@ -8,7 +8,7 @@
         </v-icon>
       </v-btn>
 
-      <div class="w-full h-full" ref="containerRef"></div>
+      <div @click="handleTurnPage" class="w-full h-full" ref="containerRef"></div>
 
       <!-- 目录部分 -->
       <transition name="fade" enter-active-class="transition ease-out duration-300"
@@ -26,6 +26,7 @@ import { FoliateView } from "@/types/view"
 import { useDisplay } from "vuetify";
 const { lgAndUp, } = useDisplay();
 
+import { useClickEvent, useTouchEvent } from '@/hooks/useIframeEvents';
 import { storeToRefs } from "pinia";
 import { useSettingStore } from "@/store/setting";
 const { showBigCatalog } = storeToRefs(useSettingStore()) as any
@@ -44,6 +45,8 @@ const bookStore = useBookStore();
 const containerRef = ref<HTMLDivElement | null>(null);
 const viewRef = ref<FoliateView | null>(null);
 
+useTouchEvent(viewRef);
+const { handleTurnPage } = useClickEvent(viewRef, containerRef);
 
 onMounted(async () => {
   const view = document.createElement("foliate-view") as FoliateView

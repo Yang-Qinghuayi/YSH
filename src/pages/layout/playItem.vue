@@ -5,7 +5,10 @@
       <img @click.stop="showPlayingPage" id="myCover" :src="coverUrl" />
       <!-- 歌曲名称 -->
       <div class="text-h6">
-        <router-Link v-if="track.al" :to="`/album/${track.al.id}`" class="text-onSurface line-clamp-1"
+        <router-Link
+          v-if="track.al"
+          :to="`/album/${track.al.id}`"
+          class="text-onSurface line-clamp-1"
           >{{ track?.name }}
         </router-Link>
         <span v-else class="line-clamp-1"> {{ track?.name }} </span>
@@ -52,84 +55,93 @@
   </div>
 </template>
 <script setup lang="ts">
-
 function handleContextMenu(event: MouseEvent) {
   // 劫持系统默认行为
-  event.preventDefault()
+  event.preventDefault();
   if (!track.value) {
-    return
+    return;
   }
-  const { toPlaylistMenuItems } = useTrackOperation(track.value)
-  const { x, y } = event
+  const { toPlaylistMenuItems } = useTrackOperation(track.value);
+  const { x, y } = event;
   const option = {
     theme: themeName.value,
     x,
     y,
     items: [
       {
-        label: '加入歌单',
+        label: "加入歌单",
         children: toPlaylistMenuItems.value,
       },
       {
         divided: true,
       },
       {
-        label: '下载当前歌曲',
+        label: "下载当前歌曲",
         onClick: () => {
           if (track?.value?.id) {
-            useDownloadMusic(track.value)
+            useDownloadMusic(track.value);
           }
         },
       },
     ],
     offsetFooter: 64,
-    customClass: 'bg-surfaceVariant',
-  }
-  contextMenu(option)
+    customClass: "bg-surfaceVariant",
+  };
+  contextMenu(option);
 }
 
+const {
+  prev,
+  next,
+  toggleShuffle,
+  toggleMode,
+  playMode,
+  shuffle,
+  modeIcon,
+  shuffleIcon,
+} = usePlayerControl();
 
-const { prev, next, toggleShuffle, toggleMode, playMode, shuffle, modeIcon, shuffleIcon } = usePlayerControl()
+import { mdiDotsHorizontal, mdiHeartPulse, mdiPlaylistMusic } from "@mdi/js";
+import { useEventBus } from "@vueuse/core";
+import { useI18n } from "vue-i18n";
+import { useRouter } from "vue-router";
+import { useToast } from "vue-toastification";
+import { useContextMenu } from "vuetify-ctx-menu/lib/main";
 
-import { mdiDotsHorizontal, mdiHeartPulse, mdiPlaylistMusic } from '@mdi/js'
-import { useEventBus } from '@vueuse/core'
-import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
-import { useToast } from 'vue-toastification'
-import { useContextMenu } from 'vuetify-ctx-menu/lib/main'
+import { getHeartBeatList } from "@/api/user";
+import TrackSlider from "@/components/TrackSlider.vue";
+import { useEmojiAnimation } from "@/hooks/useEmojiAnimation";
+import useInForeground from "@/hooks/useInForeground";
+import usePlayerControl from "@/hooks/usePlayerControl";
+import { useCurrentTheme } from "@/hooks/useTheme";
+import { useTrackOperation } from "@/hooks/useTrackOperation";
+import { usePlayer } from "@/player/player";
+import { useAppStore } from "@/store/app";
+import { usePlayQueueStore } from "@/store/playQueue";
+import { useUserStore } from "@/store/user";
+import type { PlayNowEvent } from "@/types";
+import { RESOURCE_TYPE } from "@/utils/enum";
+import { sizeOfImage } from "@/utils/fn";
+import { specialType } from "@/utils/metadata";
+const playQueueStore = usePlayQueueStore();
+const appStore = useAppStore();
+const userStore = useUserStore();
+const router = useRouter();
+const player = usePlayer();
+const toast = useToast();
+const { t } = useI18n();
 
-import { getHeartBeatList } from '@/api/user'
-import TrackSlider from '@/components/TrackSlider.vue'
-import { useEmojiAnimation } from '@/hooks/useEmojiAnimation'
-import useInForeground from '@/hooks/useInForeground'
-import usePlayerControl from '@/hooks/usePlayerControl'
-import { useCurrentTheme } from '@/hooks/useTheme'
-import { useTrackOperation } from '@/hooks/useTrackOperation'
-import { usePlayer } from '@/player/player'
-import { useAppStore } from '@/store/app'
-import { usePlayQueueStore } from '@/store/playQueue'
-import { useUserStore } from '@/store/user'
-import type { PlayNowEvent } from '@/types'
-import { RESOURCE_TYPE } from '@/util/enum'
-import { sizeOfImage } from '@/util/fn'
-import { specialType } from '@/util/metadata'
-const playQueueStore = usePlayQueueStore()
-const appStore = useAppStore()
-const userStore = useUserStore()
-const router = useRouter()
-const player = usePlayer()
-const toast = useToast()
-const { t } = useI18n()
+const contextMenu = useContextMenu();
 
-const contextMenu = useContextMenu()
+const { themeName } = useCurrentTheme();
 
-const { themeName } = useCurrentTheme()
-
-const heartbeatLoading = ref(false)
+const heartbeatLoading = ref(false);
 
 // store state
-const { track, showPipLyric, isCurrentFm, isProgram } = usePlayerControl()
-const coverUrl = computed(() => sizeOfImage(track.value?.coverUrl ?? track.value?.al?.picUrl ?? '', 1024))
+const { track, showPipLyric, isCurrentFm, isProgram } = usePlayerControl();
+const coverUrl = computed(() =>
+  sizeOfImage(track.value?.coverUrl ?? track.value?.al?.picUrl ?? "", 1024)
+);
 
 const showHeartBeat = computed(() => {
   return (
@@ -138,86 +150,86 @@ const showHeartBeat = computed(() => {
     !isCurrentFm.value &&
     track.value &&
     userStore.likes.includes(track.value.id)
-  )
-})
+  );
+});
 // 播放并开启飞越小动画
-const playlistBtn = ref<HTMLButtonElement>()
-const { playAnimation } = useEmojiAnimation(playlistBtn)
-const eventBus = useEventBus<PlayNowEvent>('playNow')
+const playlistBtn = ref<HTMLButtonElement>();
+const { playAnimation } = useEmojiAnimation(playlistBtn);
+const eventBus = useEventBus<PlayNowEvent>("playNow");
 eventBus.on((payload) => {
-  const { id, from, setQueue } = payload
-  player.updatePlayerTrack(id, true, true, false, from)
-  playAnimation('🎉')
+  const { id, from, setQueue } = payload;
+  player.updatePlayerTrack(id, true, true, false, from);
+  playAnimation("🎉");
   if (setQueue) {
-    playQueueStore.setQueue(id)
+    playQueueStore.setQueue(id);
   }
-})
+});
 
 // 跳转播放列表
 
-const { isActive: isQueue } = useInForeground('queue')
+const { isActive: isQueue } = useInForeground("queue");
 function toQueue() {
   if (isQueue.value) {
-    router.back()
+    router.back();
   } else {
-    router.push('/queue')
+    router.push("/queue");
   }
 }
 
 // 桌面歌词
 function togglePipLyric() {
   if (!showPipLyric.value) {
-    player.pipLyric?.enter()
+    player.pipLyric?.enter();
   } else {
-    player.pipLyric?.leave()
+    player.pipLyric?.leave();
   }
 }
 player.pipLyric!.onLeave = function () {
-  console.log('on leave')
-  showPipLyric.value = false
-}
+  console.log("on leave");
+  showPipLyric.value = false;
+};
 player.pipLyric!.onEnter = function () {
-  console.log('on enter')
-  showPipLyric.value = true
-}
+  console.log("on enter");
+  showPipLyric.value = true;
+};
 
 async function showPlayingPage() {
-  appStore.showLyric = true
+  appStore.showLyric = true;
 }
 
 function openContextMenu(event: MouseEvent) {
   if (track.value) {
-    const { toPlaylistMenuItems } = useTrackOperation(track.value)
-    const { x, y } = event
+    const { toPlaylistMenuItems } = useTrackOperation(track.value);
+    const { x, y } = event;
     const option = {
       theme: themeName.value,
       x,
       y,
       items: toPlaylistMenuItems.value,
       offsetFooter: 48,
-      customClass: 'bg-surfaceVariant',
-    }
-    contextMenu(option)
+      customClass: "bg-surfaceVariant",
+    };
+    contextMenu(option);
   }
 }
 
 async function generateHeartBeatList() {
-  heartbeatLoading.value = true
+  heartbeatLoading.value = true;
   try {
     if (track.value?.id) {
-      const id = track.value?.id
-      const list = await getHeartBeatList(id)
+      const id = track.value?.id;
+      const list = await getHeartBeatList(id);
       if (list.length) {
-        playQueueStore.updatePlayQueue(0, 'intelligence', '心动智能列表', list)
-        toast.success(t('message.heartbeat_success'))
+        playQueueStore.updatePlayQueue(0, "intelligence", "心动智能列表", list);
+        toast.success(t("message.heartbeat_success"));
       } else {
-        toast.warning(t('common.no_more'))
+        toast.warning(t("common.no_more"));
       }
     }
   } catch (e) {
-    toast.error(t('message.something_wrong'))
+    toast.error(t("message.something_wrong"));
   } finally {
-    heartbeatLoading.value = false
+    heartbeatLoading.value = false;
   }
 }
 </script>

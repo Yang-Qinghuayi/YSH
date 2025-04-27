@@ -1,6 +1,14 @@
 <template>
   <transition name="slide-fade-y">
-    <v-app-bar v-if="track?.id" location="bottom" fixed class="player-footer px-2" :order="1" height="56" flat>
+    <v-app-bar
+      v-if="track?.id"
+      location="bottom"
+      fixed
+      class="player-footer px-2"
+      :order="1"
+      height="56"
+      flat
+    >
       <!-- <TrackSlider class="track-slider" /> -->
       <div class="playing-control" @click="showPlayingPage">
         <div class="playing-bar__left">
@@ -40,7 +48,13 @@
               @anim-created="handleAnimation"
             ></lottie-icon>
           </v-btn>
-          <v-btn icon size="small" :color="isQueue ? 'primary' : ''" :disabled="isCurrentFm" @click.stop="toQueue">
+          <v-btn
+            icon
+            size="small"
+            :color="isQueue ? 'primary' : ''"
+            :disabled="isCurrentFm"
+            @click.stop="toQueue"
+          >
             <v-icon size="small">
               {{ mdiPlaylistMusic }}
             </v-icon>
@@ -51,79 +65,82 @@
   </transition>
 </template>
 <script setup lang="ts">
-import { mdiPlaylistMusic } from '@mdi/js'
-import { useEventBus } from '@vueuse/core'
-import { storeToRefs } from 'pinia'
-import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useTheme } from 'vuetify'
+import { mdiPlaylistMusic } from "@mdi/js";
+import { useEventBus } from "@vueuse/core";
+import { storeToRefs } from "pinia";
+import { computed, ref } from "vue";
+import { useRouter } from "vue-router";
+import { useTheme } from "vuetify";
 
-import TrackSlider from '@/components/TrackSlider.vue'
-import { useEmojiAnimation } from '@/hooks/useEmojiAnimation'
-import useInForeground from '@/hooks/useInForeground'
-import { usePlayer } from '@/player/player'
-import { useAppStore } from '@/store/app'
-import { usePlayerStore } from '@/store/player'
-import { usePlayQueueStore } from '@/store/playQueue'
-import { playToPause as playToPauseAnimationData } from '@/util/animationData.json'
-import { sizeOfImage } from '@/util/fn'
+import TrackSlider from "@/components/TrackSlider.vue";
+import { useEmojiAnimation } from "@/hooks/useEmojiAnimation";
+import useInForeground from "@/hooks/useInForeground";
+import { usePlayer } from "@/player/player";
+import { useAppStore } from "@/store/app";
+import { usePlayerStore } from "@/store/player";
+import { usePlayQueueStore } from "@/store/playQueue";
+import { playToPause as playToPauseAnimationData } from "@/utils/animationData.json";
+import { sizeOfImage } from "@/utils/fn";
 
 // utitlity
-const playerStore = usePlayerStore()
-const playQueueStore = usePlayQueueStore()
-const appStore = useAppStore()
-const router = useRouter()
-const player = usePlayer()
-const theme = useTheme()
+const playerStore = usePlayerStore();
+const playQueueStore = usePlayQueueStore();
+const appStore = useAppStore();
+const router = useRouter();
+const player = usePlayer();
+const theme = useTheme();
 
 // store state
-const { track, volume, isCurrentFm, playing, loadingTrack } = storeToRefs(playerStore)
-const albumPicUrl = computed(() => sizeOfImage(track.value?.al?.picUrl ?? '', 128))
+const { track, volume, isCurrentFm, playing, loadingTrack } =
+  storeToRefs(playerStore);
+const albumPicUrl = computed(() =>
+  sizeOfImage(track.value?.al?.picUrl ?? "", 128)
+);
 
 const sliderVolume = computed({
   get() {
-    return volume.value
+    return volume.value;
   },
   set(val) {
-    volume.value = val
+    volume.value = val;
   },
-})
-sliderVolume.value = volume.value
+});
+sliderVolume.value = volume.value;
 
 // 跳转播放列表
 
-const { isActive: isQueue } = useInForeground('queue')
+const { isActive: isQueue } = useInForeground("queue");
 function toQueue() {
   if (isQueue.value) {
-    router.back()
+    router.back();
   } else {
-    router.push('/queue')
+    router.push("/queue");
   }
 }
 
 async function showPlayingPage() {
-  appStore.showLyric = true
+  appStore.showLyric = true;
 }
 
 const togglePlay = () => {
-  playing.value = !playing.value
-}
-const playAnim = ref()
+  playing.value = !playing.value;
+};
+const playAnim = ref();
 const playOptions = {
   animationData: playToPauseAnimationData,
   loop: false,
   autoplay: false,
-}
+};
 watch(playing, (val) => {
   if (val) {
-    playAnim.value?.playSegments([0, 30], true)
+    playAnim.value?.playSegments([0, 30], true);
   } else {
-    playAnim.value?.playSegments([30, 60], true)
+    playAnim.value?.playSegments([30, 60], true);
   }
-})
+});
 function handleAnimation(animation) {
-  playAnim.value = animation
-  playAnim.value.setSpeed(2)
+  playAnim.value = animation;
+  playAnim.value.setSpeed(2);
 }
 </script>
 

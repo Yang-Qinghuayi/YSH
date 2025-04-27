@@ -18,7 +18,7 @@ import { PLAY_MODE } from "@/store/player";
 const { prev, next, playMode, playing, isCurrentFm, toggle, loadingTrack } =
   usePlayerControl();
 
-import { midPre, mdiNext, mdiPlay, mdiPause } from "@/util/icons";
+import { midPre, mdiNext, mdiPlay, mdiPause } from "@/utils/icons";
 
 const playIcon = ref(mdiPlay);
 

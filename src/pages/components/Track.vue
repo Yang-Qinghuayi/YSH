@@ -1,21 +1,21 @@
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
-import { useI18n } from 'vue-i18n'
-import { useToast } from 'vue-toastification'
-import type { VListItem } from 'vuetify/components'
+import { storeToRefs } from "pinia";
+import { useI18n } from "vue-i18n";
+import { useToast } from "vue-toastification";
+import type { VListItem } from "vuetify/components";
 
-import placeholderUrl from '@/assets/placeholder.png'
-import { usePlayerStore } from '@/store/player'
-import { useUserStore } from '@/store/user'
-import type { Album, Artist, Track } from '@/types'
-import { sizeOfImage } from '@/util/fn'
+import placeholderUrl from "@/assets/placeholder.png";
+import { usePlayerStore } from "@/store/player";
+import { useUserStore } from "@/store/user";
+import type { Album, Artist, Track } from "@/types";
+import { sizeOfImage } from "@/utils/fn";
 
-const toast = useToast()
-const { t } = useI18n()
-const userStore = useUserStore()
-const playerStore = usePlayerStore()
+const toast = useToast();
+const { t } = useI18n();
+const userStore = useUserStore();
+const playerStore = usePlayerStore();
 
-const { logged, account } = storeToRefs(userStore)
+const { logged, account } = storeToRefs(userStore);
 const props = defineProps({
   track: {
     type: Object,
@@ -37,79 +37,83 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-})
+});
 
-const itemRef = ref<InstanceType<typeof VListItem>>()
+const itemRef = ref<InstanceType<typeof VListItem>>();
 
 const liked = computed(() => {
-  return !!userStore.likes.find((id: number) => id === props.track.id)
-})
+  return !!userStore.likes.find((id: number) => id === props.track.id);
+});
 const current = computed(() => {
-  return props.track.id === playerStore.track?.id
-})
+  return props.track.id === playerStore.track?.id;
+});
 const artists = computed(() => {
-  const { ar, artists } = props.track
-  const art = ar ?? artists ?? []
-  return art.map((i: Artist) => ({ id: i.id, name: i.name }))
-})
-const trackAlbum = computed<Album>(() => props.track.al ?? props.track.album ?? {})
-const albumCover = computed(() => sizeOfImage(trackAlbum.value.picUrl ?? trackAlbum.value.coverImgUrl, 128))
+  const { ar, artists } = props.track;
+  const art = ar ?? artists ?? [];
+  return art.map((i: Artist) => ({ id: i.id, name: i.name }));
+});
+const trackAlbum = computed<Album>(
+  () => props.track.al ?? props.track.album ?? {}
+);
+const albumCover = computed(() =>
+  sizeOfImage(trackAlbum.value.picUrl ?? trackAlbum.value.coverImgUrl, 128)
+);
 
-const isVip = computed(() => account.value?.profile.vipType === 11)
+const isVip = computed(() => account.value?.profile.vipType === 11);
 const available = computed(() => {
   if (props.track.fee === 1) {
     if (logged.value && isVip.value) {
       return {
         enable: true,
-      }
+      };
     } else {
       return {
         enable: false,
-        text: 'VIP用户可用',
-      }
+        text: "VIP用户可用",
+      };
     }
   } else if (props.track.fee === 4) {
     return {
-      text: '付费专辑，先购买',
+      text: "付费专辑，先购买",
       enable: false,
-    }
+    };
   } else if (props.track.noCopyrightRcmd) {
     return {
-      text: '无版权',
+      text: "无版权",
       enable: false,
-    }
+    };
   } else {
     return {
       enable: true,
-    }
+    };
   }
-})
+});
 const emit = defineEmits<{
   (
-    event: 'openctxmenu',
+    event: "openctxmenu",
     payload: {
-      x: number
-      y: number
-      track: Track
-      liked: boolean
+      x: number;
+      y: number;
+      track: Track;
+      liked: boolean;
     }
-  ): void
-  (event: 'play', id: number): void
-}>()
+  ): void;
+  (event: "play", id: number): void;
+}>();
 function play() {
-  emit('play', props.track?.id)
+  emit("play", props.track?.id);
 }
 
 function openMenu(e: MouseEvent) {
   // active current item
-  itemRef!.value!.$el.click()
+  itemRef!.value!.$el.click();
   // display context menu
-  emit('openctxmenu', {
+  emit("openctxmenu", {
     x: e.x,
     y: e.y,
     track: props.track as Track,
     liked: liked.value,
-  })
+  });
 }
 </script>
 <template>
@@ -140,7 +144,10 @@ function openMenu(e: MouseEvent) {
       </div>
       <div class="track-first">
         <div class="track-info text-medium-emphasis select-text">
-          <v-list-item-title class="line-clamp-1" :class="current ? 'text-primary' : ''">
+          <v-list-item-title
+            class="line-clamp-1"
+            :class="current ? 'text-primary' : ''"
+          >
             {{ track.name }}
           </v-list-item-title>
           <v-list-item-subtitle class="d-flex align-center">
@@ -156,7 +163,7 @@ function openMenu(e: MouseEvent) {
           :class="{
             'text-primary': current,
           }"
-          >{{ `${index}`.padStart(2, '0') }}</span
+          >{{ `${index}`.padStart(2, "0") }}</span
         >
       </div>
     </div>

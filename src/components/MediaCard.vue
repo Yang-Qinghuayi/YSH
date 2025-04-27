@@ -27,12 +27,27 @@
             <v-icon size="small">{{ playing ? mdiPause : mdiPlay }}</v-icon>
           </v-square-btn>
         </div>
-        <div class="d-flex justify-space-between align-center mx-1 no-drag-area">
-          <v-btn density="comfortable" icon variant="text" size="small" @click="prev">
+        <div
+          class="d-flex justify-space-between align-center mx-1 no-drag-area"
+        >
+          <v-btn
+            density="comfortable"
+            icon
+            variant="text"
+            size="small"
+            @click="prev"
+          >
             <v-icon size="small">{{ mdiSkipPrevious }}</v-icon>
           </v-btn>
           <track-slider class="mx-1" />
-          <v-btn density="comfortable" icon variant="text" size="small" color="white" @click="next">
+          <v-btn
+            density="comfortable"
+            icon
+            variant="text"
+            size="small"
+            color="white"
+            @click="next"
+          >
             <v-icon size="small">{{ mdiSkipNext }}</v-icon>
           </v-btn>
           <v-btn
@@ -56,21 +71,38 @@
 </template>
 
 <script setup lang="ts">
-import { mdiArrowLeft, mdiMusicCircle, mdiPause, mdiPlay, mdiSkipNext, mdiSkipPrevious } from '@mdi/js'
+import {
+  mdiArrowLeft,
+  mdiMusicCircle,
+  mdiPause,
+  mdiPlay,
+  mdiSkipNext,
+  mdiSkipPrevious,
+} from "@mdi/js";
 
-import usePlayerControl from '@/hooks/usePlayerControl'
-import { useSettingStore } from '@/store/setting'
-import { sizeOfImage } from '@/util/fn'
+import usePlayerControl from "@/hooks/usePlayerControl";
+import { useSettingStore } from "@/store/setting";
+import { sizeOfImage } from "@/utils/fn";
 
-const settingStore = useSettingStore()
+const settingStore = useSettingStore();
 
-const { toggle, prev, next, playing, track, isCurrentFm, toggleShuffle, shuffle, shuffleIcon } = usePlayerControl()
+const {
+  toggle,
+  prev,
+  next,
+  playing,
+  track,
+  isCurrentFm,
+  toggleShuffle,
+  shuffle,
+  shuffleIcon,
+} = usePlayerControl();
 
 const theme = computed(() => {
-  return settingStore.wallpaperColor + 'Dark'
-})
+  return settingStore.wallpaperColor + "Dark";
+});
 
 const coverImage = computed(() => {
-  return sizeOfImage(track.value?.al?.picUrl ?? '', 1024)
-})
+  return sizeOfImage(track.value?.al?.picUrl ?? "", 1024);
+});
 </script>

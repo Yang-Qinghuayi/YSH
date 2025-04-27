@@ -1,43 +1,48 @@
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
-import { useDisplay } from 'vuetify'
+import { storeToRefs } from "pinia";
+import { useDisplay } from "vuetify";
 
-import { useAppStore } from '@/store/app'
-import { useSettingStore } from '@/store/setting'
-import { PLAYING_MODE } from '@/util/enum'
+import { useAppStore } from "@/store/app";
+import { useSettingStore } from "@/store/setting";
+import { PLAYING_MODE } from "@/utils/enum";
 
-import {  mobile, simple } from './exports'
+import { mobile, simple } from "./exports";
 
-const appStore = useAppStore()
-const settingStore = useSettingStore()
-const { showLyric } = storeToRefs(appStore)
-const { xs } = useDisplay()
+const appStore = useAppStore();
+const settingStore = useSettingStore();
+const { showLyric } = storeToRefs(appStore);
+const { xs } = useDisplay();
 
-const fullscreen = ref(false)
+const fullscreen = ref(false);
 
 const currentComponent = computed(() => {
   const component = {
     [PLAYING_MODE.SIMPLE]: simple,
-  }[settingStore.playingMode]
+  }[settingStore.playingMode];
   if (xs.value) {
-    return mobile
+    return mobile;
   } else if (settingStore.visualization) {
-    return 
+    return;
   } else {
-    return component
+    return component;
   }
-})
+});
 
 onMounted(() => {
-  document.documentElement.onfullscreenchange = onfullscreenchange
-})
+  document.documentElement.onfullscreenchange = onfullscreenchange;
+});
 
 function onfullscreenchange(event: Event) {
-  fullscreen.value = document.fullscreenElement === event.target
+  fullscreen.value = document.fullscreenElement === event.target;
 }
 </script>
 <template>
-  <v-dialog v-model="showLyric" fullscreen transition="fade-transition" :scrim="false">
+  <v-dialog
+    v-model="showLyric"
+    fullscreen
+    transition="fade-transition"
+    :scrim="false"
+  >
     <keep-alive>
       <component :is="currentComponent" />
     </keep-alive>

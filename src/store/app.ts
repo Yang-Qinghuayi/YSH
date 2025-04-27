@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { reactive, toRefs } from 'vue'
 
-import { useUserStore } from '@/store/user'
 
 export interface AppState {
   showControlCenter: boolean
@@ -27,8 +26,6 @@ export const useAppStore = defineStore('app', {
   },
   actions: {
     async init() {
-      const userStore = useUserStore()
-      await userStore.fetch()
     },
   },
 })

@@ -2,7 +2,7 @@ import { useLocalStorage } from "@vueuse/core";
 import { defineStore } from "pinia";
 
 import type { ThemeDefinition } from "@/plugins/vuetify";
-import { PLAYING_MODE } from "@/util/enum";
+import { PLAYING_MODE } from "@/utils/enum";
 
 export enum APPEARANCE {
   LIGHT = "light",
@@ -85,7 +85,7 @@ export const useSettingStore = defineStore("setting", {
         rail: true,
         catalog: false,
         showBigCatalog: true,
-        showBook:true,
+        showBook: true,
         showBottomNav: true,
         miniPlayer: false,
         quality: 320000,

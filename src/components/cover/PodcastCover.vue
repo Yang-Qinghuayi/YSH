@@ -19,13 +19,23 @@
         :lazy-src="placeholderUrl"
       >
       </v-img>
-      <div v-if="shadow" class="cover-shadow" :style="`background-image: url('${coverBgUrl}')`" />
-      <v-card-title :class="`line-clamp-${titleLine}`" style="white-space: initial">
+      <div
+        v-if="shadow"
+        class="cover-shadow"
+        :style="`background-image: url('${coverBgUrl}')`"
+      />
+      <v-card-title
+        :class="`line-clamp-${titleLine}`"
+        style="white-space: initial"
+      >
         <router-link :to="to" class="text-subtitle-2 text-onSurfaceVariant">
           {{ data.name }}
         </router-link>
       </v-card-title>
-      <span v-if="subTitle" class="line-clamp-1 text-subtitle-2 text-disabled mb-4 px-4">
+      <span
+        v-if="subTitle"
+        class="line-clamp-1 text-subtitle-2 text-disabled mb-4 px-4"
+      >
         {{ subTitle }}
       </span>
       <slot />
@@ -33,19 +43,19 @@
   </v-hover>
 </template>
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
+import { storeToRefs } from "pinia";
 
-import placeholderUrl from '@/assets/placeholder.png'
-import useInForeground from '@/hooks/useInForeground'
-import { usePlayer } from '@/player/player'
-import { usePlayerStore } from '@/store/player'
-import { usePlayQueueStore } from '@/store/playQueue'
-import { sizeOfImage, toHttps } from '@/util/fn'
-const player = usePlayer()
-const playStore = usePlayerStore()
-const playQueue = usePlayQueueStore()
-const loading = ref<boolean>(false)
-const { playing } = storeToRefs(playStore)
+import placeholderUrl from "@/assets/placeholder.png";
+import useInForeground from "@/hooks/useInForeground";
+import { usePlayer } from "@/player/player";
+import { usePlayerStore } from "@/store/player";
+import { usePlayQueueStore } from "@/store/playQueue";
+import { sizeOfImage, toHttps } from "@/utils/fn";
+const player = usePlayer();
+const playStore = usePlayerStore();
+const playQueue = usePlayQueueStore();
+const loading = ref<boolean>(false);
+const { playing } = storeToRefs(playStore);
 const props = defineProps({
   data: {
     type: Object,
@@ -57,7 +67,7 @@ const props = defineProps({
   },
   subTitle: {
     type: String,
-    default: '',
+    default: "",
   },
   extra: {
     type: String,
@@ -67,17 +77,17 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-})
-const { isActive: isInDetail } = useInForeground(['podcast'])
+});
+const { isActive: isInDetail } = useInForeground(["podcast"]);
 
 const coverBgUrl = computed(() => {
-  return sizeOfImage(toHttps(props.data.picUrl ?? props.data.coverImgUrl))
-})
+  return sizeOfImage(toHttps(props.data.picUrl ?? props.data.coverImgUrl));
+});
 const subTitle = computed(() => {
-  return props.extra ?? props.data.rcmdtext
-})
+  return props.extra ?? props.data.rcmdtext;
+});
 
-const to = computed(() => `/podcast/${props.data.id}`)
+const to = computed(() => `/podcast/${props.data.id}`);
 </script>
 <style scoped lang="scss">
 .cover-container {

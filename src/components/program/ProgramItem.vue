@@ -7,26 +7,31 @@ import {
   mdiPlay,
   mdiPlayCircleOutline,
   mdiThumbUp,
-} from '@mdi/js'
-import { storeToRefs } from 'pinia'
-import { useI18n } from 'vue-i18n'
-import { useToast } from 'vue-toastification'
-import type { VListItem } from 'vuetify/components'
+} from "@mdi/js";
+import { storeToRefs } from "pinia";
+import { useI18n } from "vue-i18n";
+import { useToast } from "vue-toastification";
+import type { VListItem } from "vuetify/components";
 
-import placeholderUrl from '@/assets/placeholder.png'
-import { usePlayer } from '@/player/player'
-import { usePlayerStore } from '@/store/player'
-import { useUserStore } from '@/store/user'
-import type { Album, Artist, Program, Track } from '@/types'
-import { formatDate, formatDuring, formatNumber, sizeOfImage } from '@/util/fn'
+import placeholderUrl from "@/assets/placeholder.png";
+import { usePlayer } from "@/player/player";
+import { usePlayerStore } from "@/store/player";
+import { useUserStore } from "@/store/user";
+import type { Album, Artist, Program, Track } from "@/types";
+import {
+  formatDate,
+  formatDuring,
+  formatNumber,
+  sizeOfImage,
+} from "@/utils/fn";
 
-const toast = useToast()
-const { t } = useI18n()
-const userStore = useUserStore()
-const playerStore = usePlayerStore()
-const player = usePlayer()
+const toast = useToast();
+const { t } = useI18n();
+const userStore = useUserStore();
+const playerStore = usePlayerStore();
+const player = usePlayer();
 
-const { logged, account } = storeToRefs(userStore)
+const { logged, account } = storeToRefs(userStore);
 const props = defineProps({
   program: {
     type: Object,
@@ -36,75 +41,77 @@ const props = defineProps({
     type: [String, Number],
     default: 0,
   },
-})
+});
 
-const itemRef = ref<InstanceType<typeof VListItem>>()
+const itemRef = ref<InstanceType<typeof VListItem>>();
 
 const current = computed(() => {
-  return props.program.id === playerStore.track?.id
-})
-const programAlbum = computed<Album>(() => props.program.mainSong.album ?? {})
-const programCover = computed(() => sizeOfImage(props.program.coverUrl, 128))
-const programDuration = computed(() => formatDuring(props.program.mainSong?.bMusic.playTime ?? 0))
-const isVip = computed(() => account.value?.profile.vipType === 11)
+  return props.program.id === playerStore.track?.id;
+});
+const programAlbum = computed<Album>(() => props.program.mainSong.album ?? {});
+const programCover = computed(() => sizeOfImage(props.program.coverUrl, 128));
+const programDuration = computed(() =>
+  formatDuring(props.program.mainSong?.bMusic.playTime ?? 0)
+);
+const isVip = computed(() => account.value?.profile.vipType === 11);
 const available = computed(() => {
   if (props.program.fee === 1) {
     if (logged.value && isVip.value) {
       return {
         enable: true,
-      }
+      };
     } else {
       return {
         enable: false,
-        text: 'VIP用户可用',
-      }
+        text: "VIP用户可用",
+      };
     }
   } else if (props.program.fee === 4) {
     return {
-      text: '付费专辑，先购买',
+      text: "付费专辑，先购买",
       enable: false,
-    }
+    };
   } else if (props.program.noCopyrightRcmd) {
     return {
-      text: '无版权',
+      text: "无版权",
       enable: false,
-    }
+    };
   } else {
     return {
       enable: true,
-    }
+    };
   }
-})
+});
 const emit = defineEmits<{
   (
-    event: 'openctxmenu',
+    event: "openctxmenu",
     payload: {
-      x: number
-      y: number
-      program: Program
+      x: number;
+      y: number;
+      program: Program;
     }
-  ): void
-  (event: 'play', id: number): void
-}>()
+  ): void;
+  (event: "play", id: number): void;
+}>();
 function play() {
-  emit('play', props.program?.id)
+  emit("play", props.program?.id);
 }
 function togglePlay() {
   if (current.value) {
-    player.togglePlay()
+    player.togglePlay();
   } else {
-    play()
+    play();
   }
 }
 function openMenu(e: MouseEvent) {
   // active current item
   // display context menu
-  emit('openctxmenu', {
+  emit("openctxmenu", {
     x: e.x,
     y: e.y,
     program: props.program as Program,
-  })
-  itemRef!.value!.$el.click()
+  });
+  itemRef!.value!.$el.click();
 }
 </script>
 <template>
@@ -134,10 +141,21 @@ function openMenu(e: MouseEvent) {
             }"
             >{{ index }}</span
           >
-          <v-btn v-show="isHovering" icon variant="text" color="primary" @click.stop="togglePlay">
-            <v-icon>{{ current && playerStore.playing ? mdiPause : mdiPlay }}</v-icon>
+          <v-btn
+            v-show="isHovering"
+            icon
+            variant="text"
+            color="primary"
+            @click.stop="togglePlay"
+          >
+            <v-icon>{{
+              current && playerStore.playing ? mdiPause : mdiPlay
+            }}</v-icon>
           </v-btn>
-          <Wave v-if="current && playerStore.playing && !isHovering" :playing="playerStore.playing" />
+          <Wave
+            v-if="current && playerStore.playing && !isHovering"
+            :playing="playerStore.playing"
+          />
         </div>
         <div class="track-first">
           <v-img
@@ -159,7 +177,8 @@ function openMenu(e: MouseEvent) {
         </div>
         <div class="track-second text-caption gap-6">
           <div class="d-flex align-center">
-            <v-icon size="small" class="mr-1"> {{ mdiPlayCircleOutline }} </v-icon
+            <v-icon size="small" class="mr-1">
+              {{ mdiPlayCircleOutline }} </v-icon
             >{{ formatNumber(program.listenerCount) }}
           </div>
           <div class="d-flex align-center">
@@ -167,7 +186,7 @@ function openMenu(e: MouseEvent) {
             {{ formatNumber(program.likedCount) }}
           </div>
           <div>
-            {{ formatDate(program.createTime, 'YYYY-MM-DD') }}
+            {{ formatDate(program.createTime, "YYYY-MM-DD") }}
           </div>
           <div>
             {{ formatDuring(program.duration) }}

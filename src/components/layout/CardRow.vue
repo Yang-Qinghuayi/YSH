@@ -39,53 +39,55 @@
   </v-hover>
 </template>
 <script setup lang="ts">
-import { mdiChevronLeft, mdiChevronRight } from '@mdi/js'
-import type { StyleValue } from 'vue'
+import { mdiChevronLeft, mdiChevronRight } from "@mdi/js";
+import type { StyleValue } from "vue";
 
-import { useElementScrollSize } from '@/hooks/useElementScrollSize'
-import { GridType, useResponsiveGrid } from '@/hooks/useResponsiveGrid'
-import { goto } from '@/util/service'
+import { useElementScrollSize } from "@/hooks/useElementScrollSize";
+import { GridType, useResponsiveGrid } from "@/hooks/useResponsiveGrid";
+import { goto } from "@/utils/service";
 
 const props = defineProps<{
-  gridType?: GridType
-  singleLine?: boolean
-  forceCount?: number
-}>()
-const cardRow = ref<HTMLElement>()
-const { count, gap } = useResponsiveGrid(props.gridType ?? GridType.A)
-const { x, arrivedState } = useScroll(cardRow)
-const { width: scrollPageOffset } = useElementSize(cardRow)
-const { willScroll } = useElementScrollSize(cardRow)
+  gridType?: GridType;
+  singleLine?: boolean;
+  forceCount?: number;
+}>();
+const cardRow = ref<HTMLElement>();
+const { count, gap } = useResponsiveGrid(props.gridType ?? GridType.A);
+const { x, arrivedState } = useScroll(cardRow);
+const { width: scrollPageOffset } = useElementSize(cardRow);
+const { willScroll } = useElementScrollSize(cardRow);
 
 const showPrevious = computed(() => {
-  return props.singleLine && x.value > 0
-})
+  return props.singleLine && x.value > 0;
+});
 const showNext = computed(() => {
-  return props.singleLine && !arrivedState.right && willScroll.value
-})
+  return props.singleLine && !arrivedState.right && willScroll.value;
+});
 
 const cardRowStyle = computed(() => {
   const style: StyleValue = {
     columnGap: gap.value,
-    display: 'grid',
-    rowGap: '16px',
-  }
+    display: "grid",
+    rowGap: "16px",
+  };
   if (props.singleLine) {
-    style.overflowX = 'auto'
-    style.gridAutoFlow = 'column'
-    style.gridAutoColumns = `calc((100% - ${count.value - 1} * ${gap.value}) / ${props.forceCount ?? count.value})`
+    style.overflowX = "auto";
+    style.gridAutoFlow = "column";
+    style.gridAutoColumns = `calc((100% - ${count.value - 1} * ${
+      gap.value
+    }) / ${props.forceCount ?? count.value})`;
   } else {
-    style.gridTemplateColumns = `repeat(${count.value}, 1fr)`
+    style.gridTemplateColumns = `repeat(${count.value}, 1fr)`;
   }
-  return style
-})
+  return style;
+});
 
 function scrollTo(forward: boolean) {
-  const offset = scrollPageOffset.value + parseInt(gap.value)
+  const offset = scrollPageOffset.value + parseInt(gap.value);
   if (cardRow.value) {
     goto(cardRow.value, {
       offset: forward ? -offset : offset,
-    })
+    });
   }
 }
 </script>

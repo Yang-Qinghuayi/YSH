@@ -26,14 +26,24 @@
             }"
             >{{ index }}</span
           >
-          <v-btn v-show="isHovering" icon variant="text" color="primary" @click.stop="togglePlay">
-            <v-icon>{{ current && playerStore.playing ? mdiPause : mdiPlay }}</v-icon>
+          <v-btn
+            v-show="isHovering"
+            icon
+            variant="text"
+            color="primary"
+            @click.stop="togglePlay"
+          >
+            <v-icon>{{
+              current && playerStore.playing ? mdiPause : mdiPlay
+            }}</v-icon>
           </v-btn>
-          <Wave v-if="current && playerStore.playing && !isHovering" :playing="playerStore.playing" />
+          <Wave
+            v-if="current && playerStore.playing && !isHovering"
+            :playing="playerStore.playing"
+          />
         </div>
         <div class="track-first">
           <v-img
-            
             :src="albumCover"
             max-height="40"
             max-width="40"
@@ -42,11 +52,17 @@
             :aspect-ratio="1"
           />
           <div class="track-info">
-            <v-list-item-title class="line-clamp-1" :class="current ? 'text-primary' : ''">
+            <v-list-item-title
+              class="line-clamp-1"
+              :class="current ? 'text-primary' : ''"
+            >
               {{ track.name }}</v-list-item-title
             >
             <v-list-item-subtitle class="d-flex align-center">
-              <artists-link :artists="artists" class="line-clamp-1 text-caption" />
+              <artists-link
+                :artists="artists"
+                class="line-clamp-1 text-caption"
+              />
             </v-list-item-subtitle>
           </div>
         </div>
@@ -65,7 +81,7 @@
           >
             {{ trackAlbum.name }}
           </router-link>
-          <span v-else>{{ '未知' }}</span>
+          <span v-else>{{ "未知" }}</span>
         </div>
         <div class="track-third">
           <v-btn
@@ -77,12 +93,21 @@
             :color="liked ? 'primary' : ''"
             @click.prevent="toggleLike"
           >
-            <v-icon size="x-small" :color="liked ? 'primary' : ''">{{ liked ? mdiHeart : mdiHeartOutline }}</v-icon>
+            <v-icon size="x-small" :color="liked ? 'primary' : ''">{{
+              liked ? mdiHeart : mdiHeartOutline
+            }}</v-icon>
           </v-btn>
           <div class="track-duration">
             {{ formatDuring(track.dt || track.duration || 0) }}
           </div>
-          <v-btn v-if="!isProgram" v-visible="isHovering" icon color="primary" variant="text" @click.prevent="openMenu">
+          <v-btn
+            v-if="!isProgram"
+            v-visible="isHovering"
+            icon
+            color="primary"
+            variant="text"
+            @click.prevent="openMenu"
+          >
             <v-icon size="x-small">
               {{ mdiDotsHorizontal }}
             </v-icon>
@@ -93,26 +118,32 @@
   </v-hover>
 </template>
 <script setup lang="ts">
-import { mdiDotsHorizontal, mdiHeart, mdiHeartOutline, mdiPause, mdiPlay } from '@mdi/js'
-import { storeToRefs } from 'pinia'
-import { useI18n } from 'vue-i18n'
-import { useToast } from 'vue-toastification'
-import type { VListItem } from 'vuetify/components'
+import {
+  mdiDotsHorizontal,
+  mdiHeart,
+  mdiHeartOutline,
+  mdiPause,
+  mdiPlay,
+} from "@mdi/js";
+import { storeToRefs } from "pinia";
+import { useI18n } from "vue-i18n";
+import { useToast } from "vue-toastification";
+import type { VListItem } from "vuetify/components";
 
-import placeholderUrl from '@/assets/placeholder.png'
-import { usePlayer } from '@/player/player'
-import { usePlayerStore } from '@/store/player'
-import { useUserStore } from '@/store/user'
-import type { Album, Artist, Track } from '@/types'
-import { formatDuring, sizeOfImage } from '@/util/fn'
+import placeholderUrl from "@/assets/placeholder.png";
+import { usePlayer } from "@/player/player";
+import { usePlayerStore } from "@/store/player";
+import { useUserStore } from "@/store/user";
+import type { Album, Artist, Track } from "@/types";
+import { formatDuring, sizeOfImage } from "@/utils/fn";
 
-const toast = useToast()
-const { t } = useI18n()
-const userStore = useUserStore()
-const playerStore = usePlayerStore()
-const player = usePlayer()
+const toast = useToast();
+const { t } = useI18n();
+const userStore = useUserStore();
+const playerStore = usePlayerStore();
+const player = usePlayer();
 
-const { logged, account } = storeToRefs(userStore)
+const { logged, account } = storeToRefs(userStore);
 const props = defineProps({
   track: {
     type: Object,
@@ -134,111 +165,113 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-})
+});
 
-const itemRef = ref<InstanceType<typeof VListItem>>()
-const likeLoading = ref(false)
+const itemRef = ref<InstanceType<typeof VListItem>>();
+const likeLoading = ref(false);
 
 const liked = computed(() => {
-  return !!userStore.likes.find((id: number) => id === props.track.id)
-})
+  return !!userStore.likes.find((id: number) => id === props.track.id);
+});
 const current = computed(() => {
-  return props.track.id === playerStore.track?.id
-})
+  return props.track.id === playerStore.track?.id;
+});
 const artists = computed(() => {
-  const { ar, artists } = props.track
-  const art = ar ?? artists ?? []
-  return art.map((i: Artist) => ({ id: i.id, name: i.name }))
-})
+  const { ar, artists } = props.track;
+  const art = ar ?? artists ?? [];
+  return art.map((i: Artist) => ({ id: i.id, name: i.name }));
+});
 const trackAlbum = computed<Album>(() => {
-  return props.track.al ?? props.track.album ?? props.track.program.radio ?? {}
-})
-const albumCover = computed(() => sizeOfImage(trackAlbum.value.picUrl ?? trackAlbum.value.coverImgUrl, 128))
+  return props.track.al ?? props.track.album ?? props.track.program.radio ?? {};
+});
+const albumCover = computed(() =>
+  sizeOfImage(trackAlbum.value.picUrl ?? trackAlbum.value.coverImgUrl, 128)
+);
 const className = computed(() => {
-  return props.album ? 'track-item album-item' : 'track-item'
-})
+  return props.album ? "track-item album-item" : "track-item";
+});
 
-const isVip = computed(() => account.value?.profile.vipType === 11)
-const isProgram = computed(() => props.track.source?.fromType === 'program')
+const isVip = computed(() => account.value?.profile.vipType === 11);
+const isProgram = computed(() => props.track.source?.fromType === "program");
 const available = computed(() => {
   if (props.track.fee === 1) {
     if (logged.value && isVip.value) {
       return {
         enable: true,
-      }
+      };
     } else {
       return {
         enable: false,
-        text: 'VIP用户可用',
-      }
+        text: "VIP用户可用",
+      };
     }
   } else if (props.track.fee === 4) {
     return {
-      text: '付费专辑，先购买',
+      text: "付费专辑，先购买",
       enable: false,
-    }
+    };
   } else if (props.track.noCopyrightRcmd) {
     return {
-      text: '无版权',
+      text: "无版权",
       enable: false,
-    }
+    };
   } else {
     return {
       enable: true,
-    }
+    };
   }
-})
+});
 const emit = defineEmits<{
   (
-    event: 'openctxmenu',
+    event: "openctxmenu",
     payload: {
-      x: number
-      y: number
-      track: Track
-      liked: boolean
+      x: number;
+      y: number;
+      track: Track;
+      liked: boolean;
     }
-  ): void
-  (event: 'play', id: number): void
-}>()
+  ): void;
+  (event: "play", id: number): void;
+}>();
 function play() {
-  emit('play', props.track?.id)
+  emit("play", props.track?.id);
 }
 function togglePlay() {
   if (current.value) {
-    player.togglePlay()
+    player.togglePlay();
   } else {
-    play()
+    play();
   }
 }
 function openMenu(e: MouseEvent) {
   if (isProgram.value) {
-    return
+    return;
   }
   // active current item
   // display context menu
-  emit('openctxmenu', {
+  emit("openctxmenu", {
     x: e.x,
     y: e.y,
     track: props.track as Track,
     liked: liked.value,
-  })
-  itemRef!.value!.$el.click()
+  });
+  itemRef!.value!.$el.click();
 }
 async function toggleLike() {
-  likeLoading.value = true
-  const before = liked.value
+  likeLoading.value = true;
+  const before = liked.value;
 
-  const success = await userStore.favSong(props.track.id, !liked.value)
+  const success = await userStore.favSong(props.track.id, !liked.value);
   if (success) {
     if (before) {
-      toast.success(t('message.remove_fav_success'))
+      toast.success(t("message.remove_fav_success"));
     } else {
-      toast.success(t('message.add_fav_success'))
+      toast.success(t("message.add_fav_success"));
     }
   } else {
-    toast.error(t('message.something_wrong'))
+    toast.error(t("message.something_wrong"));
   }
-  likeLoading.value = false
+  likeLoading.value = false;
 }
 </script>
 <style scoped lang="scss">
@@ -250,7 +283,10 @@ async function toggleLike() {
   height: 56px;
   grid-template-columns: [index] 48px [first] 4fr [last] minmax(140px, 160px);
   &.album-item {
-    grid-template-columns: [index] 48px [first] 3fr [second] 2fr [last] minmax(140px, 160px);
+    grid-template-columns: [index] 48px [first] 3fr [second] 2fr [last] minmax(
+        140px,
+        160px
+      );
   }
   &:hover {
     background-color: rgba(var(--v-theme-surfaceVariant), 0.5);

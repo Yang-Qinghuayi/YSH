@@ -88,7 +88,7 @@ import ScrollLyric from "@/pages/mode/components/ScrollLyric.vue";
 import { useAppStore } from "@/store/app";
 import { usePlayerStore } from "@/store/player";
 import { useSettingStore } from "@/store/setting";
-import { formatDuring, sizeOfImage, sleep } from "@/util/fn";
+import { formatDuring, sizeOfImage, sleep } from "@/utils/fn";
 
 const playerStore = usePlayerStore();
 const appStore = useAppStore();

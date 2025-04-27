@@ -33,7 +33,7 @@ export interface AppService {
   hasRoundedWindow: boolean;
   hasSafeAreaInset: boolean;
   hasHaptics: boolean;
-  hasSysFontsList: boolean;
+  // hasSysFontsList: boolean;
   isMobile: boolean;
   isAppDataSandbox: boolean;
   isAndroidApp: boolean;

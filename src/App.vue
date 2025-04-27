@@ -6,9 +6,11 @@
   </router-view>
 </template>
 <script setup lang="ts">
-import { useAppStore } from '@/store/app'
+import { useAppStore } from "@/store/app";
+import { provideEnv } from "@/hooks/useEnv";
 
+provideEnv();
 
-const appStore = useAppStore()
-appStore.init()
+const appStore = useAppStore();
+appStore.init();
 </script>
