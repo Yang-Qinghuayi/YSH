@@ -21,6 +21,16 @@
 </template>
 
 <script setup lang="ts">
+import {
+  handleKeydown,
+  handleMousedown,
+  handleMouseup,
+  handleClick,
+  handleWheel,
+  handleTouchStart,
+  handleTouchMove,
+  handleTouchEnd,
+} from '@/utils/iframeEventHandlers';
 import "@/foliate-js/view.js";
 import { FoliateView } from "@/types/view"
 import { useDisplay } from "vuetify";
@@ -40,6 +50,7 @@ const BSstore = useBookSettingsStore() as any
 
 import { useBookStore } from "@/store/book";
 import { mdiBookOpenVariantOutline } from "@mdi/js";
+import { useFoliateEvents } from "@/hooks/useFoliateEvents";
 const bookStore = useBookStore();
 
 const containerRef = ref<HTMLDivElement | null>(null);
@@ -47,6 +58,56 @@ const viewRef = ref<FoliateView | null>(null);
 
 useTouchEvent(viewRef);
 const { handleTurnPage } = useClickEvent(viewRef, containerRef);
+const progressRelocateHandler = (event: Event) => {
+  const detail = (event as CustomEvent).detail;
+  // setProgress(bookKey, detail.cfi, detail.tocItem, detail.section, detail.location, detail.range);
+};
+
+const docLoadHandler = (event: Event) => {
+  const detail = (event as CustomEvent).detail;
+  console.log('doc index loaded:', detail.index);
+  if (detail.doc) {
+    // const writingDir = viewRef.value?.renderer.setStyles && getDirection(detail.doc);
+    // mountAdditionalFonts(detail.doc);
+
+    const bookKey = "kiss"
+    if (!detail.doc.isEventListenersAdded) {
+      detail.doc.isEventListenersAdded = true;
+      detail.doc.addEventListener('keydown', handleKeydown.bind(null, bookKey));
+      detail.doc.addEventListener('mousedown', handleMousedown.bind(null, bookKey));
+      detail.doc.addEventListener('mouseup', handleMouseup.bind(null, bookKey));
+      detail.doc.addEventListener('click', handleClick.bind(null, bookKey));
+      detail.doc.addEventListener('wheel', handleWheel.bind(null, bookKey));
+      detail.doc.addEventListener('touchstart', handleTouchStart.bind(null, bookKey));
+      detail.doc.addEventListener('touchmove', handleTouchMove.bind(null, bookKey));
+      detail.doc.addEventListener('touchend', handleTouchEnd.bind(null, bookKey));
+    }
+  }
+};
+
+const docRelocateHandler = (event: Event) => {
+  const detail = (event as CustomEvent).detail;
+  if (detail.reason !== 'scroll' && detail.reason !== 'page') return;
+
+  if (detail.reason === 'scroll') {
+    const renderer = viewRef.value?.renderer;
+    // const viewSettings = getViewSettings(bookKey)!;
+    // if (renderer && viewSettings.continuousScroll) {
+    //   if (renderer.start <= 0) {
+    //     viewRef.current?.prev(1);
+    //     // sometimes viewSize has subpixel value that the end never reaches
+    //   } else if (renderer.end + 1 >= renderer.viewSize) {
+    //     viewRef.current?.next(1);
+    //   }
+    // }
+  }
+};
+
+useFoliateEvents(viewRef, {
+  onLoad: docLoadHandler,
+  onRelocate: progressRelocateHandler,
+  onRendererRelocate: docRelocateHandler,
+});
 
 onMounted(async () => {
   const view = document.createElement("foliate-view") as FoliateView

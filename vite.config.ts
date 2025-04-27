@@ -1,5 +1,4 @@
 /* eslint-disable import/no-unresolved */
-
 import vue from "@vitejs/plugin-vue";
 import vueJsx from "@vitejs/plugin-vue-jsx";
 import AutoImport from "unplugin-auto-import/vite";

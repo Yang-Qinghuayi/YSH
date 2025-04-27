@@ -1,5 +1,5 @@
-import { AppService } from '@/types/system';
-import { READEST_WEB_BASE_URL } from './constants';
+import { AppService } from "@/types/system";
+import { READEST_WEB_BASE_URL } from "./constants";
 
 declare global {
   interface Window {
@@ -7,18 +7,22 @@ declare global {
   }
 }
 
-export const isTauriAppPlatform = () => process.env['NEXT_PUBLIC_APP_PLATFORM'] === 'tauri';
-export const isWebAppPlatform = () => process.env['NEXT_PUBLIC_APP_PLATFORM'] === 'web';
+// @ts-ignore
+const platform = import.meta.env.VITE_APP_PLATFORM;
+export const isTauriAppPlatform = () => platform === "tauri";
+export const isWebAppPlatform = () => platform === "web";
+
 export const hasCli = () => window.__READEST_CLI_ACCESS === true;
-export const isPWA = () => window.matchMedia('(display-mode: standalone)').matches;
+export const isPWA = () =>
+  window.matchMedia("(display-mode: standalone)").matches;
 
 // Dev API only in development mode and web platform
 // with command `pnpm dev-web`
 // for production build or tauri app use the production Web API
 export const getAPIBaseUrl = () =>
-  process.env['NODE_ENV'] === 'development' && isWebAppPlatform()
-    ? '/api'
-    : `${process.env['NEXT_PUBLIC_API_BASE_URL'] ?? READEST_WEB_BASE_URL}/api`;
+  process.env["NODE_ENV"] === "development" && isWebAppPlatform()
+    ? "/api"
+    : `${process.env["NEXT_PUBLIC_API_BASE_URL"] ?? READEST_WEB_BASE_URL}/api`;
 
 export interface EnvConfigType {
   getAppService: () => Promise<AppService>;
@@ -27,7 +31,7 @@ export interface EnvConfigType {
 let nativeAppService: AppService | null = null;
 const getNativeAppService = async () => {
   if (!nativeAppService) {
-    const { NativeAppService } = await import('@/services/nativeAppService');
+    const { NativeAppService } = await import("@/services/nativeAppService");
     nativeAppService = new NativeAppService();
     await nativeAppService.loadSettings();
   }
@@ -37,7 +41,7 @@ const getNativeAppService = async () => {
 let webAppService: AppService | null = null;
 const getWebAppService = async () => {
   if (!webAppService) {
-    const { WebAppService } = await import('@/services/webAppService');
+    const { WebAppService } = await import("@/services/webAppService");
     webAppService = new WebAppService();
     await webAppService.loadSettings();
   }

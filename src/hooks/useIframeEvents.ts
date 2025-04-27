@@ -12,8 +12,6 @@ export const useClickEvent = (
   const handleTurnPage = async (
     msg: MessageEvent | MouseEvent
   ) => {
-
-    console.log('handleTurnPage', msg);
     if (msg instanceof MessageEvent) {
       if (msg.data.type === 'iframe-single-click') {
         const viewElement = containerRef.value;
@@ -92,10 +90,10 @@ export const useClickEvent = (
     removeListener();
   });
 
-  // watch([viewRef], () => {
-  //   removeListener();
-  //   addListener();
-  // });
+  watch([viewRef], () => {
+    removeListener();
+    addListener();
+  });
 
   return {
     handleTurnPage,

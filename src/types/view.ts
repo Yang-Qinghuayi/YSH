@@ -1,6 +1,6 @@
 import { BookDoc } from '@/libs/document';
 import { BookNote, BookSearchConfig, BookSearchResult } from '@/types/book';
-import { TTS } from 'foliate-js/tts.js';
+import { TTS } from '@/foliate-js/tts.js';
 
 export type TTSGranularity = 'sentence' | 'word';
 

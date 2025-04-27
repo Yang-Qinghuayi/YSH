@@ -6,7 +6,6 @@ import { Book, BookConfig, BookContent, BookFormat } from '@/types/book';
 import {
   getDir,
   getLocalBookFilename,
-  getRemoteBookFilename,
   getBaseFilename,
   getCoverFilename,
   getConfigFilename,
@@ -36,7 +35,6 @@ import {
 } from './constants';
 import { getOSPlatform, isCJKEnv, isContentURI, isValidURL } from '@/utils/misc';
 import { deserializeConfig, serializeConfig } from '@/utils/serializer';
-import { downloadFile, uploadFile, deleteFile, createProgressHandler } from '@/libs/storage';
 import { ClosableFile } from '@/utils/file';
 import { ProgressHandler } from '@/utils/transfer';
 import { TxtToEpubConverter } from '@/utils/txt';
@@ -266,22 +264,10 @@ export abstract class BaseAppService implements AppService {
   }
 
   async deleteBook(book: Book, includingUploaded = false): Promise<void> {
-    const fps = [getRemoteBookFilename(book), getCoverFilename(book)];
     const localDeleteFps = [getLocalBookFilename(book), getCoverFilename(book)];
     for (const fp of localDeleteFps) {
       if (await this.fs.exists(fp, 'Books')) {
         await this.fs.removeFile(fp, 'Books');
-      }
-    }
-    for (const fp of fps) {
-      if (includingUploaded) {
-        console.log('Deleting uploaded file:', fp);
-        const cfp = `${CLOUD_BOOKS_SUBDIR}/${fp}`;
-        try {
-          deleteFile(cfp);
-        } catch (error) {
-          console.log('Failed to delete uploaded file:', error);
-        }
       }
     }
     book.deletedAt = Date.now();
@@ -295,7 +281,6 @@ export abstract class BaseAppService implements AppService {
     console.log('Uploading file:', lfp, 'to', cfp);
     const file = await this.fs.openFile(lfp, 'Books', cfp);
     const localFullpath = `${this.localBooksDir}/${lfp}`;
-    await uploadFile(file, localFullpath, handleProgress, hash);
     const f = file as ClosableFile;
     if (f && f.close) {
       await f.close();
@@ -320,93 +305,12 @@ export abstract class BaseAppService implements AppService {
       await this.fs.writeFile(getLocalBookFilename(book), 'Books', await fileobj.arrayBuffer());
       bookFileExist = true;
     }
-
-    const handleProgress = createProgressHandler(toUploadFpCount, completedFiles, onProgress);
-
-    if (coverExist) {
-      const lfp = getCoverFilename(book);
-      const cfp = `${CLOUD_BOOKS_SUBDIR}/${getCoverFilename(book)}`;
-      await this.uploadFileToCloud(lfp, cfp, handleProgress, book.hash);
-      uploaded = true;
-      completedFiles.count++;
-    }
-
-    if (bookFileExist) {
-      const lfp = getLocalBookFilename(book);
-      const cfp = `${CLOUD_BOOKS_SUBDIR}/${getRemoteBookFilename(book)}`;
-      await this.uploadFileToCloud(lfp, cfp, handleProgress, book.hash);
-      uploaded = true;
-      completedFiles.count++;
-    }
-
-    if (uploaded) {
-      book.deletedAt = null;
-      book.updatedAt = Date.now();
-      book.uploadedAt = Date.now();
-      book.downloadedAt = Date.now();
-    } else {
-      throw new Error('Book file not uploaded');
-    }
   }
 
   async downloadCloudFile(lfp: string, cfp: string, handleProgress: ProgressHandler) {
-    console.log('Downloading file:', cfp, 'to', lfp);
-    const localFullpath = `${this.localBooksDir}/${lfp}`;
-    const result = await downloadFile(cfp, localFullpath, handleProgress);
-    try {
-      if (this.appPlatform === 'web') {
-        const fileobj = result as Blob;
-        await this.fs.writeFile(lfp, 'Books', await fileobj.arrayBuffer());
-      }
-    } catch {
-      console.log('Failed to download file:', cfp);
-      throw new Error('Failed to download file');
-    }
   }
 
   async downloadBook(book: Book, onlyCover = false, onProgress?: ProgressHandler): Promise<void> {
-    let bookDownloaded = false;
-    const completedFiles = { count: 0 };
-    let toDownloadFpCount = 0;
-    const needDownCover = !(await this.fs.exists(getCoverFilename(book), 'Books'));
-    const needDownBook = !onlyCover && !(await this.fs.exists(getLocalBookFilename(book), 'Books'));
-    if (needDownCover) {
-      toDownloadFpCount++;
-    }
-    if (needDownBook) {
-      toDownloadFpCount++;
-    }
-
-    const handleProgress = createProgressHandler(toDownloadFpCount, completedFiles, onProgress);
-
-    if (!(await this.fs.exists(getDir(book), 'Books'))) {
-      await this.fs.createDir(getDir(book), 'Books');
-    }
-
-    try {
-      if (needDownCover) {
-        const lfp = getCoverFilename(book);
-        const cfp = `${CLOUD_BOOKS_SUBDIR}/${lfp}`;
-        await this.downloadCloudFile(lfp, cfp, handleProgress);
-        completedFiles.count++;
-      }
-    } catch (error) {
-      // don't throw error here since some books may not have cover images at all
-      console.log('Failed to download cover file:', error);
-    }
-
-    if (needDownBook) {
-      const lfp = getLocalBookFilename(book);
-      const cfp = `${CLOUD_BOOKS_SUBDIR}/${getRemoteBookFilename(book)}`;
-      await this.downloadCloudFile(lfp, cfp, handleProgress);
-      const localFullpath = `${this.localBooksDir}/${lfp}`;
-      bookDownloaded = await this.fs.exists(localFullpath, 'Books');
-      completedFiles.count++;
-    }
-    // some books may not have cover image, so we need to check if the book is downloaded
-    if (bookDownloaded || (!onlyCover && !needDownBook)) {
-      book.downloadedAt = Date.now();
-    }
   }
 
   async loadBookContent(book: Book, settings: SystemSettings): Promise<BookContent> {
