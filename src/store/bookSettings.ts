@@ -65,45 +65,6 @@ export const useBookSettingsStore = defineStore("bookSettings", {
     SET_IFSETTINGFONTVISIBLE(options) {
       this.ifSettingFontFamilyVisible = options;
     },
-    SET_DEFAULTTHEME(options) {
-      this.defaultTheme = options;
-    },
-    SET_BOOKAVAIABLE(options) {
-      this.bookAvailable = options;
-    },
-    SET_PROGRESS(options) {
-      this.progress = options;
-    },
-    SET_SECTION(options) {
-      this.section = options;
-    },
-    SET_COVER(options) {
-      this.cover = options;
-    },
-    SET_AUTHOR(options) {
-      this.author = options;
-    },
-    SET_METADATA(options) {
-      this.metadata = options;
-    },
-    SET_NAVIGATION(options) {
-      this.navItems = options;
-    },
-    SET_TABHEIGHT(options) {
-      this.tabHeight = options;
-    },
-    SET_OFFSETY(options) {
-      this.offsetY = options;
-    },
-    SET_HTMLFONTSIZE(options) {
-      this.htmlFontSize = options;
-    },
-    SET_IFBOOKMARK(options) {
-      this.ifBookmark = options;
-    },
-    SET_IFRELOAD(options) {
-      this.ifReload = options;
-    },
     SET_SHELF_LIST(options) {
       this.shelfList = options;
     },
