@@ -1,42 +1,68 @@
-import { useRouter, redirect } from 'next/navigation';
+import { useRouter } from 'vue-router';
 import { isPWA, isWebAppPlatform } from '@/services/environment';
 import { BOOK_IDS_SEPARATOR } from '@/services/constants';
 
-export const navigateToReader = (
-  router: ReturnType<typeof useRouter>,
-  bookIds: string[],
-  queryParams?: string,
-  navOptions?: { scroll?: boolean },
-) => {
-  const ids = bookIds.join(BOOK_IDS_SEPARATOR);
-  if (isWebAppPlatform() && !isPWA()) {
-    router.push(`/reader/${ids}${queryParams ? `?${queryParams}` : ''}`, navOptions);
-  } else {
-    const params = new URLSearchParams(queryParams || '');
-    params.set('ids', ids);
-    router.push(`/reader?${params.toString()}`, navOptions);
-  }
-};
+export const useNavigation = () => {
+  const router = useRouter();
 
-export const navigateToLogin = (router: ReturnType<typeof useRouter>) => {
-  const pathname = window.location.pathname;
-  const search = window.location.search;
-  const currentPath = pathname !== '/auth' ? pathname + search : '/';
-  router.push(`/auth?redirect=${encodeURIComponent(currentPath)}`);
-};
+  const navigateToReader = (
+    bookIds: string[],
+    queryParams?: string,
+    navOptions?: { replace?: boolean },
+  ) => {
+    const ids = bookIds.join(BOOK_IDS_SEPARATOR);
+    if (isWebAppPlatform() && !isPWA()) {
+      router.push({
+        path: `/reader/${ids}`,
+        query: queryParams ? Object.fromEntries(new URLSearchParams(queryParams)) : undefined,
+        ...navOptions,
+      });
+    } else {
+      const params = new URLSearchParams(queryParams || '');
+      params.set('ids', ids);
+      router.push({
+        path: '/reader',
+        query: Object.fromEntries(params),
+        ...navOptions,
+      });
+    }
+  };
 
-export const navigateToProfile = (router: ReturnType<typeof useRouter>) => {
-  router.push('/user');
-};
+  const navigateToLogin = () => {
+    const { pathname, search } = window.location;
+    const currentPath = pathname !== '/auth' ? pathname + search : '/';
+    router.push({
+      path: '/auth',
+      query: {
+        redirect: currentPath,
+      },
+    });
+  };
 
-export const navigateToLibrary = (
-  router: ReturnType<typeof useRouter>,
-  queryParams?: string,
-  navOptions?: { scroll?: boolean },
-) => {
-  router.push(`/library${queryParams ? `?${queryParams}` : ''}`, navOptions);
-};
+  const navigateToProfile = () => {
+    router.push('/user');
+  };
 
-export const redirectToLibrary = () => {
-  redirect('/library');
+  const navigateToLibrary = (
+    queryParams?: string,
+    navOptions?: { replace?: boolean },
+  ) => {
+    router.push({
+      path: '/library',
+      query: queryParams ? Object.fromEntries(new URLSearchParams(queryParams)) : undefined,
+      ...navOptions,
+    });
+  };
+
+  const redirectToLibrary = () => {
+    router.replace('/library');
+  };
+
+  return {
+    navigateToReader,
+    navigateToLogin,
+    navigateToProfile,
+    navigateToLibrary,
+    redirectToLibrary,
+  };
 };

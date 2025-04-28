@@ -6,12 +6,6 @@ import { AppService } from '@/types/system';
 // 定义 context key，防止注入冲突
 const EnvSymbol = Symbol('Env');
 
-// 定义类型
-interface EnvContextType {
-  envConfig: EnvConfigType;
-  appService: AppService | null;
-}
-
 // 提供者
 export function provideEnv() {
   const envConfig = reactive(env) as EnvConfigType;
@@ -23,7 +17,7 @@ export function provideEnv() {
 
   provide(EnvSymbol, {
     envConfig: readonly(envConfig),
-    appService,
+    appService
   });
 }
 
@@ -31,7 +25,7 @@ export function provideEnv() {
 export function useEnv() {
   const context = inject<{
     envConfig: EnvConfigType;
-    appService: Ref<AppService | null>;
+    appService:Ref<AppService | null>;
   }>(EnvSymbol);
 
   if (!context) {

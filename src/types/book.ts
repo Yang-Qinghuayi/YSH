@@ -16,7 +16,7 @@ export interface Book {
   groupId?: string;
   groupName?: string;
   tags?: string[];
-  coverImageUrl?: string | null;
+  coverImageUrl?: string;
 
   createdAt: number;
   updatedAt: number;

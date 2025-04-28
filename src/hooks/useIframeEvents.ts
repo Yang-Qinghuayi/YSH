@@ -20,7 +20,7 @@ export const useClickEvent = (
           const viewRect = viewElement.getBoundingClientRect();
           let windowStartX;
           if (isTauriAppPlatform()) {
-            if (appService.value?.isMobile) {
+            if (appService?.isMobile) {
               windowStartX = 0;
             } else {
               const windowPosition = (await tauriGetWindowLogicalPosition()) as {

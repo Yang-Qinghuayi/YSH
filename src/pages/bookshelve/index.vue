@@ -1,20 +1,17 @@
 <template>
   <div class="h-[88vh]">
-    <v-btn variant="tonal" color="primary" @click="fileInput?.click()">
+    <v-btn variant="tonal" class="ml-3" color="primary" @click="handleImportBooks">
       上传书籍
-    </v-btn>
-    <v-btn variant="tonal" class="ml-3" color="primary" @click="dirInput?.click()">
-      上传文件夹
     </v-btn>
     <div class="mt-2">
       <card-row>
-        <v-card @click="goToRead(file)" v-for="file in epubFiles" :flat="true">
-          <v-img class="cover-image" :cover="true" :src="file.cover" style="aspect-ratio: 1" :aspect-ratio="1"
+        <v-card @click="goToRead()" v-for="book in libraryBooks" :flat="true">
+          <v-img class="cover-image" :cover="true" :src="book.coverImageUrl" style="aspect-ratio: 1" :aspect-ratio="1"
             :lazy-src="placeholderUrl">
           </v-img>
           <!-- 名称 -->
           <v-card-title :class="[lgAndUp ? '' : 'text-sm']">
-            {{ file.name }}
+            {{ book.title }}
             <v-menu open-on-hover open-delay=100 close-delay="100">
               <template v-slot:activator="{ props }">
                 <v-btn variant="text" color="primary" icon size="small" v-bind="props">
@@ -24,7 +21,7 @@
 
               <v-list elevation=6 class="p-0">
                 <v-list-item class=" px-6 py-4 text-center" v-for="(item, index) in items" :key="index" :value="index"
-                  @click="item.function(file.name)">
+                  @click="item.function(book.hash)">
                   {{ item.title }}
                 </v-list-item>
               </v-list>
@@ -33,134 +30,211 @@
         </v-card>
       </card-row>
     </div>
-    <input ref="dirInput" type="file" @change="handleDirChange" class="hidden" webkitdirectory />
-    <input ref="fileInput" type="file" @change="handleFileChange" class="hidden" />
   </div>
 </template>
 
 <script setup lang="ts">
+import { parseOpenWithFiles } from '@/helpers/openWith';
+import { FILE_ACCEPT_FORMATS, SUPPORTED_FILE_EXTS } from '@/services/constants';
+import { isTauriAppPlatform } from '@/services/environment';
+import { useToast } from "vue-toastification";
+const toast = useToast();
 import { useDisplay } from "vuetify";
 const display = useDisplay();
 const { lgAndUp } = display;
+import { useEnv } from "@/hooks/useEnv";
+const { envConfig, appService } = useEnv();
 
-function handleFileChange(event) {
-  let file = event.target.files[0];
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    const book = EPub(e.target.result);
-    // 获取封面
-    const cover = await book.loaded.cover;
-    const coverBlob = await book.archive.getBlob(cover);
-    const coverUrl = URL.createObjectURL(coverBlob);
-    const metadata = await book.loaded.metadata;
-    const bookName = metadata.title.replace(/\(.*?\) |（.*?）/g, "");
-    await localForage.setItem(bookName, {
-      book: e.target.result,
-      name: bookName,
-      cover: coverBlob,
-    });
-    epubFiles.value.push({ name: bookName, cover: coverUrl });
+import { useTranslation } from '@/hooks/useTranslation';
+const _ = useTranslation();
+const loading = ref(false)
+
+import { useLibraryStore } from "@/store/libraryStore"
+
+const libraryStore = useLibraryStore()
+const {
+  updateBook,
+  setLibrary,
+  checkOpenWithBooks,
+  setCheckOpenWithBooks,
+} = libraryStore
+
+const { library: libraryBooks } = storeToRefs(libraryStore)
+
+import { getFilename, listFormater } from '@/utils/book';
+
+const processOpenWithFiles = async (appService: AppService, openWithFiles: string[], libraryBooks: Book[]) => {
+  const settings = await appService.loadSettings();
+  const bookIds: string[] = [];
+
+  for (const file of openWithFiles) {
+    console.log('Open with book:', file);
+    try {
+      const temp = appService.isMobile ? false : !settings.autoImportBooksOnOpen;
+      const book = await appService.importBook(file, libraryBooks, true, true, false, temp);
+      if (book) {
+        bookIds.push(book.hash);
+      }
+    } catch (error) {
+      console.log('Failed to import book:', file, error);
+    }
+  }
+
+  setLibrary(libraryBooks);
+  appService.saveLibraryBooks(libraryBooks);
+
+  console.log('Opening books:', bookIds);
+  if (bookIds.length > 0) {
+    setTimeout(() => {
+      // navigateToReader(router, bookIds);
+      // todo 跳转到书籍阅读页面
+    }, 0);
+  }
+};
+
+const isInitiating = ref(false)
+const libraryLoaded = ref(false)
+import { useSettingsStore } from '@/store/settingsStore';
+const settingsStore = useSettingsStore();
+const { settings, setSettings, saveSettings } = settingsStore;
+
+
+onMounted(() => {
+  if (isInitiating.value) return;
+  isInitiating.value = true;
+
+  let loadingTimeout: any;
+
+  const handleOpenWithBooks = async (appService: AppService, libraryBooks: Book[]) => {
+    const openWithFiles = (await parseOpenWithFiles()) || [];
+
+    if (openWithFiles.length > 0) {
+      await processOpenWithFiles(appService, openWithFiles, libraryBooks);
+    } else {
+      setCheckOpenWithBooks(false);
+      setLibrary(libraryBooks);
+    }
   };
-  reader.readAsArrayBuffer(file);
-}
 
-function handleDirChange(event) {
-  epubFiles.value = [];
-  let files = Array.from(event.target.files);
-  files.forEach((file) => {
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const book = EPub(e.target.result);
-      let cover = await book.loaded.cover;
-      let coverBlob = await book.archive.getBlob(cover);
-      const coverUrl = URL.createObjectURL(coverBlob);
-      let metadata = await book.loaded.metadata;
-      let bookName = metadata.title.replace(/\(.*?\) |（.*?）/g, "");
-      await localForage.setItem(bookName, {
-        book: e.target.result,
-        name: bookName,
-        cover: coverBlob,
-      });
-      epubFiles.value.push({ name: bookName, cover: coverUrl });
+  const initLibrary = async () => {
+    const appService = await envConfig.getAppService();
+    const settingsData = await appService.loadSettings();
+    setSettings(settingsData);
+
+    const libraryBooks = await appService.loadLibraryBooks();
+
+    if (checkOpenWithBooks && isTauriAppPlatform()) {
+      await handleOpenWithBooks(appService, libraryBooks);
+    } else {
+      setCheckOpenWithBooks(false);
+      setLibrary(libraryBooks);
+    }
+
+    libraryLoaded.value = true
+    if (loadingTimeout) clearTimeout(loadingTimeout);
+    loading.value = false;
+  };
+
+  loadingTimeout = setTimeout(() => loading.value = true, 300);
+
+  initLibrary();
+});
+
+onBeforeUnmount(() => {
+  setCheckOpenWithBooks(false);
+  isInitiating.value = false;
+});
+
+
+
+const importBooks = async (files: (string | File)[]) => {
+  loading.value = true;
+  const failedFiles = [];
+  const errorMap: [string, string][] = [
+    ['No chapters detected.', _('No chapters detected.')],
+    ['Failed to parse EPUB.', _('Failed to parse the EPUB file.')],
+    ['Unsupported format.', _('This book format is not supported.')],
+  ];
+  for (const file of files) {
+    try {
+      const books = libraryBooks.value
+      const book = await appService?.value?.importBook(file, books);
+      libraryBooks.value = books
+    } catch (error: any) {
+      const filename = typeof file === 'string' ? file : file.name;
+      const baseFilename = getFilename(filename);
+      failedFiles.push(baseFilename);
+      const errorMessage =
+        error instanceof Error
+          ? errorMap.find(([substring]) => error.message.includes(substring))?.[1] || ''
+          : '';
+      toast.error(
+        _('Failed to import book(s): {{filenames}}', {
+          filenames: listFormater(false).format(failedFiles),
+        }) + (errorMessage ? `\n${errorMessage}` : ''),
+      );
+      console.error('Failed to import book:', filename, error);
+    }
+  }
+  appService?.value?.saveLibraryBooks(libraryBooks.value);
+  loading.value = false;
+};
+
+const selectFilesTauri = async () => {
+  const exts = appService.value?.isAndroidApp ? [] : SUPPORTED_FILE_EXTS;
+  const files = (await appService.value?.selectFiles(_('Select Books'), exts)) || [];
+  // Cannot filter out files on Android since some content providers may not return the file name
+  return files;
+};
+
+const selectFilesWeb = () => {
+  return new Promise((resolve) => {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = FILE_ACCEPT_FORMATS;
+    fileInput.multiple = true;
+    fileInput.click();
+
+    fileInput.onchange = () => {
+      resolve(fileInput.files);
     };
-    reader.readAsArrayBuffer(file);
   });
-}
+};
 
-const fileInput = ref(null);
+const handleImportBooks = async () => {
+  let files;
+  if (isTauriAppPlatform()) {
+    if (appService.value?.isIOSApp) {
+      files = (await selectFilesWeb()) as [File];
+    } else {
+      files = (await selectFilesTauri()) as [string];
+    }
+  } else {
+    files = (await selectFilesWeb()) as [File];
+  }
+  importBooks(files);
+};
 
-const dirInput = ref(null);
 
 
 const items = [
   {
-    title: '删除', function: (name: string) => {
-      removeFromBookshelves(name);
+    title: '删除', function: () => {
     }
   },
 ]
-//  delete book
-import { useToast } from "vue-toastification";
-const toast = useToast();
-function removeFromBookshelves(name) {
-  try {
-    localForage.removeItem(name);
-    epubFiles.value = epubFiles.value.filter((file) => file.name !== name);
-    toast.success("已从书架移除");
-  } catch (e) {
-    toast.error("移除失败");
-  }
-}
 
 // goto read
 const router = useRouter();
-const goToRead = async (file) => {
-  const bookInForage = await localForage.getItem(file.name);
-  const book = EPub(bookInForage.book);
-  bookStore.SET_BOOK(book);
+const goToRead = async () => {
   router.push("/book");
 };
 
+// @ts-ignore
 import placeholderUrl from "@/assets/placeholder.png";
-
-import { ref } from "vue";
-import { useBookStore } from "@/store/book";
-const bookStore = useBookStore();
-import EPub from "epubjs";
-import localForage from "localforage";
 import { mdiDotsHorizontal } from "@mdi/js";
-localForage.config({
-  name: "epubBooks",
-});
-const epubFiles = ref([]);
+import { AppService } from '@/types/system';
+import { Book } from '@/types/book';
+import { storeToRefs } from 'pinia';
 
-getBooks();
-
-async function getBooks() {
-  // 解析封面,顺便也得到book对象
-  const parseCover = async (books) => {
-    const rst = [];
-    for (const { name, cover } of books) {
-      const url = URL.createObjectURL(cover);
-      rst.push({ name, cover: url });
-    }
-    return rst;
-  };
-
-  // 获取书架中的书
-  const bookNames = [...(await localForage.keys())].filter((name) => {
-    return name.split("*").length === 1;
-  });
-
-  const books = await Promise.all(
-    bookNames.map(async (name) => {
-      return await localForage.getItem(name);
-    })
-  );
-
-  if (books) {
-    epubFiles.value = await parseCover(books);
-  }
-
-}
 </script>

@@ -183,6 +183,7 @@ declare global {
   const useFileSystemAccess: typeof import('@vueuse/core')['useFileSystemAccess']
   const useFocus: typeof import('@vueuse/core')['useFocus']
   const useFocusWithin: typeof import('@vueuse/core')['useFocusWithin']
+  const useFoliateEvents: typeof import('./hooks/useFoliateEvents')['useFoliateEvents']
   const useFps: typeof import('@vueuse/core')['useFps']
   const useFullscreen: typeof import('@vueuse/core')['useFullscreen']
   const useGamepad: typeof import('@vueuse/core')['useGamepad']
@@ -282,6 +283,7 @@ declare global {
   const useTrackLyric: typeof import('./hooks/useTrackLyric')['default']
   const useTrackOperation: typeof import('./hooks/useTrackOperation')['useTrackOperation']
   const useTransition: typeof import('@vueuse/core')['useTransition']
+  const useTranslation: typeof import('./hooks/useTranslation')['useTranslation']
   const useUrlSearchParams: typeof import('@vueuse/core')['useUrlSearchParams']
   const useUserMedia: typeof import('@vueuse/core')['useUserMedia']
   const useVModel: typeof import('@vueuse/core')['useVModel']
@@ -327,4 +329,7 @@ declare global {
   // @ts-ignore
   export type { Lyric } from './hooks/useTrackLyric'
   import('./hooks/useTrackLyric')
+  // @ts-ignore
+  export type { TranslationFunc } from './hooks/useTranslation'
+  import('./hooks/useTranslation')
 }
