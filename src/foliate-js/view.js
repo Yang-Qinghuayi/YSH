@@ -515,10 +515,10 @@ export class View extends HTMLElement {
         await this.renderer.next(distance)
     }
     goLeft() {
-        return this.book.dir === 'rtl' ? this.next() : this.prev()
+        return this.book?.dir === 'rtl' ? this.next() : this.prev()
     }
     goRight() {
-        return this.book.dir === 'rtl' ? this.prev() : this.next()
+        return this.book?.dir === 'rtl' ? this.prev() : this.next()
     }
     async * #searchSection(matcher, query, index) {
         const doc = await this.book.sections[index].createDocument()

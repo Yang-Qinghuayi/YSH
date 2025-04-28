@@ -1,69 +1,144 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-
-import { BookContent, BookConfig, PageInfo, BookProgress, ViewSettings } from '@/types/book';
-import { EnvConfigType } from '@/services/environment';
-import { FoliateView } from '@/types/view';
-import { BookDoc, DocumentLoader, SectionItem, TOCItem } from '@/libs/document';
-import { updateTocCFI, updateTocID } from '@/utils/toc';
 import { useSettingsStore } from './settingsStore';
 import { useBookDataStore } from './bookDataStore';
 import { useLibraryStore } from './libraryStore';
+import { updateTocCFI, updateTocID } from '@/utils/toc';
 import { getPrimaryLanguage } from '@/utils/book';
 
+import type { ViewSettings, BookProgress, PageInfo, BookConfig, BookContent } from '@/types/book';
+import type { FoliateView } from '@/types/view';
+import type { EnvConfigType } from '@/services/environment';
+import { BookDoc, DocumentLoader, SectionItem, TOCItem } from '@/libs/document';
+
+interface ViewState {
+  key: string;
+  view: FoliateView | null;
+  isPrimary: boolean;
+  loading: boolean;
+  error: string | null;
+  progress: BookProgress | null;
+  ribbonVisible: boolean;
+  viewSettings: ViewSettings | null;
+}
+
 export const useReaderStore = defineStore('reader', () => {
-  const view = ref<FoliateView | null>(null);
-  const loading = ref(false);
-  const error = ref<string | null>(null);
-  const progress = ref<BookProgress | null>(null);
-  const viewSettings = ref<ViewSettings | null>(null);
+  const viewStates = ref<Record<string, ViewState>>({});
+  const bookKeys = ref<string[]>([]);
+  const hoveredBookKey = ref<string | null>(null);
 
-  const isLoaded = computed(() => !loading.value && view.value !== null);
-
-  const getView = () => view.value;
-
-  const setView = (newView: FoliateView) => {
-    view.value = newView;
+  const setBookKeys = (keys: string[]) => {
+    bookKeys.value = keys;
   };
 
-  const getProgress = () => progress.value;
+  const setHoveredBookKey = (key: string | null) => {
+    hoveredBookKey.value = key;
+  };
+
+  const getView = (key: string | null) => {
+    return key ? viewStates.value[key]?.view || null : null;
+  };
+
+  const setView = (key: string, view: FoliateView) => {
+    const vs = viewStates.value[key];
+    if (vs) {
+      vs.view = view;
+    }
+  };
+
+  const getViews = computed(() => {
+    return Object.values(viewStates.value)
+      .map(v => v.view)
+      .filter(Boolean) as FoliateView[];
+  });
+
+  const getViewsById = (id: string) => {
+    return Object.values(viewStates.value)
+      .filter(v => v.key.startsWith(id))
+      .map(v => v.view!)
+      .filter(Boolean);
+  };
+
+  const clearViewState = (key: string) => {
+    delete viewStates.value[key];
+  };
+
+  const getViewState = (key: string) => {
+    return viewStates.value[key] || null;
+  };
+
+  const getViewSettings = (key: string) => {
+    return viewStates.value[key]?.viewSettings || null;
+  };
+
+  const setViewSettings = (key: string, settings: ViewSettings) => {
+    const id = key.split('-')[0]!;
+    const bookDataStore = useBookDataStore();
+    const bookData = bookDataStore.booksData[id];
+    const vs = viewStates.value[key];
+
+    if (!vs || !bookData) return;
+
+    if (vs.isPrimary) {
+      bookDataStore.booksData[id] = {
+        ...bookData,
+        config: {
+          ...bookData.config,
+          updatedAt: Date.now(),
+          viewSettings: settings,
+        },
+      };
+    }
+
+    vs.viewSettings = settings;
+  };
+
+  const getProgress = (key: string) => {
+    return viewStates.value[key]?.progress || null;
+  };
 
   const setProgress = (
+    key: string,
     location: string,
     tocItem: TOCItem,
     section: PageInfo,
     pageinfo: PageInfo,
-    range: Range,
+    range: Range
   ) => {
-    const id = view.value?.id;
-    if (!id) return;
-
+    const id = key.split('-')[0]!;
     const bookDataStore = useBookDataStore();
-    const bookData = bookDataStore.booksData[id];
-    if (!bookData) return;
+    const viewState = viewStates.value[key];
+    if (!viewState) return;
 
-    const newProgress: [number, number] = [(pageinfo.next ?? pageinfo.current) + 1, pageinfo.total];
+    const progress: [number, number] = [(pageinfo.next ?? pageinfo.current) + 1, pageinfo.total];
 
     const libraryStore = useLibraryStore();
-    const bookIndex = libraryStore.library.findIndex((b) => b.hash === id);
-    if (bookIndex !== -1) {
-      const updatedBook = { ...libraryStore.library[bookIndex], progress: newProgress, updatedAt: Date.now() };
-      libraryStore.library.splice(bookIndex, 1, updatedBook);
+    const idx = libraryStore.library.findIndex(b => b.hash === id);
+
+    if (idx !== -1) {
+      const updatedBook = {
+        ...libraryStore.library[idx],
+        progress,
+        updatedAt: Date.now(),
+      };
+      libraryStore.library[idx] = updatedBook;
     }
 
-    const updatedConfig = {
-      ...bookData.config,
-      updatedAt: Date.now(),
-      progress: newProgress,
-      location,
-    };
+    const bookData = bookDataStore.booksData[id];
+    if (bookData) {
+      const newConfig = {
+        ...bookData.config,
+        updatedAt: Date.now(),
+        progress,
+        location,
+      };
+      bookDataStore.booksData[id] = {
+        ...bookData,
+        config: viewState.isPrimary ? newConfig : bookData.config,
+      };
+    }
 
-    bookDataStore.booksData[id] = {
-      ...bookData,
-      config: updatedConfig,
-    };
-
-    progress.value = {
+    viewState.progress = {
       location,
       sectionHref: tocItem?.href,
       sectionLabel: tocItem?.label,
@@ -74,83 +149,102 @@ export const useReaderStore = defineStore('reader', () => {
     };
   };
 
-  const getViewSettings = () => viewSettings.value;
-
-  const setViewSettings = (newSettings: ViewSettings) => {
-    const id = view.value?.id;
-    if (!id) return;
-
-    const bookDataStore = useBookDataStore();
-    const bookData = bookDataStore.booksData[id];
-    if (!bookData) return;
-
-    bookDataStore.booksData[id] = {
-      ...bookData,
-      config: {
-        ...bookData.config,
-        updatedAt: Date.now(),
-        viewSettings: newSettings,
-      },
-    };
-
-    viewSettings.value = { ...newSettings };
+  const setBookmarkRibbonVisibility = (key: string, visible: boolean) => {
+    const vs = viewStates.value[key];
+    if (vs) {
+      vs.ribbonVisible = visible;
+    }
   };
 
-  const initViewState = async (envConfig: EnvConfigType, id: string) => {
-    loading.value = true;
-    error.value = null;
+  const initViewState = async (envConfig: EnvConfigType, id: string, key: string, isPrimary = true) => {
     const bookDataStore = useBookDataStore();
-    const bookData = bookDataStore.booksData[id];
+    let bookData = bookDataStore.booksData[id];
+
+    viewStates.value[key] = {
+      key: '',
+      view: null,
+      isPrimary: false,
+      loading: true,
+      error: null,
+      progress: null,
+      ribbonVisible: false,
+      viewSettings: null,
+    };
 
     try {
       if (!bookData) {
         const appService = await envConfig.getAppService();
-        const settings = useSettingsStore().settings;
-        const library = useLibraryStore().library;
-        const book = library.find((b) => b.hash === id);
+        const { settings } = useSettingsStore();
+        const { library } = useLibraryStore();
+
+        const book = library.find(b => b.hash === id);
         if (!book) throw new Error('Book not found');
 
         const content = (await appService.loadBookContent(book, settings)) as BookContent;
         const { file, config } = content;
+        console.log('Loading book', key);
+
         const { book: loadedBookDoc } = await new DocumentLoader(file).open();
         const bookDoc = loadedBookDoc as BookDoc;
 
         if (bookDoc.toc?.length && bookDoc.sections?.length) {
           updateTocID(bookDoc.toc);
-          const sections = Object.fromEntries(bookDoc.sections.map((s) => [s.id, s]));
+          const sections = bookDoc.sections.reduce((map: Record<string, SectionItem>, section) => {
+            map[section.id] = section;
+            return map;
+          }, {});
           updateTocCFI(bookDoc, bookDoc.toc, sections);
         }
 
-        book.primaryLanguage = book.primaryLanguage ?? getPrimaryLanguage(bookDoc.metadata.language);
+        book.primaryLanguage ??= getPrimaryLanguage(bookDoc.metadata.language);
 
         bookDataStore.booksData[id] = { id, book, file, config, bookDoc };
       }
 
-      const config = bookDataStore.booksData[id].config as BookConfig;
-      viewSettings.value = { ...config.viewSettings };
-      loading.value = false;
-    } catch (err) {
-      console.error(err);
-      error.value = 'Failed to load book.';
-      loading.value = false;
+      const currentConfig = bookDataStore.booksData[id]?.config as BookConfig;
+
+      viewStates.value[key] = {
+        key,
+        view: null,
+        isPrimary,
+        loading: false,
+        error: null,
+        progress: null,
+        ribbonVisible: false,
+        viewSettings: JSON.parse(JSON.stringify(currentConfig.viewSettings!)),
+      };
+    } catch (error) {
+      console.error(error);
+      viewStates.value[key] = {
+        key: '',
+        view: null,
+        isPrimary: false,
+        loading: false,
+        error: 'Failed to load book.',
+        progress: null,
+        ribbonVisible: false,
+        viewSettings: null,
+      };
     }
   };
 
   return {
-    view,
-    loading,
-    error,
-    progress,
-    viewSettings,
-
-    isLoaded,
-
+    viewStates,
+    bookKeys,
+    hoveredBookKey,
+    setBookKeys,
+    setHoveredBookKey,
     getView,
     setView,
-    getProgress,
-    setProgress,
+    getViews,
+    getViewsById,
+    clearViewState,
+    getViewState,
+    initViewState,
     getViewSettings,
     setViewSettings,
-    initViewState,
+    getProgress,
+    setProgress,
+    setBookmarkRibbonVisibility,
   };
 });

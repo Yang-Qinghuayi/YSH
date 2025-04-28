@@ -31,16 +31,26 @@ import {
   handleTouchMove,
   handleTouchEnd,
 } from '@/utils/iframeEventHandlers';
+import { getStyles, mountAdditionalFonts, transformStylesheet } from '@/utils/style';
+import { transformContent } from '@/services/transformService';
+import { getMaxInlineSize } from '@/utils/config';
 import "@/foliate-js/view.js";
 import { FoliateView } from "@/types/view"
 import { useDisplay } from "vuetify";
 const { lgAndUp, } = useDisplay();
-
+const { envConfig, appService } = useEnv();
 import { useClickEvent, useTouchEvent } from '@/hooks/useIframeEvents';
 import { storeToRefs } from "pinia";
 import { useSettingStore } from "@/store/setting";
 const { showBigCatalog } = storeToRefs(useSettingStore()) as any
 
+import { useBookDataStore } from '@/store/bookDataStore';
+const { getConfig, getBookData } = useBookDataStore();
+import { uniqueId } from '@/utils/misc';
+import { useLibraryStore } from '@/store/libraryStore';
+const { setLibrary } = useLibraryStore();
+import { useSettingsStore } from '@/store/settingsStore';
+const { settings, setSettings } = useSettingsStore();
 import localforage from "localforage";
 localforage.config({
   name: "epubBooks",
@@ -53,14 +63,29 @@ import { mdiBookOpenVariantOutline } from "@mdi/js";
 import { useFoliateEvents } from "@/hooks/useFoliateEvents";
 const bookStore = useBookStore();
 
+import { useReaderStore } from '@/store/readerStore';
+const { getView, setBookKeys } = useReaderStore();
+const { initViewState, clearViewState } = useReaderStore();
+const { getProgress, getViewState, getViewSettings, hoveredBookKey } = useReaderStore();
+const { setView: setFoliateView, setProgress } = useReaderStore();
+
+import { useSidebarStore } from '@/store/sidebarStore';
+const { sideBarBookKey, setSideBarBookKey } = useSidebarStore();
 const containerRef = ref<HTMLDivElement | null>(null);
 const viewRef = ref<FoliateView | null>(null);
+
+
+const route = useRoute();
+const bookIds = route.query.ids as string || ""
+const initialIds = bookIds.split("+").filter(Boolean);
+const initialBookKeys = initialIds.map((id) => `${id}-${uniqueId()}`);
+const bookKey = initialBookKeys[0]
 
 useTouchEvent(viewRef);
 const { handleTurnPage } = useClickEvent(viewRef, containerRef);
 const progressRelocateHandler = (event: Event) => {
   const detail = (event as CustomEvent).detail;
-  // setProgress(bookKey, detail.cfi, detail.tocItem, detail.section, detail.location, detail.range);
+  setProgress(bookKey, detail.cfi, detail.tocItem, detail.section, detail.location, detail.range);
 };
 
 const docLoadHandler = (event: Event) => {
@@ -91,43 +116,120 @@ const docRelocateHandler = (event: Event) => {
 
   if (detail.reason === 'scroll') {
     const renderer = viewRef.value?.renderer;
-    // const viewSettings = getViewSettings(bookKey)!;
-    // if (renderer && viewSettings.continuousScroll) {
-    //   if (renderer.start <= 0) {
-    //     viewRef.current?.prev(1);
-    //     // sometimes viewSize has subpixel value that the end never reaches
-    //   } else if (renderer.end + 1 >= renderer.viewSize) {
-    //     viewRef.current?.next(1);
-    //   }
-    // }
+    const viewSettings = getViewSettings(bookKey)!;
+    if (renderer && viewSettings.continuousScroll) {
+      if (renderer.start <= 0) {
+        viewRef.value?.prev(1);
+        // sometimes viewSize has subpixel value that the end never reaches
+      } else if (renderer.end + 1 >= renderer.viewSize) {
+        viewRef.value?.next(1);
+      }
+    }
   }
 };
 
+const docTransformHandler = (event: Event) => {
+  const { detail } = event as CustomEvent;
+  detail.data = Promise.resolve(detail.data)
+    .then((data) => {
+      const viewSettings = getViewSettings(bookKey);
+      if (detail.type === 'text/css') return transformStylesheet(data);
+      if (viewSettings && detail.type === 'application/xhtml+xml') {
+        const ctx = {
+          bookKey,
+          viewSettings,
+          content: data,
+          transformers: ['punctuation'],
+        };
+        return Promise.resolve(transformContent(ctx));
+      }
+      return data;
+    })
+    .catch((e) => {
+      console.error(new Error(`Failed to load ${detail.name}`, { cause: e }));
+      return '';
+    });
+};
 useFoliateEvents(viewRef, {
   onLoad: docLoadHandler,
   onRelocate: progressRelocateHandler,
   onRendererRelocate: docRelocateHandler,
 });
 
+const isInitiating = ref(false)
 onMounted(async () => {
+
+  if (isInitiating.value) return;
+  isInitiating.value = true;
+  const initLibrary = async () => {
+    const appService = await envConfig.getAppService();
+    const settings = await appService.loadSettings();
+    setSettings(settings);
+    setLibrary(await appService.loadLibraryBooks());
+  };
+
+  await initLibrary();
+
+
+  setBookKeys(initialBookKeys);
+  const uniqueIds = new Set<string>();
+  console.log('Initialize books', initialBookKeys);
+  initialBookKeys.forEach((key, index) => {
+    const id = key.split('-')[0]!;
+    const isPrimary = !uniqueIds.has(id);
+    uniqueIds.add(id);
+    if (!getViewState(key)) {
+      initViewState(envConfig, id, key, isPrimary).catch((error) => {
+        console.log('Error initializing book', key, error);
+      });
+      if (index === 0) setSideBarBookKey(key);
+    }
+  });
+
+  const bookData = getBookData(bookKey);
+  const config = getConfig(bookKey);
+  const progress = getProgress(bookKey);
+  const viewSettings = getViewSettings(bookKey);
+  const { bookDoc } = bookData || {};
+
   const view = document.createElement("foliate-view") as FoliateView
   containerRef.value && containerRef.value.appendChild(view);
 
-  let blob: Blob | null = null
-  if (!bookStore.book) {
-    const bookInForage = await localforage.getItem(
-      BSstore.metadata.title.replace(/\(.*?\) |（.*?）/g, "")
-    ) as any
-    if (bookInForage) {
-      blob = new Blob([bookInForage.book]);
-    }
-  } else {
-    blob = new Blob(bookStore.book)
-  }
-  blob && await view.open(blob); // 可以替换为 File 对象或实际路径
+  bookDoc && await view.open(bookDoc);
   viewRef.value = view
 
-  view.goToFraction(0)
+  setFoliateView(bookKey, view);
+
+  const { book } = view;
+
+  // book.transformTarget?.addEventListener('data', docTransformHandler);
+  viewSettings && view.renderer.setStyles?.(getStyles(viewSettings));
+
+  const isScrolled = viewSettings?.scrolled!;
+  const marginPx = viewSettings?.marginPx!;
+  const gapPercent = viewSettings?.gapPercent!;
+  const animated = viewSettings?.animated!;
+  const maxColumnCount = viewSettings?.maxColumnCount!;
+  // const maxInlineSize = getMaxInlineSize(viewSettings!);
+  const maxBlockSize = viewSettings?.maxBlockSize!;
+  if (animated) {
+    view.renderer?.setAttribute('animated', '');
+  } else {
+    view.renderer?.removeAttribute('animated');
+  }
+  view.renderer.setAttribute('flow', isScrolled ? 'scrolled' : 'paginated');
+  view.renderer.setAttribute('margin', `${marginPx}px`);
+  view.renderer.setAttribute('gap', `${gapPercent}%`);
+  view.renderer.setAttribute('max-column-count', maxColumnCount);
+  // view.renderer.setAttribute('max-inline-size', `${maxInlineSize}px`);
+  view.renderer.setAttribute('max-block-size', `${maxBlockSize}px`);
+
+  const lastLocation = config?.location;
+  if (lastLocation) {
+    view.init({ lastLocation });
+  } else {
+    view.goToFraction(0);
+  }
 });
 </script>
 

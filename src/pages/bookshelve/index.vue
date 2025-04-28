@@ -5,7 +5,7 @@
     </v-btn>
     <div class="mt-2">
       <card-row>
-        <v-card @click="goToRead()" v-for="book in libraryBooks" :flat="true">
+        <v-card @click="goToRead([book.hash])" v-for="book in libraryBooks" :flat="true">
           <v-img class="cover-image" :cover="true" :src="book.coverImageUrl" style="aspect-ratio: 1" :aspect-ratio="1"
             :lazy-src="placeholderUrl">
           </v-img>
@@ -226,8 +226,13 @@ const items = [
 
 // goto read
 const router = useRouter();
-const goToRead = async () => {
-  router.push("/book");
+const goToRead = async (ids: string[]) => {
+  router.push({
+    path: "/book",
+    query: {
+      ids: ids.join("+")
+    }
+  });
 };
 
 // @ts-ignore

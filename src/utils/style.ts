@@ -15,7 +15,7 @@ import {
   generateDarkPalette,
 } from '@/styles/themes';
 
-import fontfacesCSS from '!!raw-loader!../styles/fonts.css';
+import fontfacesCSS from '@/styles/fonts.css?raw';
 import { getOSPlatform } from './misc';
 
 const getFontStyles = (
