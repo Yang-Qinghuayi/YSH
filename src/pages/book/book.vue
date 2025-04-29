@@ -32,10 +32,10 @@ import {
   handleTouchEnd,
 } from '@/utils/iframeEventHandlers';
 import { getStyles, mountAdditionalFonts, transformStylesheet } from '@/utils/style';
+import { FoliateView, wrappedFoliateView } from '@/types/view';
 import { transformContent } from '@/services/transformService';
 import { getMaxInlineSize } from '@/utils/config';
 import "@/foliate-js/view.js";
-import { FoliateView } from "@/types/view"
 import { useDisplay } from "vuetify";
 const { lgAndUp, } = useDisplay();
 const { envConfig, appService } = useEnv();
@@ -51,10 +51,8 @@ import { useLibraryStore } from '@/store/libraryStore';
 const { setLibrary } = useLibraryStore();
 import { useSettingsStore } from '@/store/settingsStore';
 const { settings, setSettings } = useSettingsStore();
-import localforage from "localforage";
-localforage.config({
-  name: "epubBooks",
-});
+
+import { useProgressAutoSave } from '@/hooks/useProgressAutoSave';
 import { useBookSettingsStore } from "@/store/bookSettings";
 const BSstore = useBookSettingsStore() as any
 
@@ -81,6 +79,7 @@ const initialIds = bookIds.split("+").filter(Boolean);
 const initialBookKeys = initialIds.map((id) => `${id}-${uniqueId()}`);
 const bookKey = initialBookKeys[0]
 
+useProgressAutoSave(bookKey);
 useTouchEvent(viewRef);
 const { handleTurnPage } = useClickEvent(viewRef, containerRef);
 const progressRelocateHandler = (event: Event) => {
@@ -93,9 +92,8 @@ const docLoadHandler = (event: Event) => {
   console.log('doc index loaded:', detail.index);
   if (detail.doc) {
     // const writingDir = viewRef.value?.renderer.setStyles && getDirection(detail.doc);
-    // mountAdditionalFonts(detail.doc);
+    mountAdditionalFonts(detail.doc);
 
-    const bookKey = "kiss"
     if (!detail.doc.isEventListenersAdded) {
       detail.doc.isEventListenersAdded = true;
       detail.doc.addEventListener('keydown', handleKeydown.bind(null, bookKey));
@@ -174,17 +172,19 @@ onMounted(async () => {
   setBookKeys(initialBookKeys);
   const uniqueIds = new Set<string>();
   console.log('Initialize books', initialBookKeys);
-  initialBookKeys.forEach((key, index) => {
-    const id = key.split('-')[0]!;
-    const isPrimary = !uniqueIds.has(id);
-    uniqueIds.add(id);
-    if (!getViewState(key)) {
-      initViewState(envConfig, id, key, isPrimary).catch((error) => {
-        console.log('Error initializing book', key, error);
-      });
-      if (index === 0) setSideBarBookKey(key);
+  const key = initialBookKeys[0]
+  const id = key.split('-')[0]!;
+  const isPrimary = !uniqueIds.has(id);
+  uniqueIds.add(id);
+  if (!getViewState(key)) {
+    try {
+      await initViewState(envConfig, id, key, isPrimary);
+    } catch (error) {
+      console.log('Error initializing book', key, error);
+      throw error; // 重新抛出错误以阻止后续代码执行
     }
-  });
+    setSideBarBookKey(key);
+  }
 
   const bookData = getBookData(bookKey);
   const config = getConfig(bookKey);
@@ -192,7 +192,7 @@ onMounted(async () => {
   const viewSettings = getViewSettings(bookKey);
   const { bookDoc } = bookData || {};
 
-  const view = document.createElement("foliate-view") as FoliateView
+  const view = wrappedFoliateView(document.createElement('foliate-view') as FoliateView);
   containerRef.value && containerRef.value.appendChild(view);
 
   bookDoc && await view.open(bookDoc);
@@ -202,7 +202,7 @@ onMounted(async () => {
 
   const { book } = view;
 
-  // book.transformTarget?.addEventListener('data', docTransformHandler);
+  book.transformTarget?.addEventListener('data', docTransformHandler);
   viewSettings && view.renderer.setStyles?.(getStyles(viewSettings));
 
   const isScrolled = viewSettings?.scrolled!;
@@ -210,7 +210,7 @@ onMounted(async () => {
   const gapPercent = viewSettings?.gapPercent!;
   const animated = viewSettings?.animated!;
   const maxColumnCount = viewSettings?.maxColumnCount!;
-  // const maxInlineSize = getMaxInlineSize(viewSettings!);
+  const maxInlineSize = getMaxInlineSize(viewSettings!);
   const maxBlockSize = viewSettings?.maxBlockSize!;
   if (animated) {
     view.renderer?.setAttribute('animated', '');
@@ -221,7 +221,7 @@ onMounted(async () => {
   view.renderer.setAttribute('margin', `${marginPx}px`);
   view.renderer.setAttribute('gap', `${gapPercent}%`);
   view.renderer.setAttribute('max-column-count', maxColumnCount);
-  // view.renderer.setAttribute('max-inline-size', `${maxInlineSize}px`);
+  view.renderer.setAttribute('max-inline-size', `${maxInlineSize}px`);
   view.renderer.setAttribute('max-block-size', `${maxBlockSize}px`);
 
   const lastLocation = config?.location;
