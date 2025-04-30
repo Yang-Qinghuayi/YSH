@@ -4,21 +4,10 @@ import env from '@/services/environment';
 import { AppService } from '@/types/system';
 
 // 定义 context key，防止注入冲突
-const EnvSymbol = Symbol('Env');
+export const EnvSymbol = Symbol('Env');
 
 // 提供者
 export function provideEnv() {
-  const envConfig = reactive(env) as EnvConfigType;
-  const appService = ref<AppService | null>(null);
-
-  onMounted(async () => {
-    appService.value = await envConfig.getAppService();
-  });
-
-  provide(EnvSymbol, {
-    envConfig: readonly(envConfig),
-    appService
-  });
 }
 
 // 使用者

@@ -25,23 +25,23 @@ const gotoOrChange = (destination: string) => {
     height="64"
     temporary
   >
-    <v-btn value="discover" color="secondaryContainer" to="/bookshelve">
+    <v-btn value="discover" color="secondaryContainer" to="/library">
       <div class="bar-icon rounded-xl">
         <v-icon>{{ mdiBookshelf }}</v-icon>
       </div>
       <span class="bar-label">书架</span>
     </v-btn>
 
-    <v-btn
-      value="catalogue"
-      color="secondaryContainer"
-      @click="gotoOrChange('book')"
-    >
-      <div class="bar-icon rounded-xl">
-        <v-icon>{{ mdiMenu }}</v-icon>
-      </div>
-      <span class="bar-label">书籍</span>
-    </v-btn>
+    <!-- <v-btn -->
+    <!--   value="catalogue" -->
+    <!--   color="secondaryContainer" -->
+    <!--   @click="gotoOrChange('book')" -->
+    <!-- > -->
+    <!--   <div class="bar-icon rounded-xl"> -->
+    <!--     <v-icon>{{ mdiMenu }}</v-icon> -->
+    <!--   </div> -->
+    <!--   <span class="bar-label">书籍</span> -->
+    <!-- </v-btn> -->
 
     <v-btn value="setting" color="secondaryContainer" to="/setting">
       <div class="bar-icon rounded-xl">

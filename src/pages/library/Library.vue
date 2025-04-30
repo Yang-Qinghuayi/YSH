@@ -5,7 +5,7 @@
     </v-btn>
     <div class="mt-2">
       <card-row>
-        <v-card @click="goToRead([book.hash])" v-for="book in libraryBooks" :flat="true">
+        <v-card @click="goToRead(book.hash)" v-for="book in libraryBooks" :flat="true">
           <v-img class="cover-image" :cover="true" :src="book.coverImageUrl" style="aspect-ratio: 1" :aspect-ratio="1"
             :lazy-src="placeholderUrl">
           </v-img>
@@ -50,7 +50,6 @@ const _ = useTranslation();
 const loading = ref(false)
 
 import { useLibraryStore } from "@/store/libraryStore"
-
 const libraryStore = useLibraryStore()
 const {
   updateBook,
@@ -98,45 +97,34 @@ import { useSettingsStore } from '@/store/settingsStore';
 const settingsStore = useSettingsStore();
 const { settings, setSettings, saveSettings } = settingsStore;
 
+let loadingTimeout: any;
+
+const handleOpenWithBooks = async (appService: AppService, libraryBooks: Book[]) => {
+  const openWithFiles = (await parseOpenWithFiles()) || [];
+
+  if (openWithFiles.length > 0) {
+    await processOpenWithFiles(appService, openWithFiles, libraryBooks);
+  } else {
+    setCheckOpenWithBooks(false);
+    setLibrary(libraryBooks);
+  }
+};
+
+loadingTimeout = setTimeout(() => loading.value = true, 300);
+const initLibrary = async () => {
+  const appService = await envConfig.getAppService();
+  const libraryBooks = await appService.loadLibraryBooks();
+
+  if (checkOpenWithBooks && isTauriAppPlatform()) {
+    await handleOpenWithBooks(appService, libraryBooks);
+  }
+
+  libraryLoaded.value = true
+  if (loadingTimeout) clearTimeout(loadingTimeout);
+  loading.value = false;
+};
 
 onMounted(() => {
-  if (isInitiating.value) return;
-  isInitiating.value = true;
-
-  let loadingTimeout: any;
-
-  const handleOpenWithBooks = async (appService: AppService, libraryBooks: Book[]) => {
-    const openWithFiles = (await parseOpenWithFiles()) || [];
-
-    if (openWithFiles.length > 0) {
-      await processOpenWithFiles(appService, openWithFiles, libraryBooks);
-    } else {
-      setCheckOpenWithBooks(false);
-      setLibrary(libraryBooks);
-    }
-  };
-
-  const initLibrary = async () => {
-    const appService = await envConfig.getAppService();
-    const settingsData = await appService.loadSettings();
-    setSettings(settingsData);
-
-    const libraryBooks = await appService.loadLibraryBooks();
-
-    if (checkOpenWithBooks && isTauriAppPlatform()) {
-      await handleOpenWithBooks(appService, libraryBooks);
-    } else {
-      setCheckOpenWithBooks(false);
-      setLibrary(libraryBooks);
-    }
-
-    libraryLoaded.value = true
-    if (loadingTimeout) clearTimeout(loadingTimeout);
-    loading.value = false;
-  };
-
-  loadingTimeout = setTimeout(() => loading.value = true, 300);
-
   initLibrary();
 });
 
@@ -144,8 +132,6 @@ onBeforeUnmount(() => {
   setCheckOpenWithBooks(false);
   isInitiating.value = false;
 });
-
-
 
 const importBooks = async (files: (string | File)[]) => {
   loading.value = true;
@@ -226,11 +212,11 @@ const items = [
 
 // goto read
 const router = useRouter();
-const goToRead = async (ids: string[]) => {
+const goToRead = async (id: string) => {
   router.push({
     path: "/book",
     query: {
-      ids: ids.join("+")
+      id
     }
   });
 };

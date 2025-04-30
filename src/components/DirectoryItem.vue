@@ -3,8 +3,10 @@
     <v-list-item
       class="p-2 px-3 rounded-pill no-drag-area"
       @click="handleClick(item)"
-      >{{ item.label }}</v-list-item
-    >
+      >
+
+      {{ item.label }}
+    </v-list-item>
     <ul v-if="item.subitems?.length && showSubitems">
       <DirectoryItem
         v-for="subitem in item.subitems"

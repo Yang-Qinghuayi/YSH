@@ -69,9 +69,9 @@ const nav = computed(() => {
     },
     {
       icon: mdiBookshelf,
-      val: "bookshelve",
+      val: "library",
       title: t("book.bookshelf"),
-      to: "/bookshelve",
+      to: "/library",
     },
     {
       icon: mdiCog,

@@ -3,7 +3,7 @@ import type { RouteLocation, RouteRecordRaw } from "vue-router";
 import { createRouter, createWebHashHistory } from "vue-router";
 import Home from "@/pages/Home.vue";
 import Setting from "@/pages/setting/Setting.vue";
-import Bookshelve from "@/pages/bookshelve/index.vue";
+import Library from "@/pages/library/Library.vue";
 import Book from "@/pages/book/book.vue";
 
 const musicRoutes: RouteRecordRaw[] = [
@@ -13,9 +13,9 @@ const musicRoutes: RouteRecordRaw[] = [
     component: Book,
   },
   {
-    path: "/bookshelve",
-    name: "bookshelve",
-    component: Bookshelve,
+    path: "/library",
+    name: "library",
+    component: Library,
   },
   {
     path: "/setting",
@@ -40,7 +40,7 @@ export function useRouter(app: App) {
         name: "Home",
         component: Home,
         children: musicRoutes,
-        redirect: { path: "/bookshelve" },
+        redirect: { path: "/library" },
       },
 
       {

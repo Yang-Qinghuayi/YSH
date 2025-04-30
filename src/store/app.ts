@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { reactive, toRefs } from 'vue'
 
-
 export interface AppState {
   showControlCenter: boolean
   showLogin: boolean

@@ -172,7 +172,6 @@ declare global {
   const useElementVisibility: typeof import('@vueuse/core')['useElementVisibility']
   const useEmojiAnimation: typeof import('./hooks/useEmojiAnimation')['useEmojiAnimation']
   const useEnv: typeof import('./hooks/useEnv')['useEnv']
-  const useEpub: typeof import('./hooks/useEpub')['useEpub']
   const useEventBus: typeof import('@vueuse/core')['useEventBus']
   const useEventListener: typeof import('@vueuse/core')['useEventListener']
   const useEventSource: typeof import('@vueuse/core')['useEventSource']

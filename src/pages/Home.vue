@@ -7,10 +7,6 @@
     <!-- 主要内容 -->
     <app-content id="v-player-content" class="v-player-content" />
 
-    <!-- 目录 -->
-    <v-navigation-drawer v-model="catalog" location="bottom" temporary>
-      <Directory class="px-2 py-4" />
-    </v-navigation-drawer>
   </v-app>
 </template>
 

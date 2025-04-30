@@ -13,14 +13,16 @@
       <!-- 目录部分 -->
       <transition name="fade" enter-active-class="transition ease-out duration-300"
         leave-active-class="transition ease-in duration-300">
-        <Directory class="w-[16vw] h-[70vh] mx-[2vw] px-2 py-4 overflow-auto theme-border"
-          v-if="lgAndUp && showBigCatalog" />
+        <TOCView v-if="bookDoc && showBigCatalog && lgAndUp" :bookKey :doc="bookDoc" class="theme-border">
+        </TOCView>
       </transition>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import TOCView from "./components/TOCView.vue"
+
 import {
   handleKeydown,
   handleMousedown,
@@ -46,45 +48,34 @@ const { showBigCatalog } = storeToRefs(useSettingStore()) as any
 
 import { useBookDataStore } from '@/store/bookDataStore';
 const { getConfig, getBookData } = useBookDataStore();
-import { uniqueId } from '@/utils/misc';
-import { useLibraryStore } from '@/store/libraryStore';
-const { setLibrary } = useLibraryStore();
-import { useSettingsStore } from '@/store/settingsStore';
-const { settings, setSettings } = useSettingsStore();
 
 import { useProgressAutoSave } from '@/hooks/useProgressAutoSave';
-import { useBookSettingsStore } from "@/store/bookSettings";
-const BSstore = useBookSettingsStore() as any
 
-import { useBookStore } from "@/store/book";
 import { mdiBookOpenVariantOutline } from "@mdi/js";
 import { useFoliateEvents } from "@/hooks/useFoliateEvents";
-const bookStore = useBookStore();
 
 import { useReaderStore } from '@/store/readerStore';
-const { getView, setBookKeys } = useReaderStore();
 const { initViewState, clearViewState } = useReaderStore();
 const { getProgress, getViewState, getViewSettings, hoveredBookKey } = useReaderStore();
 const { setView: setFoliateView, setProgress } = useReaderStore();
 
 import { useSidebarStore } from '@/store/sidebarStore';
+import { BookDoc } from "@/libs/document";
 const { sideBarBookKey, setSideBarBookKey } = useSidebarStore();
 const containerRef = ref<HTMLDivElement | null>(null);
 const viewRef = ref<FoliateView | null>(null);
 
+const bookDoc = ref<BookDoc | null>()
 
 const route = useRoute();
-const bookIds = route.query.ids as string || ""
-const initialIds = bookIds.split("+").filter(Boolean);
-const initialBookKeys = initialIds.map((id) => `${id}-${uniqueId()}`);
-const bookKey = initialBookKeys[0]
+const bookKey = ref(route.query.id as string || "")
 
-useProgressAutoSave(bookKey);
+useProgressAutoSave(bookKey.value);
 useTouchEvent(viewRef);
 const { handleTurnPage } = useClickEvent(viewRef, containerRef);
 const progressRelocateHandler = (event: Event) => {
   const detail = (event as CustomEvent).detail;
-  setProgress(bookKey, detail.cfi, detail.tocItem, detail.section, detail.location, detail.range);
+  setProgress(bookKey.value, detail.cfi, detail.tocItem, detail.section, detail.location, detail.range);
 };
 
 const docLoadHandler = (event: Event) => {
@@ -96,14 +87,14 @@ const docLoadHandler = (event: Event) => {
 
     if (!detail.doc.isEventListenersAdded) {
       detail.doc.isEventListenersAdded = true;
-      detail.doc.addEventListener('keydown', handleKeydown.bind(null, bookKey));
-      detail.doc.addEventListener('mousedown', handleMousedown.bind(null, bookKey));
-      detail.doc.addEventListener('mouseup', handleMouseup.bind(null, bookKey));
-      detail.doc.addEventListener('click', handleClick.bind(null, bookKey));
-      detail.doc.addEventListener('wheel', handleWheel.bind(null, bookKey));
-      detail.doc.addEventListener('touchstart', handleTouchStart.bind(null, bookKey));
-      detail.doc.addEventListener('touchmove', handleTouchMove.bind(null, bookKey));
-      detail.doc.addEventListener('touchend', handleTouchEnd.bind(null, bookKey));
+      detail.doc.addEventListener('keydown', handleKeydown.bind(null, bookKey.value));
+      detail.doc.addEventListener('mousedown', handleMousedown.bind(null, bookKey.value));
+      detail.doc.addEventListener('mouseup', handleMouseup.bind(null, bookKey.value));
+      detail.doc.addEventListener('click', handleClick.bind(null, bookKey.value));
+      detail.doc.addEventListener('wheel', handleWheel.bind(null, bookKey.value));
+      detail.doc.addEventListener('touchstart', handleTouchStart.bind(null, bookKey.value));
+      detail.doc.addEventListener('touchmove', handleTouchMove.bind(null, bookKey.value));
+      detail.doc.addEventListener('touchend', handleTouchEnd.bind(null, bookKey.value));
     }
   }
 };
@@ -114,7 +105,7 @@ const docRelocateHandler = (event: Event) => {
 
   if (detail.reason === 'scroll') {
     const renderer = viewRef.value?.renderer;
-    const viewSettings = getViewSettings(bookKey)!;
+    const viewSettings = getViewSettings(bookKey.value)!;
     if (renderer && viewSettings.continuousScroll) {
       if (renderer.start <= 0) {
         viewRef.value?.prev(1);
@@ -130,11 +121,11 @@ const docTransformHandler = (event: Event) => {
   const { detail } = event as CustomEvent;
   detail.data = Promise.resolve(detail.data)
     .then((data) => {
-      const viewSettings = getViewSettings(bookKey);
+      const viewSettings = getViewSettings(bookKey.value);
       if (detail.type === 'text/css') return transformStylesheet(data);
       if (viewSettings && detail.type === 'application/xhtml+xml') {
         const ctx = {
-          bookKey,
+          bookKey: bookKey.value,
           viewSettings,
           content: data,
           transformers: ['punctuation'],
@@ -154,51 +145,38 @@ useFoliateEvents(viewRef, {
   onRendererRelocate: docRelocateHandler,
 });
 
-const isInitiating = ref(false)
-onMounted(async () => {
+onActivated(() => {
+  initBook()
+})
 
-  if (isInitiating.value) return;
-  isInitiating.value = true;
-  const initLibrary = async () => {
-    const appService = await envConfig.getAppService();
-    const settings = await appService.loadSettings();
-    setSettings(settings);
-    setLibrary(await appService.loadLibraryBooks());
-  };
-
-  await initLibrary();
-
-
-  setBookKeys(initialBookKeys);
-  const uniqueIds = new Set<string>();
-  console.log('Initialize books', initialBookKeys);
-  const key = initialBookKeys[0]
-  const id = key.split('-')[0]!;
-  const isPrimary = !uniqueIds.has(id);
-  uniqueIds.add(id);
-  if (!getViewState(key)) {
-    try {
-      await initViewState(envConfig, id, key, isPrimary);
-    } catch (error) {
-      console.log('Error initializing book', key, error);
-      throw error; // 重新抛出错误以阻止后续代码执行
-    }
-    setSideBarBookKey(key);
-  }
-
-  const bookData = getBookData(bookKey);
-  const config = getConfig(bookKey);
-  const progress = getProgress(bookKey);
-  const viewSettings = getViewSettings(bookKey);
-  const { bookDoc } = bookData || {};
-
+onMounted(() => {
   const view = wrappedFoliateView(document.createElement('foliate-view') as FoliateView);
   containerRef.value && containerRef.value.appendChild(view);
-
-  bookDoc && await view.open(bookDoc);
   viewRef.value = view
+})
 
-  setFoliateView(bookKey, view);
+const initBook = async () => {
+  const view = viewRef.value;
+  if (!view) return;
+  bookKey.value = route.query.id as string
+  const id = bookKey.value.split('-')[0]!;
+  if (!getViewState(bookKey.value)) {
+    try {
+      await initViewState(envConfig, id, bookKey.value, true);
+    } catch (error) {
+      console.log('Error initializing book', bookKey.value, error);
+      throw error; // 重新抛出错误以阻止后续代码执行
+    }
+    setSideBarBookKey(bookKey.value);
+  }
+
+  const bookData = getBookData(bookKey.value);
+  const config = getConfig(bookKey.value);
+  const viewSettings = getViewSettings(bookKey.value);
+  bookDoc.value = bookData?.bookDoc
+
+  view?.close()
+  bookDoc.value && await view.open(bookDoc.value);
 
   const { book } = view;
 
@@ -230,12 +208,12 @@ onMounted(async () => {
   } else {
     view.goToFraction(0);
   }
-});
+}
 </script>
 
-<style>
+<style scoped>
 .theme-border {
   border: 3px solid rgba(var(--v-theme-primary), 0.2);
-  border-radius: 6px;
+  border-radius: 10px;
 }
 </style>
