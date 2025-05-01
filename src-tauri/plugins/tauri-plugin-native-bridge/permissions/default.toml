@@ -1,0 +1,13 @@
+[default]
+description = "Default permissions for the plugin"
+permissions = [
+  "allow-auth-with-safari",
+  "allow-auth-with-custom-tab",
+  "allow-copy-uri-to-path",
+  "allow-use-background-audio",
+  "allow-install-package",
+  "allow-set-system-ui-visibility",
+  "allow-get-status-bar-height",
+  "allow-get-sys-fonts-list",
+  "allow-intercept-keys",
+]

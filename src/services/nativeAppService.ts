@@ -53,7 +53,7 @@ const resolvePath = (fp: string, base: BaseDir): { baseDir: number; base: BaseDi
       };
     case 'None':
       return {
-        baseDir: 0,
+        baseDir: 0, 
         fp,
         base,
       };
@@ -220,7 +220,7 @@ export class NativeAppService extends BaseAppService {
   override hasRoundedWindow = !(OS_TYPE === 'ios' || OS_TYPE === 'android') && !!window.IS_ROUNDED;
   override hasSafeAreaInset = OS_TYPE === 'ios' || OS_TYPE === 'android';
   override hasHaptics = OS_TYPE === 'ios' || OS_TYPE === 'android';
-  override hasUpdater = OS_TYPE !== 'ios' && !process.env['NEXT_PUBLIC_DISABLE_UPDATER'];
+  override hasUpdater = OS_TYPE !== 'ios';
 
   override resolvePath(fp: string, base: BaseDir): { baseDir: number; base: BaseDir; fp: string } {
     return resolvePath(fp, base);

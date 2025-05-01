@@ -32,7 +32,11 @@ let nativeAppService: AppService | null = null;
 const getNativeAppService = async () => {
   if (!nativeAppService) {
     const { NativeAppService } = await import("@/services/nativeAppService");
-    nativeAppService = new NativeAppService();
+    try {
+      nativeAppService = new NativeAppService();
+    } catch (err) {
+      throw new Error(`初始化 NativeAppService 失败: ${err}`);
+    }
     await nativeAppService.loadSettings();
   }
   return nativeAppService;

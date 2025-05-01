@@ -1,8 +1,9 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "YSH",
-  "version": "1.0.0",
+  "mainBinaryName": "YSH",
   "identifier": "com.yqhy.ysh",
+  "version": "../package.json",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
@@ -10,22 +11,131 @@
     "beforeBuildCommand": "pnpm build"
   },
   "app": {
-    "windows": [
-      {
-        "title": "YSH",
-        "width": 1200,
-        "height": 1000,
-        "resizable": true,
-        "fullscreen": false
-      }
-    ],
     "security": {
-      "csp": null
+      "assetProtocol": {
+        "enable": true,
+        "scope": {
+          "allow": [
+            "$RESOURCE/**",
+            "$APPDATA/**/*",
+            "$TEMP/**/*",
+            "/private/var/mobile/Containers/Data/Application/**/*"
+          ],
+          "deny": []
+        }
+      }
     }
   },
   "bundle": {
     "active": true,
     "targets": "all",
-    "icon": ["icons/yqhy_ic.png"]
+    "category": "Productivity",
+    "icon": ["icons/yqhy_ic.png"],
+    "resources": [],
+    "windows": {
+      "webviewInstallMode": {
+        "type": "embedBootstrapper"
+      }
+    },
+    "macOS": {
+      "minimumSystemVersion": "12.0"
+    },
+    "linux": {
+      "deb": {
+        "section": "text"
+      }
+    },
+    "android": {
+      "minSdkVersion": 26
+    },
+    "iOS": {
+      "developmentTeam": "J5W48D69VR",
+      "minimumSystemVersion": "14.0"
+    },
+    "fileAssociations": [
+      {
+        "name": "epub",
+        "ext": ["epub"],
+        "description": "EPUB file",
+        "mimeType": "application/epub+zip",
+        "role": "Viewer"
+      },
+      {
+        "name": "mobi",
+        "ext": ["mobi"],
+        "description": "MOBI file",
+        "mimeType": "application/x-mobipocket-ebook",
+        "role": "Viewer"
+      },
+      {
+        "name": "azw",
+        "ext": ["azw", "azw3"],
+        "description": "AZW file",
+        "mimeType": "application/vnd.amazon.ebook",
+        "role": "Viewer"
+      },
+      {
+        "name": "fb2",
+        "ext": ["fb2"],
+        "description": "FB2 file",
+        "mimeType": "application/x-fictionbook+xml",
+        "role": "Viewer"
+      },
+      {
+        "name": "cbz",
+        "ext": ["cbz"],
+        "description": "CBZ file",
+        "mimeType": "application/vnd.comicbook+zip",
+        "role": "Viewer"
+      },
+      {
+        "name": "pdf",
+        "ext": ["pdf"],
+        "description": "PDF file",
+        "mimeType": "application/pdf",
+        "role": "Viewer"
+      }
+    ],
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "fs": {
+      "requireLiteralLeadingDot": false
+    },
+    "cli": {
+      "description": "Readest CLI",
+      "args": [
+        {
+          "name": "file1",
+          "index": 1,
+          "takesValue": true
+        },
+        {
+          "name": "file2",
+          "index": 2,
+          "takesValue": true
+        },
+        {
+          "name": "file3",
+          "index": 3,
+          "takesValue": true
+        },
+        {
+          "name": "file4",
+          "index": 4,
+          "takesValue": true
+        }
+      ]
+    },
+    "deep-link": {
+      "mobile": [{ "host": "web.readest.com" }],
+      "desktop": {
+        "schemes": ["readest"]
+      }
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJFMEQ1QjE2OEU1NEIzNTEKUldSUnMxU09GbHNOdmpEaWFMT1crRFpEV2VORzQ2MklxaFc0M1R0ci9xY2c1bENXS0xhM1R1L2sK",
+      "endpoints": ["https://github.com/readest/readest/releases/latest/download/latest.json"]
+    }
   }
 }

@@ -6,6 +6,7 @@ export {}
 declare global {
   const DisplayBreakpoint: typeof import('./hooks/useBreakpoint')['DisplayBreakpoint']
   const EffectScope: typeof import('vue')['EffectScope']
+  const EnvSymbol: typeof import('./hooks/useEnv')['EnvSymbol']
   const GridType: typeof import('./hooks/useResponsiveGrid')['GridType']
   const asyncComputed: typeof import('@vueuse/core')['asyncComputed']
   const autoResetRef: typeof import('@vueuse/core')['autoResetRef']

@@ -55,6 +55,7 @@ export default defineConfig(({ command, mode }) => {
     build: {
       emptyOutDir: true,
       sourcemap: isDevelopment,
+      target: 'es2022',
     },
     resolve: {
       alias: {

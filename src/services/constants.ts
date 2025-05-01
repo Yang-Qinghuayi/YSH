@@ -13,8 +13,8 @@ import { UserStorageQuota } from '@/types/user';
 import { getDefaultMaxBlockSize, getDefaultMaxInlineSize } from '@/utils/config';
 import { stubTranslation as _ } from '@/utils/misc';
 
-export const LOCAL_BOOKS_SUBDIR = 'Readest/Books';
-export const CLOUD_BOOKS_SUBDIR = 'Readest/Books';
+export const LOCAL_BOOKS_SUBDIR = 'YSH/Books';
+export const CLOUD_BOOKS_SUBDIR = 'YSH/Books';
 
 export const SUPPORTED_FILE_EXTS = [
   'epub',
