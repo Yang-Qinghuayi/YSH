@@ -16,7 +16,7 @@ export function useProgressAutoSave(bookKey: string) {
     if (config) {
       await bookDataStore.saveConfig( bookKey, config, settings);
     }
-  }, 10000);
+  },1000);
 
   // 初次挂载时保存一次
   onMounted(() => {
