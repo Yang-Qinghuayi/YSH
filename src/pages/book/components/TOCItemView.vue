@@ -3,11 +3,8 @@
     <v-list-item :class="[
       'rounded-pill',
       item.subitems ? 'p-0' : '',
-    ]" @click="handleClickItem" :aria-expanded="isExpanded" :aria-selected="isActive"
-      :data-href="getContentMd5(item.href)"
-:active="isActive"
-              active-class="text-primary"
-      >
+    ]" @click="handleClickItem as any" :aria-expanded="isExpanded" :aria-selected="isActive"
+      :data-href="getContentMd5(item.href)" :active="isActive" active-class="text-primary">
 
       <div class="flex items-center">
         <v-btn size="small" icon variant='text' v-if="item.subitems" @click.stop="toggleExpand">
@@ -23,7 +20,7 @@
       </div>
     </v-list-item>
     <ol v-if="item.subitems && isExpanded" role="group">
-      <TOCItemView v-for="(  subitem, index  ) in   item.subitems  " :key="`${index}-${subitem.href}`" :bookKey="bookKey"
+      <TOCItemView v-for="(  subitem, index  ) in   item.subitems  " :key="`${index}-${subitem.href}`" :bookId="bookId"
         :item="subitem" :depth="depth + 1" :expandedItems="expandedItems" />
     </ol>
   </div>
@@ -38,7 +35,7 @@ import { getContentMd5 } from '@/utils/misc';
 import type { TOCItem } from '@/libs/document';
 
 const props = defineProps<{
-  bookKey: string;
+  bookId: string;
   item: TOCItem;
   depth: number;
   expandedItems: string[];
@@ -47,7 +44,7 @@ const props = defineProps<{
 const isExpanded = ref(props.expandedItems.includes(props.item.href || ''));
 const readerStore = useReaderStore();
 
-const progress = readerStore.getProgress(props.bookKey);
+const progress = readerStore.getProgress(props.bookId);
 const isActive = progress?.sectionHref === props.item.href;
 
 function toggleExpand(event: MouseEvent) {
@@ -58,10 +55,10 @@ function toggleExpand(event: MouseEvent) {
 
 function handleClickItem(event: MouseEvent) {
   event.preventDefault();
-  eventDispatcher.dispatch('navigate', { bookKey: props.bookKey, href: props.item.href });
+  eventDispatcher.dispatch('navigate', { bookKey: props.bookId, href: props.item.href });
 
   if (props.item.href) {
-    readerStore.getView(props.bookKey)?.goTo(props.item.href);
+    readerStore.getView(props.bookId)?.goTo(props.item.href);
   }
 }
 

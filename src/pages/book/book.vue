@@ -13,7 +13,7 @@
       <!-- 目录部分 -->
       <transition name="fade" enter-active-class="transition ease-out duration-300"
         leave-active-class="transition ease-in duration-300">
-        <TOCView v-if="bookDoc && showBigCatalog && lgAndUp" :bookKey :doc="bookDoc" class="theme-border">
+        <TOCView v-if="bookDoc && showBigCatalog && lgAndUp" :bookId :doc="bookDoc" class="theme-border">
         </TOCView>
       </transition>
     </div>
@@ -47,7 +47,11 @@ import { useSettingStore } from "@/store/setting";
 const { showBigCatalog } = storeToRefs(useSettingStore()) as any
 
 import { useBookDataStore } from '@/store/bookDataStore';
-const { getConfig, getBookData } = useBookDataStore();
+const bookDataStore = useBookDataStore()
+const { getConfig, getBookData } = bookDataStore;
+
+import { useBookIdStore } from '@/store/bookIdStore';
+const { bookId } = storeToRefs(useBookIdStore())
 
 import { useProgressAutoSave } from '@/hooks/useProgressAutoSave';
 
@@ -68,16 +72,13 @@ const viewRef = ref<FoliateView | null>(null);
 
 const bookDoc = ref<BookDoc | null>()
 
-const route = useRoute();
-const bookKey = ref(route.query.id as string || "")
-
-const appService = ref<AppService | null>()
-useProgressAutoSave(bookKey.value);
+const appService = ref<AppService | null>(null)
+useProgressAutoSave(bookId.value);
 useTouchEvent(viewRef);
 const { handleTurnPage } = useClickEvent(viewRef, containerRef, appService);
 const progressRelocateHandler = (event: Event) => {
   const detail = (event as CustomEvent).detail;
-  setProgress(bookKey.value, detail.cfi, detail.tocItem, detail.section, detail.location, detail.range);
+  setProgress(bookId.value, detail.cfi, detail.tocItem, detail.section, detail.location, detail.range);
 };
 
 const docLoadHandler = (event: Event) => {
@@ -89,14 +90,14 @@ const docLoadHandler = (event: Event) => {
 
     if (!detail.doc.isEventListenersAdded) {
       detail.doc.isEventListenersAdded = true;
-      detail.doc.addEventListener('keydown', handleKeydown.bind(null, bookKey.value));
-      detail.doc.addEventListener('mousedown', handleMousedown.bind(null, bookKey.value));
-      detail.doc.addEventListener('mouseup', handleMouseup.bind(null, bookKey.value));
-      detail.doc.addEventListener('click', handleClick.bind(null, bookKey.value));
-      detail.doc.addEventListener('wheel', handleWheel.bind(null, bookKey.value));
-      detail.doc.addEventListener('touchstart', handleTouchStart.bind(null, bookKey.value));
-      detail.doc.addEventListener('touchmove', handleTouchMove.bind(null, bookKey.value));
-      detail.doc.addEventListener('touchend', handleTouchEnd.bind(null, bookKey.value));
+      detail.doc.addEventListener('keydown', handleKeydown.bind(null, bookId.value));
+      detail.doc.addEventListener('mousedown', handleMousedown.bind(null, bookId.value));
+      detail.doc.addEventListener('mouseup', handleMouseup.bind(null, bookId.value));
+      detail.doc.addEventListener('click', handleClick.bind(null, bookId.value));
+      detail.doc.addEventListener('wheel', handleWheel.bind(null, bookId.value));
+      detail.doc.addEventListener('touchstart', handleTouchStart.bind(null, bookId.value));
+      detail.doc.addEventListener('touchmove', handleTouchMove.bind(null, bookId.value));
+      detail.doc.addEventListener('touchend', handleTouchEnd.bind(null, bookId.value));
     }
   }
 };
@@ -107,7 +108,7 @@ const docRelocateHandler = (event: Event) => {
 
   if (detail.reason === 'scroll') {
     const renderer = viewRef.value?.renderer;
-    const viewSettings = getViewSettings(bookKey.value)!;
+    const viewSettings = getViewSettings(bookId.value)!;
     if (renderer && viewSettings.continuousScroll) {
       if (renderer.start <= 0) {
         viewRef.value?.prev(1);
@@ -123,11 +124,11 @@ const docTransformHandler = (event: Event) => {
   const { detail } = event as CustomEvent;
   detail.data = Promise.resolve(detail.data)
     .then((data) => {
-      const viewSettings = getViewSettings(bookKey.value);
+      const viewSettings = getViewSettings(bookId.value);
       if (detail.type === 'text/css') return transformStylesheet(data);
       if (viewSettings && detail.type === 'application/xhtml+xml') {
         const ctx = {
-          bookKey: bookKey.value,
+          bookKey: bookId.value,
           viewSettings,
           content: data,
           transformers: ['punctuation'],
@@ -165,30 +166,29 @@ onMounted(() => {
 const initBook = async () => {
   const view = viewRef.value;
   if (!view) return;
+  if (!bookId.value) return;
 
   await initLibrary()
 
-  bookKey.value = route.query.id as string
-  const id = bookKey.value.split('-')[0]!;
-  if (!getViewState(bookKey.value)) {
+  if (!getViewState(bookId.value)) {
     try {
-      await initViewState(id, bookKey.value, true);
+      await initViewState(bookId.value, true);
     } catch (error) {
-      console.log('Error initializing book', bookKey.value, error);
+      console.log('Error initializing book', bookId.value, error);
       throw error; // 重新抛出错误以阻止后续代码执行
     }
-    setSideBarBookKey(bookKey.value);
+    setSideBarBookKey(bookId.value);
   }
 
-  const bookData = getBookData(bookKey.value);
-  const config = getConfig(bookKey.value);
-  const viewSettings = getViewSettings(bookKey.value);
+  const bookData = getBookData(bookId.value);
+  const config = getConfig(bookId.value);
+  const viewSettings = getViewSettings(bookId.value);
   bookDoc.value = bookData?.bookDoc
 
   view.close()
   bookDoc.value && await view.open(bookDoc.value);
 
-  setFoliateView(bookKey.value, view)
+  setFoliateView(bookId.value, view)
   const { book } = view;
 
   book.transformTarget?.addEventListener('data', docTransformHandler);
@@ -202,9 +202,9 @@ const initBook = async () => {
   const maxInlineSize = getMaxInlineSize(viewSettings!);
   const maxBlockSize = viewSettings?.maxBlockSize!;
   if (animated) {
-    view.renderer?.setAttribute('animated', '');
+    view.renderer.setAttribute('animated', '');
   } else {
-    view.renderer?.removeAttribute('animated');
+    view.renderer.removeAttribute('animated');
   }
   view.renderer.setAttribute('flow', isScrolled ? 'scrolled' : 'paginated');
   view.renderer.setAttribute('margin', `${marginPx}px`);

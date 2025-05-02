@@ -44,7 +44,8 @@ const display = useDisplay();
 const { lgAndUp } = display;
 
 import { useAppService, initLibrary, libraryLoaded } from "@/hooks/useEnv";
-
+import { useBookIdStore } from '@/store/bookIdStore';
+const { setBookId } = useBookIdStore()
 import { useTranslation } from '@/hooks/useTranslation';
 const appService = ref<AppService | null>()
 const _ = useTranslation();
@@ -198,12 +199,11 @@ const items = [
 
 // goto read
 const router = useRouter();
-const goToRead = async (id: string) => {
+const goToRead = (id: string) => {
+  console.log(id)
+  setBookId(id)
   router.push({
     path: "/book",
-    query: {
-      id
-    }
   });
 };
 

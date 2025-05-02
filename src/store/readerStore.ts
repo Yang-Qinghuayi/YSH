@@ -8,7 +8,6 @@ import { getPrimaryLanguage } from '@/utils/book';
 
 import type { ViewSettings, BookProgress, PageInfo, BookConfig, BookContent } from '@/types/book';
 import type { FoliateView } from '@/types/view';
-import type { EnvConfigType } from '@/services/environment';
 import { BookDoc, DocumentLoader, SectionItem, TOCItem } from '@/libs/document';
 import { useAppService } from '@/hooks/useEnv';
 
@@ -157,11 +156,11 @@ export const useReaderStore = defineStore('reader', () => {
     }
   };
 
-  const initViewState = async (id: string, key: string, isPrimary = true) => {
+  const initViewState = async (id: string, isPrimary = true) => {
     const bookDataStore = useBookDataStore();
     let bookData = bookDataStore.booksData[id];
 
-    viewStates.value[key] = {
+    viewStates.value[id] = {
       key: '',
       view: null,
       isPrimary: false,
@@ -183,7 +182,6 @@ export const useReaderStore = defineStore('reader', () => {
 
         const content = (await appService.loadBookContent(book, settings)) as BookContent;
         const { file, config } = content;
-        console.log('Loading book', key);
 
         const { book: loadedBookDoc } = await new DocumentLoader(file).open();
         const bookDoc = loadedBookDoc as BookDoc;
@@ -204,8 +202,8 @@ export const useReaderStore = defineStore('reader', () => {
 
       const currentConfig = bookDataStore.booksData[id]?.config as BookConfig;
 
-      viewStates.value[key] = {
-        key,
+      viewStates.value[id] = {
+        key: id,
         view: null,
         isPrimary,
         loading: false,
@@ -216,7 +214,7 @@ export const useReaderStore = defineStore('reader', () => {
       };
     } catch (error) {
       console.error(error);
-      viewStates.value[key] = {
+      viewStates.value[id] = {
         key: '',
         view: null,
         isPrimary: false,

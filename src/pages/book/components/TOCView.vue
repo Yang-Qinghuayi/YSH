@@ -6,8 +6,8 @@
     <div class="truncate text-center m-2">
       {{ doc.metadata.author?.name }}
     </div>
-    <TOCItemView v-for="(item, index) in doc?.toc" :key="`${index}-${item.href}`" :bookKey="bookKey" :item="item" :depth="0"
-      :expandedItems="expandedItems" />
+    <TOCItemView v-for="(item, index) in doc?.toc" :key="`${index}-${item.href}`" :bookId="bookId" :item="item"
+      :depth="0" :expandedItems="expandedItems" />
   </div>
 </template>
 
@@ -22,8 +22,8 @@ import { findParentPath } from '@/utils/toc';
 import type { BookDoc, TOCItem } from '@/libs/document';
 import type { BookProgress } from '@/types/book';
 
-const { bookKey, doc } = defineProps<{
-  bookKey: string
+const { bookId, doc } = defineProps<{
+  bookId: string
   doc: BookDoc
 }>()
 
@@ -34,7 +34,7 @@ const expandedItems = ref<string[]>([]);
 const readerStore = useReaderStore();
 const sidebarStore = useSidebarStore();
 
-const progress = readerStore.getProgress(bookKey);
+const progress = readerStore.getProgress(bookId);
 
 function expandParents(toc: TOCItem[], href: string) {
   const parentPath = findParentPath(toc, href).map((item) => item.href);
@@ -62,7 +62,7 @@ function scrollToProgress(progress: BookProgress) {
 
 onMounted(() => {
   const observer = new MutationObserver(() => {
-    const progress = readerStore.getProgress(bookKey);
+    const progress = readerStore.getProgress(bookId);
     if (progress && viewRef.value) {
       scrollToProgress(progress);
       observer.disconnect();

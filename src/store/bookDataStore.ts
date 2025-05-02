@@ -3,7 +3,6 @@ import { ref } from 'vue';
 import { useLibraryStore } from './libraryStore';
 import { SystemSettings } from '@/types/settings';
 import { Book, BookConfig, BookNote } from '@/types/book';
-import { EnvConfigType } from '@/services/environment';
 import { BookDoc } from '@/libs/document';
 import { useAppService } from '@/hooks/useEnv';
 
