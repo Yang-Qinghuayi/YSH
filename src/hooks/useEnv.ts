@@ -1,25 +1,53 @@
-import { inject, provide, reactive, readonly, ref, onMounted } from 'vue';
 import { EnvConfigType } from '@/services/environment';
 import env from '@/services/environment';
 import { AppService } from '@/types/system';
+import { useSettingsStore } from '@/store/settingsStore';
+import { useLibraryStore } from "@/store/libraryStore"
 
-// 定义 context key，防止注入冲突
-export const EnvSymbol = Symbol('Env');
+let appService: AppService | null
+export const envConfig = reactive(env) as EnvConfigType;
+let cachedPromise: Promise<void> | null = null;
 
-// 提供者
-export function provideEnv() {
+const initAppService = async () => {
+  appService = await envConfig.getAppService()
 }
 
-// 使用者
-export function useEnv() {
-  const context = inject<{
-    envConfig: EnvConfigType;
-    appService:Ref<AppService | null>;
-  }>(EnvSymbol);
-
-  if (!context) {
-    throw new Error('useEnv must be used within a provider (provideEnv must be called first)');
+export const useAppService = async () => {
+  if (appService) {
+    return appService
   }
-
-  return context;
+  if (!cachedPromise) {
+    cachedPromise = initAppService()
+  }
+  await cachedPromise;
+  if (!appService) throw new Error("AppService not initialized");
+  return appService;
 }
+
+let cachedLibraryPromise: Promise<void> | null = null;
+
+export const libraryLoaded = ref(false)
+
+export const initLibrary = async () => {
+  if (cachedLibraryPromise) return cachedLibraryPromise;
+
+  cachedLibraryPromise = (async () => {
+    await initAppService()
+    if (!appService) throw new Error("AppService not initialized");
+
+    const [settingsData, libraryBooks] = await Promise.all([
+      appService.loadSettings(),
+      appService.loadLibraryBooks(),
+    ]);
+
+    const { setSettings } = useSettingsStore();
+    const { setLibrary, setCheckOpenWithBooks } = useLibraryStore();
+
+    if (settingsData) setSettings(settingsData);
+    if (libraryBooks) setLibrary(libraryBooks);
+    setCheckOpenWithBooks(false);
+    libraryLoaded.value = true;
+  })();
+
+  return cachedLibraryPromise;
+};

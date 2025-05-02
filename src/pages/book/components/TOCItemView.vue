@@ -3,7 +3,7 @@
     <v-list-item :class="[
       'rounded-pill',
       item.subitems ? 'p-0' : '',
-    ]" @click="(event: any) => handleClickItem(event)" :aria-expanded="isExpanded" :aria-selected="isActive"
+    ]" @click="handleClickItem" :aria-expanded="isExpanded" :aria-selected="isActive"
       :data-href="getContentMd5(item.href)"
 :active="isActive"
               active-class="text-primary"

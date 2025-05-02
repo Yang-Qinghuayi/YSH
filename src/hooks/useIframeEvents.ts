@@ -1,14 +1,14 @@
 import { FoliateView } from '@/types/view';
-import { useEnv } from '@/hooks/useEnv';
 import { eventDispatcher } from '@/utils/event';
 import { isTauriAppPlatform } from '@/services/environment';
 import { tauriGetWindowLogicalPosition } from '@/utils/window';
+import { AppService } from '@/types/system';
 
 export const useClickEvent = (
   viewRef: Ref<FoliateView | null>,
   containerRef: Ref<HTMLDivElement | null>,
+  appService: Ref<AppService | null>
 ) => {
-  const { appService } = useEnv();
   const handleTurnPage = async (
     msg: MessageEvent | MouseEvent
   ) => {
@@ -20,7 +20,7 @@ export const useClickEvent = (
           const viewRect = viewElement.getBoundingClientRect();
           let windowStartX;
           if (isTauriAppPlatform()) {
-            if (appService?.isMobile) {
+            if (appService.value?.isMobile) {
               windowStartX = 0;
             } else {
               const windowPosition = (await tauriGetWindowLogicalPosition()) as {

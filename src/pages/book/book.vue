@@ -40,7 +40,7 @@ import { getMaxInlineSize } from '@/utils/config';
 import "@/foliate-js/view.js";
 import { useDisplay } from "vuetify";
 const { lgAndUp, } = useDisplay();
-const { envConfig, appService } = useEnv();
+import { useAppService, initLibrary, libraryLoaded } from "@/hooks/useEnv";
 import { useClickEvent, useTouchEvent } from '@/hooks/useIframeEvents';
 import { storeToRefs } from "pinia";
 import { useSettingStore } from "@/store/setting";
@@ -61,6 +61,7 @@ const { setView: setFoliateView, setProgress } = useReaderStore();
 
 import { useSidebarStore } from '@/store/sidebarStore';
 import { BookDoc } from "@/libs/document";
+import { AppService } from "@/types/system";
 const { sideBarBookKey, setSideBarBookKey } = useSidebarStore();
 const containerRef = ref<HTMLDivElement | null>(null);
 const viewRef = ref<FoliateView | null>(null);
@@ -70,9 +71,10 @@ const bookDoc = ref<BookDoc | null>()
 const route = useRoute();
 const bookKey = ref(route.query.id as string || "")
 
+const appService = ref<AppService | null>()
 useProgressAutoSave(bookKey.value);
 useTouchEvent(viewRef);
-const { handleTurnPage } = useClickEvent(viewRef, containerRef);
+const { handleTurnPage } = useClickEvent(viewRef, containerRef, appService);
 const progressRelocateHandler = (event: Event) => {
   const detail = (event as CustomEvent).detail;
   setProgress(bookKey.value, detail.cfi, detail.tocItem, detail.section, detail.location, detail.range);
@@ -149,20 +151,28 @@ onActivated(() => {
   initBook()
 })
 
+useAppService().then(res => {
+  appService.value = res
+})
+
 onMounted(() => {
   const view = wrappedFoliateView(document.createElement('foliate-view') as FoliateView);
   containerRef.value && containerRef.value.appendChild(view);
   viewRef.value = view
 })
 
+
 const initBook = async () => {
   const view = viewRef.value;
   if (!view) return;
+
+  await initLibrary()
+
   bookKey.value = route.query.id as string
   const id = bookKey.value.split('-')[0]!;
   if (!getViewState(bookKey.value)) {
     try {
-      await initViewState(envConfig, id, bookKey.value, true);
+      await initViewState(id, bookKey.value, true);
     } catch (error) {
       console.log('Error initializing book', bookKey.value, error);
       throw error; // 重新抛出错误以阻止后续代码执行
@@ -175,9 +185,10 @@ const initBook = async () => {
   const viewSettings = getViewSettings(bookKey.value);
   bookDoc.value = bookData?.bookDoc
 
-  view?.close()
+  view.close()
   bookDoc.value && await view.open(bookDoc.value);
 
+  setFoliateView(bookKey.value, view)
   const { book } = view;
 
   book.transformTarget?.addEventListener('data', docTransformHandler);
@@ -211,7 +222,7 @@ const initBook = async () => {
 }
 </script>
 
-<style scoped>
+<style >
 .theme-border {
   border: 3px solid rgba(var(--v-theme-primary), 0.2);
   border-radius: 10px;

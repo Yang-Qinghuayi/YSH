@@ -42,10 +42,11 @@ const toast = useToast();
 import { useDisplay } from "vuetify";
 const display = useDisplay();
 const { lgAndUp } = display;
-import { useEnv } from "@/hooks/useEnv";
-const { envConfig, appService } = useEnv();
+
+import { useAppService, initLibrary, libraryLoaded } from "@/hooks/useEnv";
 
 import { useTranslation } from '@/hooks/useTranslation';
+const appService = ref<AppService | null>()
 const _ = useTranslation();
 const loading = ref(false)
 
@@ -91,13 +92,6 @@ const processOpenWithFiles = async (appService: AppService, openWithFiles: strin
   }
 };
 
-const isInitiating = ref(false)
-const libraryLoaded = ref(false)
-import { useSettingsStore } from '@/store/settingsStore';
-const settingsStore = useSettingsStore();
-const { settings, setSettings, saveSettings } = settingsStore;
-
-let loadingTimeout: any;
 
 const handleOpenWithBooks = async (appService: AppService, libraryBooks: Book[]) => {
   const openWithFiles = (await parseOpenWithFiles()) || [];
@@ -110,27 +104,19 @@ const handleOpenWithBooks = async (appService: AppService, libraryBooks: Book[])
   }
 };
 
-loadingTimeout = setTimeout(() => loading.value = true, 300);
-const initLibrary = async () => {
-  const appService = await envConfig.getAppService();
-  const libraryBooks = await appService.loadLibraryBooks();
+
+onMounted(async () => {
+  const appService = await useAppService()
+  await initLibrary()
 
   if (checkOpenWithBooks && isTauriAppPlatform()) {
-    await handleOpenWithBooks(appService, libraryBooks);
+    await handleOpenWithBooks(appService, libraryBooks.value);
   }
 
-  libraryLoaded.value = true
-  if (loadingTimeout) clearTimeout(loadingTimeout);
-  loading.value = false;
-};
-
-onMounted(() => {
-  initLibrary();
 });
 
 onBeforeUnmount(() => {
   setCheckOpenWithBooks(false);
-  isInitiating.value = false;
 });
 
 const importBooks = async (files: (string | File)[]) => {
@@ -144,7 +130,7 @@ const importBooks = async (files: (string | File)[]) => {
   for (const file of files) {
     try {
       const books = libraryBooks.value
-      const book = await appService?.value?.importBook(file, books);
+      await appService?.value?.importBook(file, books);
       libraryBooks.value = books
     } catch (error: any) {
       const filename = typeof file === 'string' ? file : file.name;

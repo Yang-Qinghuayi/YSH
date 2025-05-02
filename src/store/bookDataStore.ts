@@ -5,6 +5,7 @@ import { SystemSettings } from '@/types/settings';
 import { Book, BookConfig, BookNote } from '@/types/book';
 import { EnvConfigType } from '@/services/environment';
 import { BookDoc } from '@/libs/document';
+import { useAppService } from '@/hooks/useEnv';
 
 interface BookData {
   id: string;
@@ -37,12 +38,11 @@ export const useBookDataStore = defineStore('bookData', () => {
   }
 
   async function saveConfig(
-    envConfig: EnvConfigType,
     bookKey: string,
     config: BookConfig,
     settings: SystemSettings,
   ) {
-    const appService = await envConfig.getAppService();
+    const appService = await useAppService()
     const libraryStore = useLibraryStore();
     const { library } = libraryStore;
     const id = bookKey.split('-')[0];

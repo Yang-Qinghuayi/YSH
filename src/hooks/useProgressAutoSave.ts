@@ -1,12 +1,11 @@
 import { watch, onMounted } from 'vue';
-import { useEnv } from '@/hooks/useEnv';
 import { useBookDataStore } from '@/store/bookDataStore';
 import { useReaderStore } from '@/store/readerStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { throttle } from '@/utils/throttle';
 
+
 export function useProgressAutoSave(bookKey: string) {
-  const { envConfig } = useEnv();
   const bookDataStore = useBookDataStore();
   const readerStore = useReaderStore();
   const settingsStore = useSettingsStore();
@@ -15,7 +14,7 @@ export function useProgressAutoSave(bookKey: string) {
     const config = bookDataStore.getConfig(bookKey);
     const settings = settingsStore.settings;
     if (config) {
-      await bookDataStore.saveConfig(envConfig, bookKey, config, settings);
+      await bookDataStore.saveConfig( bookKey, config, settings);
     }
   }, 10000);
 

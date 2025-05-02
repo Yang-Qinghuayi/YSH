@@ -10,6 +10,7 @@ import type { ViewSettings, BookProgress, PageInfo, BookConfig, BookContent } fr
 import type { FoliateView } from '@/types/view';
 import type { EnvConfigType } from '@/services/environment';
 import { BookDoc, DocumentLoader, SectionItem, TOCItem } from '@/libs/document';
+import { useAppService } from '@/hooks/useEnv';
 
 interface ViewState {
   key: string;
@@ -156,7 +157,7 @@ export const useReaderStore = defineStore('reader', () => {
     }
   };
 
-  const initViewState = async (envConfig: EnvConfigType, id: string, key: string, isPrimary = true) => {
+  const initViewState = async (id: string, key: string, isPrimary = true) => {
     const bookDataStore = useBookDataStore();
     let bookData = bookDataStore.booksData[id];
 
@@ -173,7 +174,7 @@ export const useReaderStore = defineStore('reader', () => {
 
     try {
       if (!bookData) {
-        const appService = await envConfig.getAppService();
+        const appService = await useAppService()
         const { settings } = useSettingsStore();
         const { library } = useLibraryStore();
 
