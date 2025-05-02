@@ -1,22 +1,6 @@
 <script lang="ts" setup>
 import { mdiAlbum, mdiBookshelf, mdiCloud, mdiMenu, mdiCog } from "@mdi/js";
-import { useDisplay, useTheme } from "vuetify";
-const display = useDisplay();
-import { storeToRefs } from "pinia";
-import { useSettingStore } from "@/store/setting";
 
-const { catalog } = storeToRefs(useSettingStore()) as any;
-
-const { showBook } = storeToRefs(useSettingStore()) as any;
-const route = useRoute();
-const router = useRouter();
-const gotoOrChange = (destination: string) => {
-  if (destination === route.name) {
-    catalog.value = !catalog.value;
-  } else {
-    router.push({ name: destination });
-  }
-};
 </script>
 <template>
   <v-bottom-navigation
@@ -32,16 +16,16 @@ const gotoOrChange = (destination: string) => {
       <span class="bar-label">书架</span>
     </v-btn>
 
-    <!-- <v-btn -->
-    <!--   value="catalogue" -->
-    <!--   color="secondaryContainer" -->
-    <!--   @click="gotoOrChange('book')" -->
-    <!-- > -->
-    <!--   <div class="bar-icon rounded-xl"> -->
-    <!--     <v-icon>{{ mdiMenu }}</v-icon> -->
-    <!--   </div> -->
-    <!--   <span class="bar-label">书籍</span> -->
-    <!-- </v-btn> -->
+    <v-btn
+      value="catalogue"
+      color="secondaryContainer"
+      to="book"
+    >
+      <div class="bar-icon rounded-xl">
+        <v-icon>{{ mdiMenu }}</v-icon>
+      </div>
+      <span class="bar-label">书籍</span>
+    </v-btn>
 
     <v-btn value="setting" color="secondaryContainer" to="/setting">
       <div class="bar-icon rounded-xl">

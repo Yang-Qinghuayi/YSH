@@ -47,7 +47,7 @@ import { useAppService, initLibrary, libraryLoaded } from "@/hooks/useEnv";
 import { useBookIdStore } from '@/store/bookIdStore';
 const { setBookId } = useBookIdStore()
 import { useTranslation } from '@/hooks/useTranslation';
-const appService = ref<AppService | null>()
+const appService = ref<AppService | null>(null)
 const _ = useTranslation();
 const loading = ref(false)
 
@@ -121,6 +121,7 @@ onBeforeUnmount(() => {
 });
 
 const importBooks = async (files: (string | File)[]) => {
+  const appService = await useAppService()
   loading.value = true;
   const failedFiles = [];
   const errorMap: [string, string][] = [
@@ -131,7 +132,7 @@ const importBooks = async (files: (string | File)[]) => {
   for (const file of files) {
     try {
       const books = libraryBooks.value
-      await appService?.value?.importBook(file, books);
+      await appService.importBook(file, books);
       libraryBooks.value = books
     } catch (error: any) {
       const filename = typeof file === 'string' ? file : file.name;
@@ -149,7 +150,7 @@ const importBooks = async (files: (string | File)[]) => {
       console.error('Failed to import book:', filename, error);
     }
   }
-  appService?.value?.saveLibraryBooks(libraryBooks.value);
+  appService.saveLibraryBooks(libraryBooks.value);
   loading.value = false;
 };
 
