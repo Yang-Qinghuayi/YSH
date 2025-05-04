@@ -1,5 +1,5 @@
 <template>
-  <v-navigation-drawer :rail="rail" rail-width="102" class="drag-area">
+  <v-navigation-drawer :rail="rail" rail-width="102" width="198"  class="" >
     <div class="px-3 mt-6" :class="{ 'mb-1': rail }">
       <drawer-toggle />
     </div>
@@ -7,24 +7,11 @@
       <transition name="slide-fade-x">
         <div class="list-content d-flex flex-column justify-center">
           <v-list rounded :nav="true">
-            <v-list-item
-              v-for="item in nav"
-              :key="item.val"
-              class="drawer-item rounded-pill no-drag-area"
-              :to="item.to"
-              active-class="text-primary"
-              :style="{ minHeight: '56px' }"
-            >
+            <v-list-item v-for="item in nav" :key="item.val" class="drawer-item rounded-pill no-drag-area" :to="item.to"
+              active-class="text-primary" :style="{ minHeight: '56px' }">
               <template #prepend>
-                <div
-                  class="d-flex justify-center align-center"
-                  :style="{ width: '40px', height: '40px' }"
-                >
-                  <v-icon
-                    size="small"
-                    :icon="item.icon"
-                    color="primary"
-                  ></v-icon>
+                <div class="d-flex justify-center align-center" :style="{ width: '40px', height: '40px' }">
+                  <v-icon size="small" :icon="item.icon" color="primary"></v-icon>
                 </div>
               </template>
               <v-list-item-title class="font-weight-bold">
@@ -55,7 +42,6 @@ import {
 } from "@mdi/js";
 import { storeToRefs } from "pinia";
 import { useSettingStore } from "@/store/setting";
-import { useRouter } from "vue-router";
 
 const { rail } = storeToRefs(useSettingStore()) as any;
 
@@ -88,11 +74,6 @@ const nav = computed(() => {
   ];
 });
 
-// 点击跳转函数,使用router
-const router = useRouter();
-const toPage = (path: string) => {
-  router.push(path);
-};
 import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();

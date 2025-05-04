@@ -47,7 +47,6 @@ import { useAppService, initLibrary, libraryLoaded } from "@/hooks/useEnv";
 import { useBookIdStore } from '@/store/bookIdStore';
 const { setBookId } = useBookIdStore()
 import { useTranslation } from '@/hooks/useTranslation';
-const appService = ref<AppService | null>(null)
 const _ = useTranslation();
 const loading = ref(false)
 
@@ -155,8 +154,9 @@ const importBooks = async (files: (string | File)[]) => {
 };
 
 const selectFilesTauri = async () => {
-  const exts = appService.value?.isAndroidApp ? [] : SUPPORTED_FILE_EXTS;
-  const files = (await appService.value?.selectFiles(_('Select Books'), exts)) || [];
+  const appService = await useAppService()
+  const exts = appService.isAndroidApp ? [] : SUPPORTED_FILE_EXTS;
+  const files = (await appService.selectFiles(_('Select Books'), exts)) || [];
   // Cannot filter out files on Android since some content providers may not return the file name
   return files;
 };
@@ -176,9 +176,10 @@ const selectFilesWeb = () => {
 };
 
 const handleImportBooks = async () => {
+  const appService = await useAppService()
   let files;
   if (isTauriAppPlatform()) {
-    if (appService.value?.isIOSApp) {
+    if (appService.isIOSApp) {
       files = (await selectFilesWeb()) as [File];
     } else {
       files = (await selectFilesTauri()) as [string];
