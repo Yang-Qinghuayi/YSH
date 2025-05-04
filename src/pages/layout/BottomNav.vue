@@ -7,7 +7,7 @@ import { mdiAlbum, mdiBookshelf, mdiCloud, mdiMenu, mdiCog } from "@mdi/js";
     color="surfaceVariant"
     class="app-bottom-nav"
     height="64"
-    temporary
+    elevation="0"
   >
     <v-btn value="discover" color="secondaryContainer" to="/library">
       <div class="bar-icon rounded-xl">

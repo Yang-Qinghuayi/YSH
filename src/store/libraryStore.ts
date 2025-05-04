@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { Book } from '@/types/book';
-import type { EnvConfigType } from '@/services/environment';
 
 export const useLibraryStore = defineStore('library', () => {
   const library = ref<Book[]>([]);
@@ -23,8 +22,8 @@ export const useLibraryStore = defineStore('library', () => {
   }
 
   // 更新单本书籍，并同步保存
-  async function updateBook(envConfig: EnvConfigType, book: Book) {
-    const appService = await envConfig.getAppService();
+  async function updateBook(book: Book) {
+    const appService = await useAppService()
     const index = library.value.findIndex((b) => b.hash === book.hash);
     if (index !== -1) {
       library.value[index] = book;

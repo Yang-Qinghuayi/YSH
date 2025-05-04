@@ -1,5 +1,5 @@
 <template>
-  <v-navigation-drawer :rail="rail" rail-width="102" width="198"  class="" >
+  <v-navigation-drawer :rail="rail" rail-width="102" width="212"  class="" >
     <div class="px-3 mt-6" :class="{ 'mb-1': rail }">
       <drawer-toggle />
     </div>

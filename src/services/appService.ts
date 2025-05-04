@@ -380,6 +380,7 @@ export abstract class BaseAppService implements AppService {
     try {
       const txt = await this.fs.readFile(libraryFilename, 'Books', 'text');
       books = JSON.parse(txt as string);
+      console.log(books)
     } catch {
       await this.fs.createDir('', 'Books', true);
       await this.fs.writeFile(libraryFilename, 'Books', '[]');

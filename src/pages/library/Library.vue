@@ -5,13 +5,15 @@
     </v-btn>
     <div class="mt-2">
       <card-row>
-        <v-card @click="goToRead(book.hash)" v-for="book in libraryBooks" :flat="true">
+        <v-card @click="goToRead(book.hash)" v-for="book in libraryBooks.filter(book => !book.deletedAt)" :flat="true">
           <v-img class="cover-image" :cover="true" :src="book.coverImageUrl" style="aspect-ratio: 1" :aspect-ratio="1"
             :lazy-src="placeholderUrl">
           </v-img>
           <!-- 名称 -->
-          <v-card-title :class="[lgAndUp ? '' : 'text-sm']">
-            {{ book.title }}
+          <div class="flex items-center justify-between my-2">
+            <div class="font-bold text-[#555555] truncate  ml-2">
+              {{ book.title }}
+            </div>
             <v-menu open-on-hover open-delay=100 close-delay="100">
               <template v-slot:activator="{ props }">
                 <v-btn variant="text" color="primary" icon size="small" v-bind="props">
@@ -21,12 +23,12 @@
 
               <v-list elevation=6 class="p-0">
                 <v-list-item class=" px-6 py-4 text-center" v-for="(item, index) in items" :key="index" :value="index"
-                  @click="item.function(book.hash)">
+                  @click="item.function(book)">
                   {{ item.title }}
                 </v-list-item>
               </v-list>
             </v-menu>
-          </v-card-title>
+          </div>
         </v-card>
       </card-row>
     </div>
@@ -39,9 +41,6 @@ import { FILE_ACCEPT_FORMATS, SUPPORTED_FILE_EXTS } from '@/services/constants';
 import { isTauriAppPlatform } from '@/services/environment';
 import { useToast } from "vue-toastification";
 const toast = useToast();
-import { useDisplay } from "vuetify";
-const display = useDisplay();
-const { lgAndUp } = display;
 
 import { useAppService, initLibrary, libraryLoaded } from "@/hooks/useEnv";
 import { useBookIdStore } from '@/store/bookIdStore';
@@ -194,7 +193,11 @@ const handleImportBooks = async () => {
 
 const items = [
   {
-    title: '删除', function: () => {
+    title: '删除', function: async (book: Book) => {
+      const appService = await useAppService()
+      await appService.deleteBook(book)
+      // updateBook(book)
+      toast.success(`成功删除${book.title}`)
     }
   },
 ]
