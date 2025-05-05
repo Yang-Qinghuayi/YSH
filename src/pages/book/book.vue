@@ -8,7 +8,7 @@
         </v-icon>
       </v-btn>
 
-      <div @click="handleTurnPage" class="w-full h-full" ref="containerRef"></div>
+      <div @click="handlePageFlip" class="w-full h-full" ref="containerRef"></div>
 
       <!-- 目录部分 -->
       <transition name="fade" enter-active-class="transition ease-out duration-300"
@@ -17,12 +17,23 @@
         </TOCView>
       </transition>
     </div>
+
+    <v-dialog v-model="showMenu" persistent>
+      <v-card :class="[smAndUp ? 'w-[560px]' : 'w-full']" color="surface" class="flex items-center flex-col mx-auto p-10">
+        <v-card-title class="text-center">菜单</v-card-title>
+
+        <v-btn class="w-[50vw] mt-4" variant="tonal" color="secondary" @click.prevent="switchShowMenu">
+          关闭
+        </v-btn>
+      </v-card>
+    </v-dialog>
+
+
   </div>
 </template>
 
 <script setup lang="ts">
 import TOCView from "./components/TOCView.vue"
-
 import {
   handleKeydown,
   handleMousedown,
@@ -39,7 +50,7 @@ import { transformContent } from '@/services/transformService';
 import { getMaxInlineSize } from '@/utils/config';
 import "@/foliate-js/view.js";
 import { useDisplay } from "vuetify";
-const { lgAndUp, } = useDisplay();
+const { lgAndUp, smAndUp } = useDisplay();
 import { useAppService, initLibrary, libraryLoaded } from "@/hooks/useEnv";
 import { useClickEvent, useTouchEvent } from '@/hooks/useIframeEvents';
 import { storeToRefs } from "pinia";
@@ -59,13 +70,15 @@ import { mdiBookOpenVariantOutline } from "@mdi/js";
 import { useFoliateEvents } from "@/hooks/useFoliateEvents";
 
 import { useReaderStore } from '@/store/readerStore';
-const { initViewState, clearViewState } = useReaderStore();
-const { getProgress, getViewState, getViewSettings, hoveredBookKey } = useReaderStore();
-const { setView: setFoliateView, setProgress } = useReaderStore();
+const readerStore = useReaderStore()
+const { getProgress, getViewState, initViewState, getViewSettings, hoveredBookKey, switchShowMenu } = readerStore
+const { setView: setFoliateView, setProgress } = readerStore;
+const { showMenu } = storeToRefs(readerStore);
 
 import { useSidebarStore } from '@/store/sidebarStore';
 import { BookDoc } from "@/libs/document";
 import { AppService } from "@/types/system";
+import { usePageFlip } from "@/hooks/usePageFlip";
 const { sideBarBookKey, setSideBarBookKey } = useSidebarStore();
 const containerRef = ref<HTMLDivElement | null>(null);
 const viewRef = ref<FoliateView | null>(null);
@@ -73,9 +86,13 @@ const viewRef = ref<FoliateView | null>(null);
 const bookDoc = ref<BookDoc | null>()
 
 const appService = ref<AppService | null>(null)
+
+
+const { handlePageFlip } = usePageFlip(bookId.value, viewRef, containerRef, appService);
 useProgressAutoSave(bookId.value);
-useTouchEvent(viewRef);
-const { handleTurnPage } = useClickEvent(viewRef, containerRef, appService);
+useTouchEvent(bookId.value, viewRef);
+useClickEvent(bookId.value, handlePageFlip);
+
 const progressRelocateHandler = (event: Event) => {
   const detail = (event as CustomEvent).detail;
   setProgress(bookId.value, detail.cfi, detail.tocItem, detail.section, detail.location, detail.range);

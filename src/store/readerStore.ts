@@ -26,6 +26,11 @@ export const useReaderStore = defineStore('reader', () => {
   const viewStates = ref<Record<string, ViewState>>({});
   const bookKeys = ref<string[]>([]);
   const hoveredBookKey = ref<string | null>(null);
+  const showMenu = ref<boolean>(false)
+
+  const switchShowMenu = () => {
+    showMenu.value = !showMenu.value;
+  }
 
   const setBookKeys = (keys: string[]) => {
     bookKeys.value = keys;
@@ -245,5 +250,7 @@ export const useReaderStore = defineStore('reader', () => {
     getProgress,
     setProgress,
     setBookmarkRibbonVisibility,
+    switchShowMenu,
+    showMenu,
   };
 });
