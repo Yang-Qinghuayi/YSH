@@ -18,21 +18,12 @@
       </transition>
     </div>
 
-    <v-dialog v-model="showMenu" persistent>
-      <v-card :class="[smAndUp ? 'w-[560px]' : 'w-full']" color="surface" class="flex items-center flex-col mx-auto p-10">
-        <v-card-title class="text-center">菜单</v-card-title>
-
-        <v-btn class="w-[50vw] mt-4" variant="tonal" color="secondary" @click.prevent="switchShowMenu">
-          关闭
-        </v-btn>
-      </v-card>
-    </v-dialog>
-
-
+    <Menu v-model:showMenu="showMenu" />
   </div>
 </template>
 
 <script setup lang="ts">
+import Menu from "./components/Menu.vue";
 import TOCView from "./components/TOCView.vue"
 import {
   handleKeydown,

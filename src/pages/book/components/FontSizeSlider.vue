@@ -1,6 +1,6 @@
 <template>
-  <Slider class="mx-auto" v-model="defaultFontSize" :min="16" :max="30" :color="currentTheme.colors.primary"
-    :height="32" :handle-scale="0" width="96%" rainbow trackColor="#e2e2e2" @drag-start="dragStart" @drag-end="">
+  <Slider class="mx-auto" v-model="defaultFontSize" :min="16" :max="30" :color="currentTheme.colors.primary" :height="32"
+    :handle-scale="0" width="96%" rainbow trackColor="#e2e2e2" @drag-start="dragStart" @drag-end="">
   </Slider>
 </template>
 
@@ -17,9 +17,13 @@ import { DEFAULT_BOOK_FONT } from "@/services/constants";
 const readerStore = useReaderStore()
 const { getProgress, getViewState, initViewState, getViewSettings, hoveredBookKey, switchShowMenu } = readerStore
 const viewSettings = getViewSettings(bookId.value);
-const defaultFontSize = ref(viewSettings?.defaultFontSize ?? DEFAULT_BOOK_FONT.defaultFontSize);
+const defaultFontSize = ref(DEFAULT_BOOK_FONT.defaultFontSize);
 
-
+const init = async () => {
+  await initLibrary()
+  defaultFontSize.value = viewSettings?.defaultFontSize ?? DEFAULT_BOOK_FONT.defaultFontSize;
+}
+init()
 
 watch(defaultFontSize, () => {
   saveViewSettings(bookId.value, 'defaultFontSize', defaultFontSize.value);

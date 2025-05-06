@@ -1,6 +1,6 @@
 <template>
-  <Slider class="mx-auto" v-model="defaultFontSize" :min="16" :max="30" :color="currentTheme.colors.primary"
-    :height="32" :handle-scale="0" width="96%" rainbow trackColor="#e2e2e2" @drag-start="dragStart" @drag-end="">
+  <Slider class="mx-auto" v-model="fontWeight" :min="200" :max="600" :color="currentTheme.colors.primary" :height="32"
+    :handle-scale="0" width="96%" rainbow trackColor="#e2e2e2" @drag-start="dragStart" @drag-end="">
   </Slider>
 </template>
 
@@ -17,12 +17,16 @@ import { DEFAULT_BOOK_FONT } from "@/services/constants";
 const readerStore = useReaderStore()
 const { getProgress, getViewState, initViewState, getViewSettings, hoveredBookKey, switchShowMenu } = readerStore
 const viewSettings = getViewSettings(bookId.value);
-const defaultFontSize = ref(viewSettings?.defaultFontSize ?? DEFAULT_BOOK_FONT.defaultFontSize);
+const fontWeight = ref(DEFAULT_BOOK_FONT.fontWeight);
 
+const init = async () => {
+  await initLibrary()
+  fontWeight.value = viewSettings?.fontWeight ?? DEFAULT_BOOK_FONT.fontWeight;
+}
+init()
 
-
-watch(defaultFontSize, () => {
-  saveViewSettings(bookId.value, 'defaultFontSize', defaultFontSize.value);
+watch(fontWeight, async () => {
+  await saveViewSettings(bookId.value, 'fontWeight', fontWeight.value);
 })
 
 const vuetifyTheme = useTheme();
