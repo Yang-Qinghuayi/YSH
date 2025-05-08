@@ -137,6 +137,17 @@ const getAdditionalFontFaces = () => `
     url("https://db.onlinewebfonts.com/t/1ee9941f1b8c128110ca4307dda59917.ttf")format("truetype"),
     url("https://db.onlinewebfonts.com/t/1ee9941f1b8c128110ca4307dda59917.svg#STKaiti")format("svg");
   }
+@font-face {
+  font-family: "LXGW WenKai";
+  font-display: swap;
+  src: local("LXGW WenKai"), local("LXGW WenKai GB"), local("霞鹜文楷"),
+       url("https://db.onlinewebfonts.com/t/30df3e0724f3938c31f7ca6e564ed934.eot");
+  src: url("https://db.onlinewebfonts.com/t/30df3e0724f3938c31f7ca6e564ed934.eot?#iefix") format("embedded-opentype"),
+       url("https://db.onlinewebfonts.com/t/30df3e0724f3938c31f7ca6e564ed934.woff2") format("woff2"),
+       url("https://db.onlinewebfonts.com/t/30df3e0724f3938c31f7ca6e564ed934.woff") format("woff"),
+       url("https://db.onlinewebfonts.com/t/30df3e0724f3938c31f7ca6e564ed934.ttf") format("truetype"),
+       url("https://db.onlinewebfonts.com/t/30df3e0724f3938c31f7ca6e564ed934.svg#LXGW WenKai") format("svg");
+}
   @font-face {
     font-family: "Heiti";
     font-display: swap;

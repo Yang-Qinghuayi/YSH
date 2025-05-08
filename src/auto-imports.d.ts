@@ -255,6 +255,7 @@ declare global {
   const useSeoMeta: typeof import('@vueuse/head')['useSeoMeta']
   const useSessionStorage: typeof import('@vueuse/core')['useSessionStorage']
   const useShare: typeof import('@vueuse/core')['useShare']
+  const useShortcuts: typeof import('./hooks/useShortcuts')['default']
   const useSlots: typeof import('vue')['useSlots']
   const useSorted: typeof import('@vueuse/core')['useSorted']
   const useSpeechRecognition: typeof import('@vueuse/core')['useSpeechRecognition']
@@ -329,6 +330,9 @@ declare global {
   // @ts-ignore
   export type { GridType } from './hooks/useResponsiveGrid'
   import('./hooks/useResponsiveGrid')
+  // @ts-ignore
+  export type { KeyActionHandlers } from './hooks/useShortcuts'
+  import('./hooks/useShortcuts')
   // @ts-ignore
   export type { Lyric } from './hooks/useTrackLyric'
   import('./hooks/useTrackLyric')

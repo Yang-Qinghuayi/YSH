@@ -1,6 +1,8 @@
 import { onMounted, onBeforeUnmount, watch, type Ref } from 'vue';
 import { useReaderStore } from '@/store/readerStore';
 import type { FoliateView } from '@/types/view';
+import { useBookIdStore } from '@/store/bookIdStore';
+import { storeToRefs } from 'pinia';
 
 interface IframeTouch {
   clientX: number;
@@ -14,11 +16,9 @@ interface IframeTouchEvent {
 }
 
 export function useClickEvent(
-  bookKey: string,
   handlePageFlip: (msg: MessageEvent) => void
 ) {
-  const store = useReaderStore();
-
+  const { bookId } = storeToRefs(useBookIdStore())
   const bindEvent = () => {
     window.addEventListener('message', handlePageFlip);
   };
@@ -31,7 +31,7 @@ export function useClickEvent(
   onBeforeUnmount(unbindEvent);
 
   watch(
-    () => [bookKey, store.hoveredBookKey],
+    bookId,
     () => {
       unbindEvent();
       bindEvent();
@@ -41,12 +41,12 @@ export function useClickEvent(
 
 // === useTouchEvent: 监听 touch 消息 ===
 export function useTouchEvent(
-  bookKey: string,
   viewRef: Ref<FoliateView | null>
 ) {
+  const { bookId } = storeToRefs(useBookIdStore())
   const store = useReaderStore();
   const { hoveredBookKey, setHoveredBookKey, getViewSettings } = store;
-  const viewSettings = getViewSettings(bookKey)!;
+  const viewSettings = getViewSettings(bookId.value)!;
 
   let touchStart: IframeTouch | null = null;
   let touchEnd: IframeTouch | null = null;
@@ -77,42 +77,12 @@ export function useTouchEvent(
     }
   };
 
-  const onTouchEnd = (e: IframeTouchEvent) => {
-    if (!touchStart) return;
-
-    const touch = e.targetTouches[0];
-    if (touch) touchEnd = touch;
-
-    const windowWidth = window.innerWidth;
-
-    if (touchEnd) {
-      const deltaY = touchEnd.screenY - touchStart.screenY;
-      const deltaX = touchEnd.screenX - touchStart.screenX;
-
-      if (
-        deltaY < -10 &&
-        Math.abs(deltaY) > Math.abs(deltaX) &&
-        Math.abs(deltaX) < windowWidth * 0.3
-      ) {
-        if (!viewSettings.scrolled && !viewSettings.vertical) {
-          setHoveredBookKey(hoveredBookKey ? null : bookKey);
-        }
-      } else {
-        if (hoveredBookKey) {
-          setHoveredBookKey(null);
-        }
-      }
-    }
-
-    touchStart = null;
-    touchEnd = null;
-  };
 
   const handleTouch = (msg: MessageEvent) => {
-    if (msg.data && msg.data.bookKey === bookKey) {
+    if (msg.data && msg.data.bookKey === bookId.value) {
       if (msg.data.type === 'iframe-touchstart') onTouchStart(msg.data);
       else if (msg.data.type === 'iframe-touchmove') onTouchMove(msg.data);
-      else if (msg.data.type === 'iframe-touchend') onTouchEnd(msg.data);
+      // else if (msg.data.type === 'iframe-touchend') onTouchEnd(msg.data);
     }
   };
 
@@ -128,7 +98,7 @@ export function useTouchEvent(
   onBeforeUnmount(unbindTouch);
 
   watch(
-    () => [store.hoveredBookKey, viewRef.value],
+    () => [viewRef],
     () => {
       unbindTouch();
       bindTouch();

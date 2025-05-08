@@ -8,7 +8,9 @@
         </v-icon>
       </v-btn>
 
-      <div @click="handlePageFlip" class="w-full h-full" ref="containerRef"></div>
+      <div @click="handlePageFlip" class="relative w-full h-full" ref="containerRef">
+        <div class="absolute bottom-0 left-1/2 -translate-x-1/2 font-semibold text-sm text-gray-500">{{ pageInfo }}</div>
+      </div>
 
       <!-- 目录部分 -->
       <transition name="fade" enter-active-class="transition ease-out duration-300"
@@ -16,6 +18,7 @@
         <TOCView v-if="bookDoc && showBigCatalog && lgAndUp" :bookId :doc="bookDoc" class="theme-border">
         </TOCView>
       </transition>
+
     </div>
 
     <Menu v-model:showMenu="showMenu" />
@@ -62,7 +65,7 @@ import { useFoliateEvents } from "@/hooks/useFoliateEvents";
 
 import { useReaderStore } from '@/store/readerStore';
 const readerStore = useReaderStore()
-const { getProgress, getViewState, initViewState, getViewSettings, hoveredBookKey, switchShowMenu } = readerStore
+const { viewStates, getProgress, getViewState, initViewState, getViewSettings, hoveredBookKey, switchShowMenu } = readerStore
 const { setView: setFoliateView, setProgress } = readerStore;
 const { showMenu } = storeToRefs(readerStore);
 
@@ -79,12 +82,13 @@ const bookDoc = ref<BookDoc | null>()
 
 const appService = ref<AppService | null>(null)
 
+const pageInfo = ref("")
 
-const { handlePageFlip } = usePageFlip(bookId.value, viewRef, containerRef, appService);
+const { handlePageFlip } = usePageFlip(viewRef, containerRef, appService);
 useProgressAutoSave(bookId.value);
-useTouchEvent(bookId.value, viewRef);
-useClickEvent(bookId.value, handlePageFlip);
 useBookShortcuts(bookId.value)
+useTouchEvent(viewRef);
+useClickEvent(handlePageFlip);
 
 const progressRelocateHandler = (event: Event) => {
   const detail = (event as CustomEvent).detail;
@@ -166,6 +170,16 @@ useAppService().then(res => {
   appService.value = res
 })
 
+
+watch(viewStates, () => {
+  const progress = getProgress(bookId.value);
+  const { section, pageinfo, sectionLabel } = progress || {};
+  const sectionInfo = section ? `${section.current + 1} / ${section.total}` : '';
+  const pageInfoLoc = pageinfo ? ` ${pageinfo.next ?? pageinfo.current} / ${pageinfo.total}` : '';
+  pageInfo.value = pageInfoLoc ? pageInfoLoc : sectionInfo;
+})
+
+
 onMounted(() => {
   const view = wrappedFoliateView(document.createElement('foliate-view') as FoliateView);
   containerRef.value && containerRef.value.appendChild(view);
@@ -200,6 +214,7 @@ const initBook = async () => {
 
   setFoliateView(bookId.value, view)
   const { book } = view;
+
 
   book.transformTarget?.addEventListener('data', docTransformHandler);
   viewSettings && view.renderer.setStyles?.(getStyles(viewSettings));

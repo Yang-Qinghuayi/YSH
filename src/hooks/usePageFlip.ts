@@ -1,5 +1,4 @@
-import { onMounted, onUnmounted, toRefs, Ref } from 'vue';
-
+import { useBookIdStore } from '@/store/bookIdStore';
 import { useReaderStore } from '@/store/readerStore';
 import { eventDispatcher } from '@/utils/event';
 import { isTauriAppPlatform } from '@/services/environment';
@@ -8,16 +7,15 @@ import type { FoliateView } from '@/types/view';
 import { AppService } from '@/types/system';
 
 export function usePageFlip(
-  bookKey: string,
   viewRef: Ref<FoliateView | null>,
   containerRef: Ref<HTMLElement | null>,
   appService: Ref<AppService | null>,
 ) {
-  const readerStore = useReaderStore();
-
   const handlePageFlip = async (
     msg: MessageEvent | CustomEvent | MouseEvent
   ) => {
+    const { bookId: bookKey } = useBookIdStore()
+    const readerStore = useReaderStore();
     if (msg instanceof MessageEvent) {
       if (msg.data && msg.data.bookKey === bookKey) {
         const viewSettings = readerStore.getViewSettings(bookKey)!;

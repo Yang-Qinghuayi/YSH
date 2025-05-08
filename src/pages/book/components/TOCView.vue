@@ -1,5 +1,5 @@
 <template>
-  <div role="tree" ref="viewRef" class=" w-64 p-3 mx-9 overflow-auto h-[66vh]">
+  <div role="tree" ref="viewRef" class=" w-64 p-3 mx-9 overflow-auto h-[60vh]">
     <div class="text-lg truncate m-3 mb-0 text-center">
       {{ doc.metadata.title }}
     </div>
