@@ -70,6 +70,7 @@ import { useSidebarStore } from '@/store/sidebarStore';
 import { BookDoc } from "@/libs/document";
 import { AppService } from "@/types/system";
 import { usePageFlip } from "@/hooks/usePageFlip";
+import useBookShortcuts from "./hooks/useBookShortcuts";
 const { sideBarBookKey, setSideBarBookKey } = useSidebarStore();
 const containerRef = ref<HTMLDivElement | null>(null);
 const viewRef = ref<FoliateView | null>(null);
@@ -83,6 +84,7 @@ const { handlePageFlip } = usePageFlip(bookId.value, viewRef, containerRef, appS
 useProgressAutoSave(bookId.value);
 useTouchEvent(bookId.value, viewRef);
 useClickEvent(bookId.value, handlePageFlip);
+useBookShortcuts(bookId.value)
 
 const progressRelocateHandler = (event: Event) => {
   const detail = (event as CustomEvent).detail;
