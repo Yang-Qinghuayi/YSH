@@ -8,6 +8,14 @@
       <div class="w-full mt-4">
         <div
           class="flex justify-between items-center px-4 py-2 bg-gray-300/30 backdrop-blur-3xl shadow-md rounded-lg border border-gray-300">
+          <p class="text-gray-700 ">双列显示</p>
+          <v-switch v-model="setTwoColumn" hide-details class="" density="compact" color="primary" inset></v-switch>
+        </div>
+      </div>
+
+      <div class="w-full mt-4">
+        <div
+          class="flex justify-between items-center px-4 py-2 bg-gray-300/30 backdrop-blur-3xl shadow-md rounded-lg border border-gray-300">
           <p class="text-gray-700 ">覆盖字体</p>
           <v-switch v-model="overrideFont" hide-details class="" density="compact" color="primary" inset></v-switch>
         </div>
@@ -68,6 +76,7 @@ const { bookId } = storeToRefs(useBookIdStore())
 import { saveViewSettings } from '@/utils/viewSettingsHelper';
 import { useReaderStore } from '@/store/readerStore';
 import { storeToRefs } from "pinia";
+import { max } from 'lodash-es';
 const readerStore = useReaderStore()
 const { getProgress, getViewState, initViewState, getViewSettings, hoveredBookKey, switchShowMenu } = readerStore
 const osPlatform = getOSPlatform();
@@ -98,6 +107,9 @@ const overrideFont = ref(false)
 const sysFonts = ref<string[]>(defaultSysFonts)
 const defaultCJKFont = ref('')
 
+const setTwoColumn = ref(false)
+const maxColumnCount = computed(() => setTwoColumn.value ? 2 : 1)
+
 const genCJKFontsList = (sysFonts: string[]) => {
   return Array.from(new Set([...sysFonts, ...CJK_SERIF_FONTS, ...CJK_SANS_SERIF_FONTS]))
     .filter((font) => CJK_FONTS_PATTENS.test(font) || CJK_NAMES_PATTENS.test(font))
@@ -113,6 +125,7 @@ const init = async () => {
   await initLibrary()
   overrideFont.value = viewSettings?.overrideFont || false
   defaultCJKFont.value = viewSettings?.defaultCJKFont!
+  setTwoColumn.value = viewSettings?.maxColumnCount! === 2 ? true : false
 
   if (isTauriAppPlatform()) {
     getSysFontsList().then((res) => {
@@ -134,6 +147,10 @@ watch(overrideFont, () => {
 
 watch(defaultCJKFont, () => {
   saveViewSettings(bookId.value, 'defaultCJKFont', defaultCJKFont.value)
+})
+
+watch(setTwoColumn, () => {
+  saveViewSettings(bookId.value, 'maxColumnCount', maxColumnCount.value)
 })
 
 </script>

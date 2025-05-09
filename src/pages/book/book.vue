@@ -9,7 +9,7 @@
       </v-btn>
 
       <div @click="handlePageFlip" class="relative w-full h-full" ref="containerRef">
-        <div class="absolute bottom-0 left-1/2 -translate-x-1/2 font-semibold text-sm text-gray-500">{{ pageInfo }}</div>
+        <div class="absolute bottom-2 left-1/2 -translate-x-1/2 font-semibold text-sm text-gray-500">{{ pageInfo }}</div>
       </div>
 
       <!-- 目录部分 -->

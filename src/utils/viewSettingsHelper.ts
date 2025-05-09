@@ -26,6 +26,8 @@ export const saveViewSettings = async <K extends keyof ViewSettings>(
     if (applyStyles) {
       const view = readerStore.getView(bookKey);
       view?.renderer.setStyles?.(getStyles(viewSettings));
+      if (key === "maxColumnCount")
+        view?.renderer.setAttribute('max-column-count', value);
     }
   }
 

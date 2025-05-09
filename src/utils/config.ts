@@ -8,7 +8,7 @@ export const getMaxInlineSize = (viewSettings: ViewSettings) => {
   const screenHeight = window.innerHeight;
 
   return maxColumnCount === 1 || isScrolled || isVertical
-    ? Math.max(screenWidth, screenHeight, 720)
+    ? Math.min(screenWidth, screenHeight, 700)
     : viewSettings.maxInlineSize!;
 };
 
