@@ -8,8 +8,8 @@ import App from "./App.vue";
 import { useDirectives } from "./directives";
 // plugins
 import { useDayjs } from "./plugins/dayjs";
-import { useI18n } from "./plugins/i18n";
 import { usePinia } from "./plugins/pinia";
+import { t } from "./utils/i18n";
 import { useToast } from "./plugins/toast";
 import { useVuetify } from "./plugins/vuetify";
 import { useRouter } from "./router";
@@ -23,11 +23,12 @@ import "vue-virtual-scroller/dist/vue-virtual-scroller.css";
 const app = createApp(App);
 useRouter(app);
 
+// 注册全局 $t，供模板中 {{ $t('key') }} 使用（必须在 mount 前注册）
+app.config.globalProperties.$t = t;
 app.use(VueVirtualScroller);
 app.use(GesturePlugin);
 usePinia(app);
 useVuetify(app);
-useI18n(app);
 useToast(app);
 useDirectives(app);
 useDayjs(app);

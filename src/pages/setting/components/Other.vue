@@ -11,7 +11,7 @@
 </template>
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { useI18n } from 'vue-i18n'
+import { useI18n } from '@/utils/i18n'
 
 import AppSelect from '@/components/menu/Select.vue'
 import AppTitle from '@/components/Title.vue'
@@ -24,7 +24,7 @@ const {
   outputdevice,
 } = storeToRefs(settingStore) as any
 
-const { t, locale } = useI18n({ useScope: 'global' })
+const { t, locale } = useI18n()
 const player = usePlayer()
 
 const { outputDevices } = useMediaDevices()

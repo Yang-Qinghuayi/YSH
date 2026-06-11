@@ -1,8 +1,7 @@
 <template>
   <v-app class="v-player">
     <!-- 左侧边栏 -->
-    <app-nav v-if="lgAndUp" class="v-player-nav" />
-    <app-bottom-nav v-if="!lgAndUp && !isBookPage" />
+    <app-nav class="v-player-nav" />
 
     <!-- 主要内容 -->
     <app-content id="v-player-content" class="v-player-content" />
@@ -11,24 +10,15 @@
 </template>
 
 <script setup lang="ts">
-import { useRoute } from "vue-router";
-const route = useRoute();
-const isBookPage = computed(() => route.name === 'book');
-
-import { useDisplay, useTheme } from "vuetify";
-
+import { useTheme } from "vuetify";
 import { useCurrentTheme } from "@/hooks/useTheme";
-
-import AppBottomNav from "./layout/BottomNav.vue";
 import AppNav from "./layout/Navbar.vue";
 import AppContent from "./layout/View.vue";
 
 const { themeName } = useCurrentTheme();
-const display = useDisplay();
-const { lgAndUp } = display;
 const theme = useTheme();
 watchEffect(() => {
-  theme.global.name.value = themeName.value;
+  theme.change(themeName.value);
 });
 </script>
 <style lang="scss">

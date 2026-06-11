@@ -33,7 +33,7 @@
 
 <script>
 import { computed } from "vue";
-import { useI18n } from "vue-i18n";
+import { useI18n } from '@/utils/i18n';
 import { useTheme } from "vuetify";
 
 import AppTitle from "@/components/Title.vue";
