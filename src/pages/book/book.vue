@@ -1,9 +1,18 @@
 <template>
   <div>
     <div :class="[lgAndUp ? 'mt-[4vh] h-[90vh]' : 'h-[94vh]']" class="flex justify-center items-center w-full">
+      <!-- 桌面端目录按钮 -->
       <v-btn v-if="lgAndUp" class="fixed right-5 top-5" icon color="secondary" variant="tonal"
         @click="showBigCatalog = !showBigCatalog">
         <v-icon color="secondary">
+          {{ mdiBookOpenVariantOutline }}
+        </v-icon>
+      </v-btn>
+
+      <!-- 移动端目录按钮（浮于内容上方，避开底部 Tab 栏） -->
+      <v-btn v-if="mobile" class="fixed right-4 bottom-20" icon color="secondary" variant="tonal" size="small"
+        @click="showMobileTOC = !showMobileTOC">
+        <v-icon color="secondary" size="small">
           {{ mdiBookOpenVariantOutline }}
         </v-icon>
       </v-btn>
@@ -12,7 +21,7 @@
         <div class="absolute bottom-2 left-1/2 -translate-x-1/2 font-semibold text-sm text-gray-500">{{ pageInfo }}</div>
       </div>
 
-      <!-- 目录部分 -->
+      <!-- 桌面端：侧边目录面板 -->
       <transition name="fade" enter-active-class="transition ease-out duration-300"
         leave-active-class="transition ease-in duration-300">
         <TOCView v-if="bookDoc && showBigCatalog && lgAndUp" :bookId :doc="bookDoc" class="theme-border">
@@ -20,6 +29,16 @@
       </transition>
 
     </div>
+
+    <!-- 移动端：底部抽屉目录 -->
+    <v-bottom-sheet v-if="mobile" v-model="showMobileTOC" max-height="75vh">
+      <v-sheet class="rounded-t-2xl overflow-hidden h-full">
+        <div class="flex justify-center pt-2 pb-1">
+          <div class="w-10 h-1 rounded-full bg-outline/40"></div>
+        </div>
+        <TOCView v-if="bookDoc" :bookId :doc="bookDoc" :inSheet="true" class="pb-4" />
+      </v-sheet>
+    </v-bottom-sheet>
 
     <Menu v-model:showMenu="showMenu" />
   </div>
@@ -44,7 +63,8 @@ import { FoliateView, wrappedFoliateView } from '@/types/view';
 import { transformContent } from '@/services/transformService';
 import "@/foliate-js/view.js";
 import { useDisplay } from "vuetify";
-const { lgAndUp, smAndUp } = useDisplay();
+const { lgAndUp, smAndUp, mobile } = useDisplay();
+const showMobileTOC = ref(false);
 import { useAppService, initLibrary, libraryLoaded } from "@/hooks/useEnv";
 import { useClickEvent, useTouchEvent } from '@/hooks/useIframeEvents';
 import { storeToRefs } from "pinia";

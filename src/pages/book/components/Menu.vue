@@ -1,13 +1,13 @@
 <template>
   <v-dialog v-model="showMenu" persistent>
-    <v-card :class="[smAndUp ? 'w-[560px]' : 'w-full']" color="surface" class="flex items-center flex-col mx-auto p-10">
+    <v-card :class="[smAndUp ? 'w-[560px] p-10' : 'w-full p-4']" color="surface" class="flex items-center flex-col mx-auto">
       <v-card-title class="text-center">菜单</v-card-title>
       <FontSizeSlider />
       <FontWeightSlider class="mt-4" />
 
       <div class="w-full mt-4">
         <div
-          class="flex justify-between items-center px-4 py-2 bg-gray-300/30 backdrop-blur-3xl shadow-md rounded-lg border border-gray-300">
+          class="flex justify-between items-center px-3 py-3 bg-gray-300/30 backdrop-blur-3xl shadow-md rounded-lg border border-gray-300">
           <p class="text-gray-700 ">双列显示</p>
           <v-switch v-model="setTwoColumn" hide-details class="" density="compact" color="primary" inset></v-switch>
         </div>
@@ -15,7 +15,7 @@
 
       <div class="w-full mt-4">
         <div
-          class="flex justify-between items-center px-4 py-2 bg-gray-300/30 backdrop-blur-3xl shadow-md rounded-lg border border-gray-300">
+          class="flex justify-between items-center px-3 py-3 bg-gray-300/30 backdrop-blur-3xl shadow-md rounded-lg border border-gray-300">
           <p class="text-gray-700 ">覆盖字体</p>
           <v-switch v-model="overrideFont" hide-details class="" density="compact" color="primary" inset></v-switch>
         </div>
@@ -23,7 +23,7 @@
 
       <div class="w-full mt-4">
         <div
-          class="flex justify-between items-center px-4 py-2 bg-gray-300/30 backdrop-blur-3xl shadow-md rounded-lg border border-gray-300">
+          class="flex justify-between items-center px-3 py-3 bg-gray-300/30 backdrop-blur-3xl shadow-md rounded-lg border border-gray-300">
           <p class="text-gray-700 ">选择字体</p>
           <v-menu>
             <template v-slot:activator="{ props }">

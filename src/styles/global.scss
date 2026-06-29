@@ -4,6 +4,8 @@
  * ============================================================ */
 
 :root {
+  --font-sans: "LXGW WenKai", "LXGW WenKai Screen", "霞鹜文楷", "Kaiti SC", "STKaiti", serif;
+  --font-mono: "SFMono-Regular", "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --background: #f8f2dc;
   --foreground: #1e2a53;
   --bg-accent-a: #335aa4;
@@ -158,6 +160,7 @@
 
 @layer base {
   html,
+  body,
   .text-h1,
   .text-h2,
   .text-h3,
@@ -171,7 +174,7 @@
   .text-body-2,
   .text-button,
   .text-overline {
-    font-family: "LXGW WenKai";
+    font-family: var(--font-sans);
     font-weight: normal;
   }
 }

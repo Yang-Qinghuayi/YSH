@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@chinese-fonts/lxgwwenkai':
-        specifier: ^3.0.0
-        version: 3.0.0
       '@material/web':
         specifier: ^2.4.1
         version: 2.4.1
@@ -135,9 +132,6 @@ importers:
         specifier: ^4.11.5
         version: 4.11.5
     devDependencies:
-      '@material/material-color-utilities':
-        specifier: ^0.4.0
-        version: 0.4.0
       '@mdi/js':
         specifier: ^7.4.47
         version: 7.4.47
@@ -932,9 +926,6 @@ packages:
     resolution: {integrity: sha512-p7/ABylAYlexb31wtRdIfH9L9A0Z2T/9H6zAqzqndkY2PLkvNNc580wGhp/gGKN4Sp9sQvSkhc6Oga8/O+wTyw==}
     engines: {node: ^22.18.0 || >=24.11.0}
 
-  '@chinese-fonts/lxgwwenkai@3.0.0':
-    resolution: {integrity: sha512-mpgFYE8ro0TcbJdxmnvkPNKnsF3VqzJVRfDbRvDx83JHaLEVAht9pL8SqbqbduoPHXX+2ekgC+45sf74ljLe7g==}
-
   '@codemirror/autocomplete@6.20.3':
     resolution: {integrity: sha512-tlosUqb+3BbxCxZdu4tKeRghPFC+QM7q4X5YhKV2eCmPG+1r2F3f4AaSz5sCrFqUtX4Jh20VFTKecl16MgiV9g==}
 
@@ -1182,9 +1173,6 @@ packages:
 
   '@marijn/find-cluster-break@1.0.2':
     resolution: {integrity: sha512-l0h88YhZFyKdXIFNfSWpyjStDjGHwZ/U7iobcK1cQQD8sejsONdQtTVU+1wVN1PBw40PiiHB1vA5S7VTfQiP9g==}
-
-  '@material/material-color-utilities@0.4.0':
-    resolution: {integrity: sha512-dlq6VExJReb8dhjj3a/yTigr3ncNwoFmL5Iy2ENtbDX03EmNeOEdZ+vsaGrj7RTuO+mB7L58II4LCsl4NpM8uw==}
 
   '@material/web@2.4.1':
     resolution: {integrity: sha512-0sk9t25acJ72Qv3r0n9r0lgDbPaAKnpm0p+QmEAAwYyZomHxuVbgrrAdtNXaRm7jFyGh+WsTr8bhtvCnpPRFjw==}
@@ -6032,8 +6020,6 @@ snapshots:
       '@babel/helper-string-parser': 8.0.0-rc.6
       '@babel/helper-validator-identifier': 8.0.0-rc.6
 
-  '@chinese-fonts/lxgwwenkai@3.0.0': {}
-
   '@codemirror/autocomplete@6.20.3':
     dependencies:
       '@codemirror/language': 6.12.3
@@ -6510,8 +6496,6 @@ snapshots:
       vue: 3.5.35(typescript@6.0.3)
 
   '@marijn/find-cluster-break@1.0.2': {}
-
-  '@material/material-color-utilities@0.4.0': {}
 
   '@material/web@2.4.1':
     dependencies:

@@ -1,20 +1,40 @@
 <template>
   <v-app class="v-player">
-    <!-- 左侧边栏 -->
-    <app-nav class="v-player-nav" />
+    <!-- 桌面端左侧边栏 -->
+    <app-nav v-if="!mobile" class="v-player-nav" />
 
     <!-- 主要内容 -->
     <app-content id="v-player-content" class="v-player-content" />
 
+    <!-- 移动端底部 Tab 导航 -->
+    <v-bottom-navigation v-if="mobile" v-model="activeTab" grow color="primary" bg-color="surface" :elevation="0" class="border-t border-outline/30">
+      <v-btn
+        v-for="item in nav"
+        :key="item.val"
+        :to="item.to"
+        :value="item.to"
+        stacked
+      >
+        <v-icon :icon="item.icon" />
+        <span class="text-xs mt-1">{{ item.title }}</span>
+      </v-btn>
+    </v-bottom-navigation>
   </v-app>
 </template>
 
 <script setup lang="ts">
+import { useDisplay } from "vuetify";
 import { useMaterialYouTheme } from "@/hooks/useMaterialYouTheme";
+import { useNavItems } from "@/hooks/useNavItems";
 import AppNav from "./layout/Navbar.vue";
 import AppContent from "./layout/View.vue";
 
 useMaterialYouTheme();
+
+const { mobile } = useDisplay();
+const { nav } = useNavItems();
+const route = useRoute();
+const activeTab = computed(() => route.path);
 </script>
 <style lang="scss">
 $cubic-bezier: cubic-bezier(0.55, -0.01, 0, 1.03);

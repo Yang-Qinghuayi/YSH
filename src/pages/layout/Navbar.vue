@@ -15,7 +15,7 @@
                 </div>
               </template>
               <v-list-item-title class="font-weight-bold">
-                {{ $t(item.title) }}
+                {{ item.title }}
               </v-list-item-title>
             </v-list-item>
           </v-list>
@@ -29,52 +29,13 @@
 
 <script setup lang="ts">
 import { useTheme } from "vuetify";
-const vuetifyTheme = useTheme();
-const currentTheme = computed(() => {
-  return vuetifyTheme.current.value;
-});
-
-import {
-  mdiCog,
-  mdiBookshelf,
-  mdiBookOpenVariantOutline,
-  mdiEmailFastOutline,
-} from "@mdi/js";
 import { storeToRefs } from "pinia";
 import { useSettingStore } from "@/store/setting";
+import { useNavItems } from "@/hooks/useNavItems";
+
+const vuetifyTheme = useTheme();
+const currentTheme = computed(() => vuetifyTheme.current.value);
 
 const { rail } = storeToRefs(useSettingStore()) as any;
-
-const nav = computed(() => {
-  return [
-    {
-      icon: mdiBookOpenVariantOutline,
-      val: "book",
-      title: "书籍",
-      to: "/book",
-    },
-    {
-      icon: mdiBookshelf,
-      val: "library",
-      title: t("book.bookshelf"),
-      to: "/library",
-    },
-    {
-      icon: mdiCog,
-      val: "setting",
-      title: t("common.setting"),
-      to: "/setting",
-    },
-    {
-      icon: mdiEmailFastOutline,
-      val: "setting",
-      title: "信来",
-      to: "/letter",
-    },
-  ];
-});
-
-import { useI18n } from '@/utils/i18n';
-
-const { t } = useI18n();
+const { nav } = useNavItems();
 </script>

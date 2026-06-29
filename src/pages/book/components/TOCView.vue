@@ -1,5 +1,9 @@
 <template>
-  <div role="tree" ref="viewRef" class=" w-64 p-3 mx-9 overflow-auto h-[60vh]">
+  <div role="tree" ref="viewRef"
+    :class="inSheet
+      ? 'w-full p-3 overflow-auto h-full'
+      : 'w-64 p-3 mx-9 overflow-auto h-[60vh]'"
+  >
     <div class="text-lg truncate m-3 mb-0 text-center">
       {{ doc.metadata.title }}
     </div>
@@ -22,9 +26,10 @@ import { findParentPath } from '@/utils/toc';
 import type { BookDoc, TOCItem } from '@/libs/document';
 import type { BookProgress } from '@/types/book';
 
-const { bookId, doc } = defineProps<{
+const { bookId, doc, inSheet = false } = defineProps<{
   bookId: string
   doc: BookDoc
+  inSheet?: boolean
 }>()
 
 
