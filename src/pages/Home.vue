@@ -1,13 +1,13 @@
 <template>
   <v-app class="v-player">
     <!-- 桌面端左侧边栏 -->
-    <app-nav v-if="!mobile" class="v-player-nav" />
+    <app-nav v-if="!isMobile" class="v-player-nav" />
 
     <!-- 主要内容 -->
     <app-content id="v-player-content" class="v-player-content" />
 
     <!-- 移动端底部 Tab 导航 -->
-    <v-bottom-navigation v-if="mobile" v-model="activeTab" grow color="primary" bg-color="surface" :elevation="0" class="border-t border-outline/30">
+    <v-bottom-navigation v-if="isMobile" v-model="activeTab" grow color="primary" bg-color="surface" :elevation="0" class="border-t border-outline/30">
       <v-btn
         v-for="item in nav"
         :key="item.val"
@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { useDisplay } from "vuetify";
+import { useMediaQuery } from "@vueuse/core";
 import { useMaterialYouTheme } from "@/hooks/useMaterialYouTheme";
 import { useNavItems } from "@/hooks/useNavItems";
 import AppNav from "./layout/Navbar.vue";
@@ -31,7 +31,8 @@ import AppContent from "./layout/View.vue";
 
 useMaterialYouTheme();
 
-const { mobile } = useDisplay();
+// 用浏览器原生 matchMedia，比 Vuetify useDisplay 更可靠
+const isMobile = useMediaQuery("(max-width: 960px)");
 const { nav } = useNavItems();
 const route = useRoute();
 const activeTab = computed(() => route.path);

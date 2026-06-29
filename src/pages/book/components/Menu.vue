@@ -2,8 +2,19 @@
   <v-dialog v-model="showMenu" persistent>
     <v-card :class="[smAndUp ? 'w-[560px] p-10' : 'w-full p-4']" color="surface" class="flex items-center flex-col mx-auto">
       <v-card-title class="text-center">菜单</v-card-title>
-      <FontSizeSlider />
-      <FontWeightSlider class="mt-4" />
+      <FontSizeSlider class="w-full mt-4" />
+      <FontWeightSlider class="w-full mt-4" />
+
+      <div class="w-full mt-4">
+        <div
+          class="flex justify-between items-center px-3 py-3 bg-gray-300/30 backdrop-blur-3xl shadow-md rounded-lg border border-gray-300">
+          <div>
+            <p class="text-gray-700">连续滚动</p>
+            <p class="text-xs text-gray-400">像信息流一样上下滑动翻页</p>
+          </div>
+          <v-switch v-model="scrollMode" hide-details density="compact" color="primary" inset></v-switch>
+        </div>
+      </div>
 
       <div class="w-full mt-4">
         <div
@@ -100,6 +111,7 @@ const overrideFont = ref(false)
 const sysFonts = ref<string[]>(defaultSysFonts)
 const defaultCJKFont = ref('')
 
+const scrollMode = ref(false)
 const setTwoColumn = ref(false)
 const maxColumnCount = computed(() => setTwoColumn.value ? 2 : 1)
 
@@ -121,6 +133,7 @@ watchEffect(() => {
     overrideFont.value = viewSettings.value.overrideFont ?? false
     defaultCJKFont.value = viewSettings.value.defaultCJKFont ?? ''
     setTwoColumn.value = viewSettings.value.maxColumnCount === 2
+    scrollMode.value = viewSettings.value.scrolled ?? false
   }
 })
 
@@ -135,6 +148,13 @@ if (isTauriAppPlatform()) {
     sysFonts.value = [...new Set(fonts)].sort((a, b) => a.localeCompare(b));
   });
 }
+
+watch(scrollMode, (val) => {
+  // scrolled 控制 renderer flow 属性（paginated ↔ scrolled）
+  updateSetting('scrolled', val);
+  // continuousScroll 控制到章节边界时自动加载前后章节
+  updateSetting('continuousScroll', val);
+})
 
 watch(overrideFont, () => {
   updateSetting('overrideFont', overrideFont.value);

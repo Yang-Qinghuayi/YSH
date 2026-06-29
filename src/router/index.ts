@@ -27,6 +27,11 @@ const musicRoutes: RouteRecordRaw[] = [
     name: "letter",
     component: () => import("@/pages/letter/index.vue"),
   },
+  {
+    path: "/novel",
+    name: "novel",
+    component: () => import("@/pages/novel/index.vue"),
+  },
 ];
 
 export function useRouter(app: App) {

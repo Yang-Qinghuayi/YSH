@@ -20,6 +20,9 @@ export interface SettingState {
   showBigCatalog: boolean;
   miniPlayer: boolean;
   navPosition: NavPosition;
+  // AI 写作（DeepSeek）
+  deepseekApiKey: string;
+  deepseekModel: 'deepseek-chat' | 'deepseek-reasoner';
 }
 
 export const useSettingStore = defineStore('setting', {
@@ -35,6 +38,8 @@ export const useSettingStore = defineStore('setting', {
         showBigCatalog: true,
         miniPlayer: false,
         navPosition: NavPosition.left,
+        deepseekApiKey: '',
+        deepseekModel: 'deepseek-chat',
       },
       { mergeDefaults: true }
     )

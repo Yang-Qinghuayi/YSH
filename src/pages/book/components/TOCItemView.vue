@@ -27,7 +27,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import TOCItemView from './TOCItemView.vue';
 import { useReaderStore } from '@/store/readerStore';
 import { eventDispatcher } from '@/utils/event';
@@ -44,8 +44,10 @@ const props = defineProps<{
 const isExpanded = ref(props.expandedItems.includes(props.item.href || ''));
 const readerStore = useReaderStore();
 
-const progress = readerStore.getProgress(props.bookId);
-const isActive = progress?.sectionHref === props.item.href;
+// 用 computed 保证翻页后实时高亮更新（原来是快照，永不响应变化）
+const isActive = computed(() =>
+  readerStore.getProgress(props.bookId)?.sectionHref === props.item.href
+);
 
 function toggleExpand(event: MouseEvent) {
   event.preventDefault();

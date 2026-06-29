@@ -16,7 +16,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import TOCItemView from './TOCItemView.vue';
 import { useReaderStore } from '@/store/readerStore';
 import { useSidebarStore } from '@/store/sidebarStore';
@@ -39,7 +39,8 @@ const expandedItems = ref<string[]>([]);
 const readerStore = useReaderStore();
 const sidebarStore = useSidebarStore();
 
-const progress = readerStore.getProgress(bookId);
+// 用 computed 包裹，确保 watch 能响应翻页后的 progress 变化（原来是快照）
+const progress = computed(() => readerStore.getProgress(bookId));
 
 function expandParents(toc: TOCItem[], href: string) {
   const parentPath = findParentPath(toc, href).map((item) => item.href);
@@ -82,11 +83,11 @@ onMounted(() => {
 });
 
 watch(
-  () => [doc, progress, sidebarStore.sideBarBookKey],
-  async () => {
-    if (!progress || eventDispatcher.dispatchSync('tts-is-speaking')) return;
+  [progress, () => doc, () => sidebarStore.sideBarBookKey],
+  async ([newProgress]) => {
+    if (!newProgress || eventDispatcher.dispatchSync('tts-is-speaking')) return;
     await nextTick();
-    scrollToProgress(progress);
+    scrollToProgress(newProgress);
   }
 );
 </script>
