@@ -248,7 +248,8 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             let win_builder = win_builder
                 .decorations(true)
-                .title_bar_style(tauri::TitleBarStyle::Visible) 
+                .title_bar_style(tauri::TitleBarStyle::Overlay)
+                .hidden_title(true)
                 .title("YSH");
 
             #[cfg(all(not(target_os = "macos"), desktop))]

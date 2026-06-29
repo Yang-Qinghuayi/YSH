@@ -1,6 +1,8 @@
 <template>
   <v-navigation-drawer :rail="rail" rail-width="102" width="212" color="background">
-    <div class="px-3 mt-6" :class="{ 'mb-1': rail }">
+    <!-- macOS overlay 模式下的拖拽区域（红绿灯右侧空白） -->
+    <div class="drag-region" data-tauri-drag-region />
+    <div class="px-3 mt-2" :class="{ 'mb-1': rail }">
       <v-btn icon class="no-drag-area" variant="text" @click="rail = !rail">
         <v-icon size="small" :icon="rail ? mdiMenu : mdiMenuOpen" />
       </v-btn>
@@ -38,3 +40,12 @@ import { useNavItems } from "@/hooks/useNavItems";
 const { rail } = storeToRefs(useSettingStore()) as any;
 const { nav } = useNavItems();
 </script>
+
+<style scoped>
+/* macOS overlay 标题栏拖拽区域：高度与红绿灯对齐（约 28px） */
+.drag-region {
+  height: 28px;
+  width: 100%;
+  flex-shrink: 0;
+}
+</style>

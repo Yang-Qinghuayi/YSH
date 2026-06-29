@@ -32,6 +32,10 @@ export const useReaderStore = defineStore('reader', () => {
     showMenu.value = !showMenu.value;
   }
 
+  const closeMenu = () => {
+    showMenu.value = false;
+  }
+
   const setBookKeys = (keys: string[]) => {
     bookKeys.value = keys;
   };
@@ -251,6 +255,7 @@ export const useReaderStore = defineStore('reader', () => {
     setProgress,
     setBookmarkRibbonVisibility,
     switchShowMenu,
+    closeMenu,
     showMenu,
   };
 });

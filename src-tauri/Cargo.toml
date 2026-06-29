@@ -13,7 +13,7 @@ rust-version = "1.77.2"
 # objc 0.2.x 的宏内部使用了 cfg(cargo-clippy)，新版 rustc 的 check-cfg lint 会对此发出警告。
 # 下面声明该 cfg 条件为合法值，消除这些来自三方宏的噪音。
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ["cfg(cargo_clippy)"] }
+unexpected_cfgs = "allow"
 
 [lib]
 name = "yshlib"

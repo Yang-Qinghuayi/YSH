@@ -10,9 +10,12 @@ import { eventDispatcher } from '@/utils/event';
 import { MAX_ZOOM_LEVEL, MIN_ZOOM_LEVEL, ZOOM_STEP } from '@/services/constants';
 
 const useBookShortcuts = (sideBarBookKey: string) => {
-  const { getView, getViewSettings } = useReaderStore();
-  const { toggleSideBar } = useSidebarStore();
-  const { setFontLayoutSettingsDialogOpen } = useSettingsStore();
+  const readerStore = useReaderStore();
+  const { getView, getViewSettings } = readerStore;
+  const sidebarStore = useSidebarStore();
+  const { toggleSideBar, setSideBarVisible } = sidebarStore;
+  const settingsStore = useSettingsStore();
+  const { setFontLayoutSettingsDialogOpen } = settingsStore;
   const viewSettings = getViewSettings(sideBarBookKey ?? '');
   const fontSize = viewSettings?.defaultFontSize ?? 16;
   const lineHeight = viewSettings?.lineHeight ?? 1.6;
@@ -145,10 +148,22 @@ const useBookShortcuts = (sideBarBookKey: string) => {
     if (await ensureTTSInit()) await ttsStore.backward(sideBarBookKey);
   };
 
+  const closeAllMenus = () => {
+    // 按优先级逐一关闭：有什么关什么，全无则不动
+    if (readerStore.showMenu) {
+      readerStore.closeMenu();
+    } else if (settingsStore.isFontLayoutSettingsDialogOpen) {
+      setFontLayoutSettingsDialogOpen(false);
+    } else if (sidebarStore.isSideBarVisible) {
+      setSideBarVisible(false);
+    }
+  };
+
   useShortcuts(
     {
       onSwitchSideBar: switchSideBar,
       onToggleSideBar: toggleSideBar,
+      onCloseNote: closeAllMenus,
       onToggleScrollMode: toggleScrollMode,
       onOpenFontLayoutSettings: () => setFontLayoutSettingsDialogOpen(true),
       onToggleSearchBar: showSearchBar,

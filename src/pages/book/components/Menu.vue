@@ -1,5 +1,5 @@
 <template>
-  <v-dialog v-model="showMenu" persistent>
+  <v-dialog v-model="showMenu">
     <v-card :class="[smAndUp ? 'w-[560px] p-10' : 'w-full p-4']" color="surface" class="flex items-center flex-col mx-auto">
       <v-card-title class="text-center">菜单</v-card-title>
       <FontSizeSlider class="w-full mt-4" />
