@@ -180,10 +180,11 @@ watch(viewStates, () => {
 })
 
 
-onMounted(() => {
+onMounted(async () => {
   const view = wrappedFoliateView(document.createElement('foliate-view') as FoliateView);
   containerRef.value && containerRef.value.appendChild(view);
   viewRef.value = view
+  await initBook()
 })
 
 
