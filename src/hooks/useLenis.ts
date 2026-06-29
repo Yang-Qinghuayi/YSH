@@ -7,6 +7,8 @@ import Lenis from 'lenis';
 export function useLenis(getEl: Ref<HTMLElement | null>) {
   let lenisInstance: Lenis | null = null;
   let rafId: number | null = null;
+  // 在 lenisInstance 创建之前就可能被调用 pause()，用此标志记住状态
+  let shouldBePaused = false;
 
   function init(wrapper: HTMLElement) {
     destroy();
@@ -23,6 +25,9 @@ export function useLenis(getEl: Ref<HTMLElement | null>) {
       touchMultiplier: 1.5,
       infinite: false,
     });
+
+    // 初始化完成后立即应用挂起的暂停状态（如路由守卫在 init 之前调用了 pause()）
+    if (shouldBePaused) lenisInstance.stop();
 
     function raf(time: number) {
       lenisInstance?.raf(time);
@@ -51,7 +56,7 @@ export function useLenis(getEl: Ref<HTMLElement | null>) {
 
   return {
     /** 在不需要平滑滚动的页面（如阅读页）暂停 Lenis，避免与内容滚动冲突 */
-    pause: () => lenisInstance?.stop(),
-    resume: () => lenisInstance?.start(),
+    pause: () => { shouldBePaused = true; lenisInstance?.stop(); },
+    resume: () => { shouldBePaused = false; lenisInstance?.start(); },
   };
 }

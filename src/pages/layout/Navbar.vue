@@ -1,5 +1,5 @@
 <template>
-  <v-navigation-drawer :rail="rail" rail-width="102" width="212"  class="" >
+  <v-navigation-drawer :rail="rail" rail-width="102" width="212" color="background">
     <div class="px-3 mt-6" :class="{ 'mb-1': rail }">
       <drawer-toggle />
     </div>
@@ -28,13 +28,9 @@
 </template>
 
 <script setup lang="ts">
-import { useTheme } from "vuetify";
 import { storeToRefs } from "pinia";
 import { useSettingStore } from "@/store/setting";
 import { useNavItems } from "@/hooks/useNavItems";
-
-const vuetifyTheme = useTheme();
-const currentTheme = computed(() => vuetifyTheme.current.value);
 
 const { rail } = storeToRefs(useSettingStore()) as any;
 const { nav } = useNavItems();

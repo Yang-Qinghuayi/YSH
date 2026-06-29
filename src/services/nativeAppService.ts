@@ -132,23 +132,26 @@ export const nativeFileSystem: FileSystem = {
   },
   async readFile(path: string, base: BaseDir, mode: 'text' | 'binary') {
     const { fp, baseDir } = resolvePath(path, base);
+    const opts = baseDir ? { baseDir } : undefined;
 
     return mode === 'text'
-      ? (readTextFile(fp, base && { baseDir }) as Promise<string>)
-      : ((await readFile(fp, base && { baseDir })).buffer as ArrayBuffer);
+      ? (readTextFile(fp, opts) as Promise<string>)
+      : ((await readFile(fp, opts)).buffer as ArrayBuffer);
   },
   async writeFile(path: string, base: BaseDir, content: string | ArrayBuffer | File) {
     // NOTE: this could be very slow for large files and might block the UI thread
     // so do not use this for large files
     const { fp, baseDir } = resolvePath(path, base);
+    const opts = baseDir ? { baseDir } : undefined;
 
     if (typeof content === 'string') {
-      return writeTextFile(fp, content, base && { baseDir });
+      return writeTextFile(fp, content, opts);
     } else if (content instanceof File) {
-      const writeOptions = { write: true, create: true, baseDir } as WriteFileOptions;
-      // TODO: use writeFile directly when @tauri-apps/plugin-fs@2.2.1 is released
-      // return writeFile(fp, content.stream(), base && writeOptions);
-      const file = await openFile(fp, base && writeOptions);
+      // baseDir=0 ('None') 时不传 baseDir
+      const writeOptions = baseDir
+        ? ({ write: true, create: true, baseDir } as WriteFileOptions)
+        : ({ write: true, create: true } as WriteFileOptions);
+      const file = await openFile(fp, writeOptions);
       const reader = content.stream().getReader();
       try {
         while (true) {
@@ -161,28 +164,29 @@ export const nativeFileSystem: FileSystem = {
         await file.close();
       }
     } else {
-      return writeFile(fp, new Uint8Array(content), base && { baseDir });
+      return writeFile(fp, new Uint8Array(content), opts);
     }
   },
   async removeFile(path: string, base: BaseDir) {
     const { fp, baseDir } = resolvePath(path, base);
 
-    return remove(fp, base && { baseDir });
+    return remove(fp, baseDir ? { baseDir } : undefined);
   },
   async createDir(path: string, base: BaseDir, recursive = false) {
     const { fp, baseDir } = resolvePath(path, base);
 
-    await mkdir(fp, base && { baseDir, recursive });
+    // baseDir=0 ('None') 时不传 baseDir，让 Tauri 把 fp 当绝对路径处理
+    await mkdir(fp, baseDir ? { baseDir, recursive } : { recursive });
   },
   async removeDir(path: string, base: BaseDir, recursive = false) {
     const { fp, baseDir } = resolvePath(path, base);
 
-    await remove(fp, base && { baseDir, recursive });
+    await remove(fp, baseDir ? { baseDir, recursive } : { recursive });
   },
   async readDir(path: string, base: BaseDir) {
     const { fp, baseDir } = resolvePath(path, base);
 
-    const list = await readDir(fp, base && { baseDir });
+    const list = await readDir(fp, baseDir ? { baseDir } : undefined);
     return list.map((entity) => {
       return {
         path: entity.name,
@@ -194,7 +198,7 @@ export const nativeFileSystem: FileSystem = {
     const { fp, baseDir } = resolvePath(path, base);
 
     try {
-      const res = await exists(fp, base && { baseDir });
+      const res = await exists(fp, baseDir ? { baseDir } : undefined);
       return res;
     } catch {
       return false;

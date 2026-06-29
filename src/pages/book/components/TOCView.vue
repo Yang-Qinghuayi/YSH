@@ -1,9 +1,9 @@
 <template>
   <div role="tree" ref="viewRef"
-    :class="inSheet ? 'w-full p-3' : 'w-64 p-3'"
+    :class="inSheet ? 'w-full p-3' : 'w-64 p-3 shrink-0'"
     :style="inSheet
       ? { maxHeight: 'calc(75dvh - 40px)', overflowY: 'auto' }
-      : { position: 'fixed', right: '24px', top: '10vh', height: '80vh', overflowY: 'auto', zIndex: 200 }"
+      : { position: 'relative', zIndex: 200, height: '80vh', overflowY: 'auto' }"
   >
     <div class="text-lg truncate m-3 mb-0 text-center">
       {{ doc.metadata.title }}

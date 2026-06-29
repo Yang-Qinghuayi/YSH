@@ -1,4 +1,5 @@
 <template>
+  <div class="lore-root">
   <WorkspaceInit v-if="!workspaceReady" @done="workspaceReady = true" class="h-100" />
 
   <div v-else class="lore-page d-flex h-100">
@@ -103,6 +104,7 @@
     <v-snackbar v-model="showError" color="error" timeout="4000" location="top">
       {{ errorMessage }}
     </v-snackbar>
+  </div>
   </div>
 </template>
 
@@ -263,6 +265,10 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.lore-root {
+  height: calc(100vh - 48px); /* v-main: -16px, v-container py-4: -32px */
+}
+
 .lore-page {
   height: 100%;
   overflow: hidden;

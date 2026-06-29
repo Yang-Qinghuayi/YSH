@@ -138,23 +138,8 @@ const docLoadHandler = (event: Event) => {
   }
 };
 
-const docRelocateHandler = (event: Event) => {
-  const detail = (event as CustomEvent).detail;
-  if (detail.reason !== 'scroll') return;
-
-  const renderer = viewRef.value?.renderer;
-  if (!renderer?.scrolled) return; // 只在 scrolled 模式下生效
-
-  const viewSettings = getViewSettings(bookId.value)!;
-  if (!viewSettings.continuousScroll) return;
-
-  // 兜底：防抖 250ms 后再检查一次
-  if (renderer.viewSize - renderer.end <= 2) {
-    viewRef.value?.next(1);
-  } else if (renderer.start <= 0) {
-    viewRef.value?.prev(1);
-  }
-};
+// renderer.relocate 仅用于更新进度显示；连续换章由 checkScrollProgress (renderer.scroll) 统一处理
+const docRelocateHandler = (_event: Event) => { };
 
 const docTransformHandler = (event: Event) => {
   const { detail } = event as CustomEvent;

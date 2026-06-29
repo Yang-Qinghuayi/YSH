@@ -34,13 +34,12 @@
 
 .route-animation-leave-active,
 .route-animation-enter-active {
-  transition: all 0.2s;
+  transition: opacity 0.15s ease;
 }
 
-.route-animation-enter-from {
-}
-
+.route-animation-enter-from,
 .route-animation-leave-to {
+  opacity: 0;
 }
 
 .slide-fade-y-enter-active,

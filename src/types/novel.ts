@@ -27,6 +27,18 @@ export interface ChapterMeta {
   title: string
   summary?: string  // 可选章节摘要，给后续章节提供上下文
   order: number     // 排列顺序
+  wordCount?: number // 字数（不含 Markdown 格式符和空白）
+}
+
+// 全局搜索结果
+export interface SearchResult {
+  chapterId: string
+  chapterTitle: string
+  chapterFilename: string
+  lineIndex: number     // 0-indexed
+  lineContent: string   // 该行原始文本
+  matchStart: number    // 匹配位置（在 lineContent 中的偏移）
+  matchEnd: number
 }
 
 // 小说元数据（存于 novel.json）

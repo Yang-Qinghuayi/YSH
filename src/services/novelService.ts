@@ -8,7 +8,7 @@
 
 import { useAppService } from '@/hooks/useEnv'
 import { getDataBase } from '@/services/workspaceService'
-import type { Novel, ChapterMeta } from '@/types/novel'
+import type { Novel, ChapterMeta, SearchResult } from '@/types/novel'
 
 const NOVELS_DIR = 'novels'
 
@@ -152,6 +152,86 @@ export async function createChapter(novel: Novel, title: string): Promise<{ nove
   await saveNovelMeta(updatedNovel)
 
   return { novel: updatedNovel, chapter }
+}
+
+/**
+ * 计算字数：去掉 Markdown 格式符和空白后的字符数
+ * 适合中文长篇写作的"有效字数"口径
+ */
+export function countWords(content: string): number {
+  return content
+    .replace(/#{1,6}\s+/g, '')  // 去掉 Markdown 标题符
+    .replace(/[*_`~]/g, '')     // 去掉加粗/斜体/代码/删除线
+    .replace(/\s/g, '')         // 去掉所有空白（空格、换行等）
+    .length
+}
+
+/** 批量读取章节文件，返回 chapterId → wordCount 的 Map */
+export async function loadAllChapterWordCounts(
+  novelId: string,
+  chapters: ChapterMeta[],
+): Promise<Map<string, number>> {
+  const result = new Map<string, number>()
+  await Promise.all(
+    chapters.map(async (chapter) => {
+      try {
+        const content = await loadChapterContent(novelId, chapter.filename)
+        result.set(chapter.id, countWords(content))
+      } catch {
+        // 读取失败忽略，保留 undefined
+      }
+    }),
+  )
+  return result
+}
+
+/** 跨章节全文搜索，返回所有匹配行（并发读取） */
+export async function searchInChapters(
+  novelId: string,
+  chapters: ChapterMeta[],
+  query: string,
+): Promise<SearchResult[]> {
+  if (!query.trim()) return []
+
+  const lowerQuery = query.toLowerCase()
+  const allResults: SearchResult[] = []
+
+  await Promise.all(
+    chapters.map(async (chapter) => {
+      try {
+        const content = await loadChapterContent(novelId, chapter.filename)
+        const lines = content.split('\n')
+        lines.forEach((line, lineIndex) => {
+          const lowerLine = line.toLowerCase()
+          let searchFrom = 0
+          let matchStart: number
+          while ((matchStart = lowerLine.indexOf(lowerQuery, searchFrom)) !== -1) {
+            allResults.push({
+              chapterId: chapter.id,
+              chapterTitle: chapter.title,
+              chapterFilename: chapter.filename,
+              lineIndex,
+              lineContent: line,
+              matchStart,
+              matchEnd: matchStart + query.length,
+            })
+            searchFrom = matchStart + 1
+          }
+        })
+      } catch {
+        // 读取失败忽略
+      }
+    }),
+  )
+
+  // 按章节顺序、再按行号排序
+  const orderMap = new Map(chapters.map((c, i) => [c.id, i]))
+  allResults.sort((a, b) => {
+    const diff = (orderMap.get(a.chapterId) ?? 0) - (orderMap.get(b.chapterId) ?? 0)
+    return diff !== 0 ? diff : a.lineIndex - b.lineIndex
+  })
+
+  return allResults
 }
 
 /** 删除章节 */
