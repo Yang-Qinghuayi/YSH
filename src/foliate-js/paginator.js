@@ -282,6 +282,7 @@ class View {
     scrolled({ gap, columnWidth }) {
         const vertical = this.#vertical
         const doc = this.document
+        if (!doc) return
         setStylesImportant(doc.documentElement, {
             'box-sizing': 'border-box',
             'padding': vertical ? `${gap}px 0` : `0 ${gap}px`,

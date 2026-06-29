@@ -32,7 +32,7 @@
 
     <!-- 移动端：底部抽屉目录 -->
     <v-bottom-sheet v-if="isMobile" v-model="showMobileTOC" max-height="75vh">
-      <v-sheet class="rounded-t-2xl overflow-hidden h-full">
+      <v-sheet class="rounded-t-2xl overflow-hidden">
         <div class="flex justify-center pt-2 pb-1">
           <div class="w-10 h-1 rounded-full bg-outline/40"></div>
         </div>
@@ -281,7 +281,7 @@ const initBook = async () => {
   setFoliateView(bookId.value, view)
   const { book } = view;
 
-  book.transformTarget?.addEventListener('data', docTransformHandler);
+  book?.transformTarget?.addEventListener('data', docTransformHandler);
   // 一次性应用所有渲染器属性（布局 + 样式）
   if (viewSettings) applyRendererSettings(view, viewSettings);
 

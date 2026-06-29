@@ -20,7 +20,7 @@
             density="compact"
             :type="showApiKey ? 'text' : 'password'"
             :append-inner-icon="showApiKey ? mdiEyeOff : mdiEye"
-            :hint="apiKeyHint"
+            hint="API Key is required for AI writing"
             persistent-hint
             @click:append-inner="showApiKey = !showApiKey"
           />
@@ -41,16 +41,15 @@
 </template>
 
 <script setup lang="ts">
-import { mdiEye, mdiEyeOff } from '@mdi/js'
+import { mdiEye, mdiEyeOff } from "@mdi/js";
 import AppSettingsTheme from "./components/Theme.vue";
-import { useSettingStore } from '@/store/setting'
+import { useSettingStore } from "@/store/setting";
 
-const settingStore = useSettingStore()
-const showApiKey = ref(false)
-const apiKeyHint = '前往 https://platform.deepseek.com 获取 API Key'
+const settingStore = useSettingStore();
+const showApiKey = ref(false);
 
 const modelOptions = [
-  { title: 'deepseek-chat（通用，速度快）', value: 'deepseek-chat' },
-  { title: 'deepseek-reasoner（深度推理，更慢）', value: 'deepseek-reasoner' },
-]
+  { title: "deepseek-chat（通用，速度快）", value: "deepseek-chat" },
+  { title: "deepseek-reasoner（深度推理，更慢）", value: "deepseek-reasoner" },
+];
 </script>
