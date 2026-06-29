@@ -15,6 +15,7 @@ export interface FoliateView extends HTMLElement {
   goLeft: () => void;
   goRight: () => void;
   getCFI: (index: number, range: Range) => string;
+  resolveCFI: (cfi: string) => { index: number; anchor: (doc: Document) => Range };
   addAnnotation: (note: BookNote, remove?: boolean) => { index: number; label: string };
   search: (config: BookSearchConfig) => AsyncGenerator<BookSearchResult | string, void, void>;
   clearSearch: () => void;
@@ -40,13 +41,14 @@ export interface FoliateView extends HTMLElement {
     viewSize: number; // whole document view height
     start: number;
     end: number;
+    primaryIndex: number;
     setAttribute: (name: string, value: string | number) => void;
     removeAttribute: (name: string) => void;
     next: () => Promise<void>;
     prev: () => Promise<void>;
     goTo?: (params: { index: number; anchor: number }) => void;
     setStyles?: (css: string) => void;
-    getContents: () => { doc: Document; index?: number }[];
+    getContents: () => { doc: Document; index?: number; overlayer?: unknown }[];
     addEventListener: (type: string, listener: EventListener) => void;
     removeEventListener: (type: string, listener: EventListener) => void;
   };

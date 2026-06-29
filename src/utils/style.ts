@@ -7,13 +7,7 @@ import {
   CJK_SERIF_FONTS,
 } from '@/services/constants';
 import { ViewSettings } from '@/types/book';
-import {
-  themes,
-  Palette,
-  CustomTheme,
-  generateLightPalette,
-  generateDarkPalette,
-} from '@/styles/themes';
+import { Palette } from '@/styles/themes';
 
 import fontfacesCSS from '@/styles/fonts.css?raw';
 import { getOSPlatform } from './misc';
@@ -333,41 +327,23 @@ export interface ThemeCode {
   isDarkMode: boolean;
 }
 
-export const getThemeCode = () => {
-  let themeMode = 'auto';
-  let themeColor = 'default';
-  let systemIsDarkMode = false;
-  let customThemes: CustomTheme[] = [];
-  if (typeof window !== 'undefined') {
-    themeColor = localStorage.getItem('themeColor') || 'default';
-    themeMode = localStorage.getItem('themeMode') || 'auto';
-    customThemes = JSON.parse(localStorage.getItem('customThemes') || '[]');
-    systemIsDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  }
-  const isDarkMode = themeMode === 'dark' || (themeMode === 'auto' && systemIsDarkMode);
-  let currentTheme = themes.find((theme) => theme.name === themeColor);
-  if (!currentTheme) {
-    const customTheme = customThemes.find((theme) => theme.name === themeColor);
-    if (customTheme) {
-      currentTheme = {
-        name: customTheme.name,
-        label: customTheme.label,
-        colors: {
-          light: generateLightPalette(customTheme.colors.light),
-          dark: generateDarkPalette(customTheme.colors.dark),
-        },
-      };
-    }
-  }
-  if (!currentTheme) currentTheme = themes[0];
-  const defaultPalette = isDarkMode ? currentTheme!.colors.dark : currentTheme!.colors.light;
-  return {
-    bg: defaultPalette['base-100'],
-    fg: defaultPalette['base-content'],
-    primary: defaultPalette.primary,
-    palette: defaultPalette,
-    isDarkMode,
-  } as ThemeCode;
+export const getThemeCode = (): ThemeCode => {
+  // 直接读取应用外壳实际使用的 Material You CSS 变量，确保注入 iframe 的
+  // --theme-bg-color / 前景 / 主色与应用背景完全一致，不再依赖静态 themes
+  // （项目已切换到 Material You 动态主题，静态 themes 会与应用不同步导致书籍区白底）。
+  const isDarkMode =
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const styles =
+    typeof document !== 'undefined'
+      ? getComputedStyle(document.documentElement)
+      : null;
+  const get = (name: string, fallback: string) =>
+    styles?.getPropertyValue(name).trim() || fallback;
+  const bg = get('--background', isDarkMode ? '#0a0a0a' : '#fff4ef');
+  const fg = get('--foreground', isDarkMode ? '#ededed' : '#341f19');
+  const primary = get('--primary', '#b85e4b');
+  return { bg, fg, primary, palette: {} as Palette, isDarkMode } as ThemeCode;
 };
 
 export const getStyles = (viewSettings: ViewSettings, themeCode?: ThemeCode) => {

@@ -13,6 +13,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     CardRow: typeof import('./components/layout/CardRow.vue')['default']
+    DrawerToggle: typeof import('./components/toggle/DrawerToggle.vue')['default']
     GlobalSearch: typeof import('./components/GlobalSearch.vue')['default']
     Headline: typeof import('./components/Headline.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
@@ -25,6 +26,7 @@ declare module 'vue' {
 // For TSX support
 declare global {
   const CardRow: typeof import('./components/layout/CardRow.vue')['default']
+  const DrawerToggle: typeof import('./components/toggle/DrawerToggle.vue')['default']
   const GlobalSearch: typeof import('./components/GlobalSearch.vue')['default']
   const Headline: typeof import('./components/Headline.vue')['default']
   const RouterLink: typeof import('vue-router')['RouterLink']

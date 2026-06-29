@@ -41,7 +41,6 @@ declare global {
   const getCurrentInstance: typeof import('vue').getCurrentInstance
   const getCurrentScope: typeof import('vue').getCurrentScope
   const getCurrentWatcher: typeof import('vue').getCurrentWatcher
-  const getLinkByDirAndObj: typeof import('./hooks/useLink').getLinkByDirAndObj
   const h: typeof import('vue').h
   const ignorableWatch: typeof import('@vueuse/core').ignorableWatch
   const initLibrary: typeof import('./hooks/useEnv').initLibrary
@@ -119,7 +118,6 @@ declare global {
   const unrefElement: typeof import('@vueuse/core').unrefElement
   const until: typeof import('@vueuse/core').until
   const useActiveElement: typeof import('@vueuse/core').useActiveElement
-  const useAjaxReload: typeof import('./hooks/useAjaxReload').default
   const useAnimate: typeof import('@vueuse/core').useAnimate
   const useAppService: typeof import('./hooks/useEnv').useAppService
   const useArrayDifference: typeof import('@vueuse/core').useArrayDifference
@@ -169,8 +167,6 @@ declare global {
   const useDevicesList: typeof import('@vueuse/core').useDevicesList
   const useDisplayMedia: typeof import('@vueuse/core').useDisplayMedia
   const useDocumentVisibility: typeof import('@vueuse/core').useDocumentVisibility
-  const useDownload: typeof import('./hooks/useDownload').useDownload
-  const useDownloadMusic: typeof import('./hooks/useDownload').useDownloadMusic
   const useDraggable: typeof import('@vueuse/core').useDraggable
   const useDropZone: typeof import('@vueuse/core').useDropZone
   const useElementBounding: typeof import('@vueuse/core').useElementBounding
@@ -179,7 +175,6 @@ declare global {
   const useElementScrollSize: typeof import('./hooks/useElementScrollSize').useElementScrollSize
   const useElementSize: typeof import('@vueuse/core').useElementSize
   const useElementVisibility: typeof import('@vueuse/core').useElementVisibility
-  const useEmojiAnimation: typeof import('./hooks/useEmojiAnimation').useEmojiAnimation
   const useEventBus: typeof import('@vueuse/core').useEventBus
   const useEventListener: typeof import('@vueuse/core').useEventListener
   const useEventSource: typeof import('@vueuse/core').useEventSource
@@ -199,7 +194,6 @@ declare global {
   const useId: typeof import('vue').useId
   const useIdle: typeof import('@vueuse/core').useIdle
   const useImage: typeof import('@vueuse/core').useImage
-  const useInForeground: typeof import('./hooks/useInForeground').default
   const useInfiniteScroll: typeof import('@vueuse/core').useInfiniteScroll
   const useIntersectionObserver: typeof import('@vueuse/core').useIntersectionObserver
   const useInterval: typeof import('@vueuse/core').useInterval
@@ -214,7 +208,6 @@ declare global {
   const useManualRefHistory: typeof import('@vueuse/core').useManualRefHistory
   const useMaterialYouTheme: typeof import('./hooks/useMaterialYouTheme').useMaterialYouTheme
   const useMediaControls: typeof import('@vueuse/core').useMediaControls
-  const useMediaDevices: typeof import('./hooks/useMediaDevices').default
   const useMediaQuery: typeof import('@vueuse/core').useMediaQuery
   const useMemoize: typeof import('@vueuse/core').useMemoize
   const useMemory: typeof import('@vueuse/core').useMemory
@@ -237,7 +230,6 @@ declare global {
   const useParentElement: typeof import('@vueuse/core').useParentElement
   const usePerformanceObserver: typeof import('@vueuse/core').usePerformanceObserver
   const usePermission: typeof import('@vueuse/core').usePermission
-  const usePlayerControl: typeof import('./hooks/usePlayerControl').default
   const usePointer: typeof import('@vueuse/core').usePointer
   const usePointerLock: typeof import('@vueuse/core').usePointerLock
   const usePointerSwipe: typeof import('@vueuse/core').usePointerSwipe
@@ -296,8 +288,6 @@ declare global {
   const useToString: typeof import('@vueuse/core').useToString
   const useToggle: typeof import('@vueuse/core').useToggle
   const useTouchEvent: typeof import('./hooks/useIframeEvents').useTouchEvent
-  const useTrackLyric: typeof import('./hooks/useTrackLyric').default
-  const useTrackOperation: typeof import('./hooks/useTrackOperation').useTrackOperation
   const useTransition: typeof import('@vueuse/core').useTransition
   const useTranslation: typeof import('./hooks/useTranslation').useTranslation
   const useUrlSearchParams: typeof import('@vueuse/core').useUrlSearchParams

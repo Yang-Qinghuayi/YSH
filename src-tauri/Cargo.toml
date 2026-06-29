@@ -10,6 +10,11 @@ rust-version = "1.77.2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+# objc 0.2.x 的宏内部使用了 cfg(cargo-clippy)，新版 rustc 的 check-cfg lint 会对此发出警告。
+# 下面声明该 cfg 条件为合法值，消除这些来自三方宏的噪音。
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(cargo_clippy)"] }
+
 [lib]
 name = "yshlib"
 crate-type = ["staticlib", "cdylib", "lib"]
@@ -44,6 +49,7 @@ tauri-plugin-opener = "2.5"
 tauri-plugin-deep-link = "2.4"
 tauri-plugin-sign-in-with-apple = "1.0.2"
 tauri-plugin-haptics = "2.3"
+tauri-plugin-websocket = "2"
 tauri-plugin-native-bridge = { path = "./plugins/tauri-plugin-native-bridge" }
 
 [target."cfg(target_os = \"macos\")".dependencies]

@@ -39,6 +39,8 @@ export interface AppService {
   isAndroidApp: boolean;
   isIOSApp: boolean;
   isMacOSApp: boolean;
+  isLinuxApp: boolean;
+  isWindowsApp: boolean;
 
   selectDirectory(): Promise<string>;
   selectFiles(name: string, extensions: string[]): Promise<string[]>;

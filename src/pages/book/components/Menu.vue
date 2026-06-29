@@ -4,6 +4,7 @@
       <v-card-title class="text-center">菜单</v-card-title>
       <FontSizeSlider class="w-full mt-4" />
       <FontWeightSlider class="w-full mt-4" />
+      <TTSPanel class="w-full" />
 
       <div class="w-full mt-4">
         <div
@@ -74,6 +75,7 @@ import {
 import { getSysFontsList } from '@/utils/bridge';
 import FontSizeSlider from "./FontSizeSlider.vue"
 import FontWeightSlider from "./FontWeightSlider.vue"
+import TTSPanel from "./TTSPanel.vue"
 import { isTauriAppPlatform } from '@/services/environment';
 import { useDisplay } from "vuetify";
 const { smAndUp } = useDisplay();

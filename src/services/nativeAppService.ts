@@ -217,6 +217,8 @@ export class NativeAppService extends BaseAppService {
   override isAndroidApp = OS_TYPE === 'android';
   override isIOSApp = OS_TYPE === 'ios';
   override isMacOSApp = OS_TYPE === 'macos';
+  override isLinuxApp = OS_TYPE === 'linux';
+  override isWindowsApp = OS_TYPE === 'windows';
   override hasTrafficLight = OS_TYPE === 'macos';
   override hasWindow = !(OS_TYPE === 'ios' || OS_TYPE === 'android');
   override hasWindowBar = !(OS_TYPE === 'ios' || OS_TYPE === 'android');

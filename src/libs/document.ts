@@ -48,6 +48,7 @@ export interface SectionItem {
   id: string;
   cfi: string;
   size: number;
+  createDocument?: () => Promise<Document>;
 }
 
 export interface BookDoc {
@@ -128,11 +129,13 @@ export class DocumentLoader {
     const { configure, ZipReader, BlobReader, TextWriter, BlobWriter } = await import(
       '@zip.js/zip.js'
     );
-    type Entry = import('@zip.js/zip.js').Entry;
+    type Entry = import('@zip.js/zip.js').Entry & {
+      getData?: (writer: unknown) => Promise<string | Blob>;
+    };
     configure({ useWebWorkers: false });
     const reader = new ZipReader(new BlobReader(this.file));
     const entries = await reader.getEntries();
-    const map = new Map(entries.map((entry) => [entry.filename, entry]));
+    const map = new Map(entries.map((entry) => [entry.filename, entry as Entry]));
     const load =
       (f: (entry: Entry, type?: string) => Promise<string | Blob> | null) =>
       (name: string, ...args: [string?]) =>

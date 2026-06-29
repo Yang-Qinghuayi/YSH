@@ -103,6 +103,7 @@
     "haptics:allow-notification-feedback",
     "haptics:allow-selection-feedback",
     "native-bridge:default",
-    "deep-link:default"
+    "deep-link:default",
+    "websocket:default"
   ]
 }

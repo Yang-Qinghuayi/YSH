@@ -22,6 +22,10 @@ export interface ShortcutConfig {
   onResetZoom: string[];
   onSaveNote: string[];
   onCloseNote: string[];
+  onTTSPlay: string[];
+  onTTSStop: string[];
+  onTTSForward: string[];
+  onTTSBackward: string[];
 }
 
 const DEFAULT_SHORTCUTS: ShortcutConfig = {
@@ -48,6 +52,10 @@ const DEFAULT_SHORTCUTS: ShortcutConfig = {
   onResetZoom: ['ctrl+0', 'cmd+0'],
   onSaveNote: ['ctrl+Enter'],
   onCloseNote: ['Escape'],
+  onTTSPlay: ['shift+t'],
+  onTTSStop: ['shift+x'],
+  onTTSForward: ['shift+e'],
+  onTTSBackward: ['shift+q'],
 };
 
 // Load shortcuts from localStorage or fallback to defaults

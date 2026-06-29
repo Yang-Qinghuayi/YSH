@@ -86,6 +86,8 @@ import { mdiBookOpenVariantOutline } from "@mdi/js";
 import { useFoliateEvents } from "@/hooks/useFoliateEvents";
 
 import { useReaderStore } from '@/store/readerStore';
+import { useTTSStore } from '@/store/ttsStore';
+const ttsStore = useTTSStore();
 const readerStore = useReaderStore()
 const { viewStates, getProgress, getViewState, initViewState, getViewSettings, hoveredBookKey, switchShowMenu } = readerStore
 const { setView: setFoliateView, setProgress } = readerStore;
@@ -191,6 +193,11 @@ onMounted(async () => {
   containerRef.value && containerRef.value.appendChild(view);
   viewRef.value = view
   await initBook()
+})
+
+onUnmounted(() => {
+  // 释放 TTS Controller，停止朗读并清理高亮。
+  ttsStore.dispose(bookId.value);
 })
 
 

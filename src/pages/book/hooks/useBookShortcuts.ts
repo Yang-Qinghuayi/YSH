@@ -1,4 +1,5 @@
 import { useReaderStore } from '@/store/readerStore';
+import { useTTSStore } from '@/store/ttsStore';
 import { isTauriAppPlatform } from '@/services/environment';
 import useShortcuts from '@/hooks/useShortcuts';
 import { useSidebarStore } from '@/store/sidebarStore';
@@ -122,6 +123,28 @@ const useBookShortcuts = (sideBarBookKey: string) => {
     saveViewSettings(sideBarBookKey, 'zoomLevel', 100);
   };
 
+  const ttsStore = useTTSStore();
+  const ensureTTSInit = async () => {
+    const view = getView(sideBarBookKey);
+    if (!view) return false;
+    if (!ttsStore.getController(sideBarBookKey)) {
+      await ttsStore.init(sideBarBookKey, view);
+    }
+    return true;
+  };
+  const ttsPlay = async () => {
+    if (await ensureTTSInit()) await ttsStore.play(sideBarBookKey);
+  };
+  const ttsStop = async () => {
+    await ttsStore.stop(sideBarBookKey);
+  };
+  const ttsForward = async () => {
+    if (await ensureTTSInit()) await ttsStore.forward(sideBarBookKey);
+  };
+  const ttsBackward = async () => {
+    if (await ensureTTSInit()) await ttsStore.backward(sideBarBookKey);
+  };
+
   useShortcuts(
     {
       onSwitchSideBar: switchSideBar,
@@ -143,6 +166,10 @@ const useBookShortcuts = (sideBarBookKey: string) => {
       onZoomIn: zoomIn,
       onZoomOut: zoomOut,
       onResetZoom: resetZoom,
+      onTTSPlay: ttsPlay,
+      onTTSStop: ttsStop,
+      onTTSForward: ttsForward,
+      onTTSBackward: ttsBackward,
     },
   );
 };

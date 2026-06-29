@@ -133,6 +133,9 @@ export interface BookProgress {
   section: PageInfo;
   pageinfo: PageInfo;
   range: Range;
+  // Remaining-time estimates (in minutes) used by TTS time estimation.
+  // Optional: not all progress sources populate this.
+  timeinfo?: { section?: number; total?: number };
 }
 
 export interface BookSearchConfig {

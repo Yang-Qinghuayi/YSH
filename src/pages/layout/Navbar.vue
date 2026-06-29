@@ -1,7 +1,9 @@
 <template>
   <v-navigation-drawer :rail="rail" rail-width="102" width="212" color="background">
     <div class="px-3 mt-6" :class="{ 'mb-1': rail }">
-      <drawer-toggle />
+      <v-btn icon class="no-drag-area" variant="text" @click="rail = !rail">
+        <v-icon size="small" :icon="rail ? mdiMenu : mdiMenuOpen" />
+      </v-btn>
     </div>
     <div class="content-warp flex-fill mt-4">
       <transition name="slide-fade-x">
@@ -29,6 +31,7 @@
 
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
+import { mdiMenu, mdiMenuOpen } from "@mdi/js";
 import { useSettingStore } from "@/store/setting";
 import { useNavItems } from "@/hooks/useNavItems";
 
