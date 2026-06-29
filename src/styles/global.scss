@@ -1,6 +1,160 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* ============================================================
+ * Material You 调色板 CSS 变量
+ * 移植自 Noctua / src/app/globals.css
+ * ============================================================ */
+
+:root {
+  --background: #f8f2dc;
+  --foreground: #1e2a53;
+  --bg-accent-a: #335aa4;
+  --bg-accent-b: #4ea5d9;
+  --bg-night: #11224d;
+  --bg-main: #1f3c88;
+  --bg-end: #2f5ea8;
+  --text-main: #f8f2dc;
+  --surface: #fff6e7;
+  --surface-2: #fffdf8;
+  --surface-tint: #10285fcc;
+  --on-surface: #1d2a47;
+  --on-surface-variant: #42506b;
+  --primary: #d5b25a;
+  --on-primary: #14224a;
+  --primary-container: #f4e3b9;
+  --secondary-container: #d6e6fb;
+  --tertiary: #6f70b9;
+  --on-tertiary: #f9f8ff;
+  --tertiary-container: #e1e0ff;
+  --inverse-surface: #1f2a43;
+  --inverse-on-surface: #eef2ff;
+  --outline: #b7c7e0;
+  --outline-strong: #84a0cd;
+  --focus: #6fa3f0;
+  --error: #b3261e;
+  --surface-elev-1: #f6efd9;
+  --surface-elev-2: #ede5cc;
+  --surface-elev-3: #e3dbc0;
+  --radius-ui: 1.1rem;
+  --radius-pill: 999px;
+}
+
+:root[data-palette='material-rose-dawn'] {
+  --background: #fdf7fb;
+  --foreground: #25172d;
+  --bg-accent-a: #f4c2d7;
+  --bg-accent-b: #b9d8ff;
+  --bg-night: #7e5a86;
+  --bg-main: #a075aa;
+  --bg-end: #d0aac3;
+  --text-main: #fff8ff;
+  --surface: #fff7fb;
+  --surface-2: #fffafe;
+  --surface-tint: #6f4a76cc;
+  --on-surface: #33203b;
+  --on-surface-variant: #5f4967;
+  --primary: #a34d82;
+  --on-primary: #fff6fb;
+  --primary-container: #f5d6ea;
+  --secondary-container: #dce8ff;
+  --tertiary: #6f6ec2;
+  --on-tertiary: #f7f6ff;
+  --tertiary-container: #e3e0ff;
+  --inverse-surface: #2d1f34;
+  --inverse-on-surface: #fff4ff;
+  --outline: #cfbfd6;
+  --outline-strong: #a98bb4;
+  --focus: #ab6dc7;
+}
+
+:root[data-palette='material-sage-poem'] {
+  --background: #f2f6ef;
+  --foreground: #1e2a24;
+  --bg-accent-a: #bfd6b8;
+  --bg-accent-b: #c9d8ef;
+  --bg-night: #566b58;
+  --bg-main: #6f8a72;
+  --bg-end: #98b08f;
+  --text-main: #f6fff4;
+  --surface: #f8fbf5;
+  --surface-2: #fcfefb;
+  --surface-tint: #4d6150cc;
+  --on-surface: #2a3a2f;
+  --on-surface-variant: #4f6154;
+  --primary: #5f8256;
+  --on-primary: #f6fff0;
+  --primary-container: #d9ecd2;
+  --secondary-container: #dbe8d8;
+  --tertiary: #4f7e73;
+  --on-tertiary: #f3fff9;
+  --tertiary-container: #cfe9e1;
+  --inverse-surface: #243127;
+  --inverse-on-surface: #eaf5ea;
+  --outline: #b9cab6;
+  --outline-strong: #8ca48b;
+  --focus: #729a71;
+}
+
+:root[data-palette='material-indigo-nocturne'] {
+  --background: #f4f2ff;
+  --foreground: #221c36;
+  --bg-accent-a: #b7b0f8;
+  --bg-accent-b: #7db9e8;
+  --bg-night: #273057;
+  --bg-main: #3d4b7c;
+  --bg-end: #6c79a9;
+  --text-main: #f6f3ff;
+  --surface: #f6f4ff;
+  --surface-2: #fbf9ff;
+  --surface-tint: #2b3361cc;
+  --on-surface: #2f2a45;
+  --on-surface-variant: #565273;
+  --primary: #6a62c6;
+  --on-primary: #f8f6ff;
+  --primary-container: #ddd9ff;
+  --secondary-container: #d8e6ff;
+  --tertiary: #4f7ca7;
+  --on-tertiary: #f2f8ff;
+  --tertiary-container: #cfe5ff;
+  --inverse-surface: #21243b;
+  --inverse-on-surface: #f2f2ff;
+  --outline: #bcb8d8;
+  --outline-strong: #9390b8;
+  --focus: #7c82df;
+}
+
+:root[data-palette='material-terracotta-muse'] {
+  --background: #fff4ef;
+  --foreground: #341f19;
+  --bg-accent-a: #f0b3a5;
+  --bg-accent-b: #f2d3a5;
+  --bg-night: #7d4a3f;
+  --bg-main: #a05f4f;
+  --bg-end: #cb8f6d;
+  --text-main: #fff7f3;
+  --surface: #fff7f2;
+  --surface-2: #fffbf8;
+  --surface-tint: #6d3f35cc;
+  --on-surface: #432920;
+  --on-surface-variant: #725247;
+  --primary: #b85e4b;
+  --on-primary: #fff8f6;
+  --primary-container: #ffd9cd;
+  --secondary-container: #f6e2bf;
+  --tertiary: #8f6b50;
+  --on-tertiary: #fff9f6;
+  --tertiary-container: #f4ddce;
+  --inverse-surface: #34211d;
+  --inverse-on-surface: #fff0ea;
+  --outline: #ddbeaf;
+  --outline-strong: #b48d7e;
+  --focus: #ce7f61;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
 
 @layer base {
   html,

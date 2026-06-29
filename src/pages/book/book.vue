@@ -38,10 +38,10 @@ import {
   handleTouchMove,
   handleTouchEnd,
 } from '@/utils/iframeEventHandlers';
-import { getStyles, mountAdditionalFonts, transformStylesheet } from '@/utils/style';
+import { mountAdditionalFonts, transformStylesheet } from '@/utils/style';
+import { applyRendererSettings } from '@/utils/viewSettingsHelper';
 import { FoliateView, wrappedFoliateView } from '@/types/view';
 import { transformContent } from '@/services/transformService';
-import { getMaxInlineSize } from '@/utils/config';
 import "@/foliate-js/view.js";
 import { useDisplay } from "vuetify";
 const { lgAndUp, smAndUp } = useDisplay();
@@ -85,7 +85,7 @@ const appService = ref<AppService | null>(null)
 const pageInfo = ref("")
 
 const { handlePageFlip } = usePageFlip(viewRef, containerRef, appService);
-useProgressAutoSave(bookId.value);
+useProgressAutoSave(bookId); // 传入 Ref<string> 而非快照，支持书籍切换后仍能正确保存
 useBookShortcuts(bookId.value)
 useTouchEvent(viewRef);
 useClickEvent(handlePageFlip);
@@ -216,28 +216,9 @@ const initBook = async () => {
   setFoliateView(bookId.value, view)
   const { book } = view;
 
-
   book.transformTarget?.addEventListener('data', docTransformHandler);
-  viewSettings && view.renderer.setStyles?.(getStyles(viewSettings));
-
-  const isScrolled = viewSettings?.scrolled!;
-  const marginPx = viewSettings?.marginPx!;
-  const gapPercent = viewSettings?.gapPercent!;
-  const animated = viewSettings?.animated!;
-  const maxColumnCount = viewSettings?.maxColumnCount!;
-  const maxInlineSize = getMaxInlineSize(viewSettings!);
-  const maxBlockSize = viewSettings?.maxBlockSize!;
-  if (animated) {
-    view.renderer.setAttribute('animated', '');
-  } else {
-    view.renderer.removeAttribute('animated');
-  }
-  view.renderer.setAttribute('flow', isScrolled ? 'scrolled' : 'paginated');
-  view.renderer.setAttribute('margin', `${marginPx}px`);
-  view.renderer.setAttribute('gap', `${gapPercent}%`);
-  view.renderer.setAttribute('max-column-count', maxColumnCount);
-  view.renderer.setAttribute('max-inline-size', `${maxInlineSize}px`);
-  view.renderer.setAttribute('max-block-size', `${maxBlockSize}px`);
+  // 一次性应用所有渲染器属性（布局 + 样式）
+  if (viewSettings) applyRendererSettings(view, viewSettings);
 
   const lastLocation = config?.location;
   if (lastLocation) {

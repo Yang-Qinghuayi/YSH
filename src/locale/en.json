@@ -1,5 +1,5 @@
 {
-  "book":{
+  "book": {
     "bookshelf": "Bookshelf"
   },
   "message": {
@@ -251,7 +251,9 @@
     "relaunch": "Relaunch Application",
     "gen_from_color": "Generated from color",
     "gen_from_image": "Generated from image",
-    "gen_color_value": "Color value (hex)"
+    "gen_color_value": "Color value (hex)",
+    "palette": "Palette",
+    "material_you_seed": "Material You Seed"
   },
   "theme": {
     "RedSandDunes": "Red Sand Dunes",

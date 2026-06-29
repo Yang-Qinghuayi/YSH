@@ -10,16 +10,11 @@
 </template>
 
 <script setup lang="ts">
-import { useTheme } from "vuetify";
-import { useCurrentTheme } from "@/hooks/useTheme";
+import { useMaterialYouTheme } from "@/hooks/useMaterialYouTheme";
 import AppNav from "./layout/Navbar.vue";
 import AppContent from "./layout/View.vue";
 
-const { themeName } = useCurrentTheme();
-const theme = useTheme();
-watchEffect(() => {
-  theme.change(themeName.value);
-});
+useMaterialYouTheme();
 </script>
 <style lang="scss">
 $cubic-bezier: cubic-bezier(0.55, -0.01, 0, 1.03);

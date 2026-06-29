@@ -15,19 +15,12 @@ import { useI18n } from '@/utils/i18n'
 
 import AppSelect from '@/components/menu/Select.vue'
 import AppTitle from '@/components/Title.vue'
-import useMediaDevices from '@/hooks/useMediaDevices'
-import { usePlayer } from '@/player/player'
-import { ExitMode, QUALITY_LEVEL, useSettingStore } from '@/store/setting'
+import { useSettingStore } from '@/store/setting'
 const settingStore = useSettingStore()
-const {
-  locale: lang,
-  outputdevice,
-} = storeToRefs(settingStore) as any
+const { locale: lang } = storeToRefs(settingStore) as any
 
 const { t, locale } = useI18n()
-const player = usePlayer()
 
-const { outputDevices } = useMediaDevices()
 const localeOptions = computed(() => {
   return [
     {
@@ -45,90 +38,7 @@ const localeOptions = computed(() => {
   ]
 })
 
-const exitModeOptions = computed(() => {
-  return [
-    {
-      title: t('message.exit_prompt'),
-      value: ExitMode.prompt,
-      activeClass: 'text-primary',
-      rounded: true,
-    },
-    {
-      title: t('message.exit_direct'),
-      value: ExitMode.exit,
-      activeClass: 'text-primary',
-      rounded: true,
-    },
-    {
-      title: t('message.exit_min'),
-      value: ExitMode.minimize,
-      activeClass: 'text-primary',
-      rounded: true,
-    },
-  ]
-})
-const qualityOptions = computed(() => {
-  return [
-    {
-      title: t('main.setting.standard'),
-      value: QUALITY_LEVEL.STANDARD,
-      activeClass: 'text-primary',
-    },
-    {
-      title: t('main.setting.higher'),
-      value: QUALITY_LEVEL.HIGHER,
-      activeClass: 'text-primary',
-    },
-    {
-      title: t('main.setting.extremely'),
-      value: QUALITY_LEVEL.EXHIGH,
-      activeClass: 'text-primary',
-    },
-    {
-      title: t('main.setting.lossless'),
-      value: QUALITY_LEVEL.LOSSLESS,
-      activeClass: 'text-primary',
-    },
-    {
-      title: 'Hi-Res(vip)',
-      value: QUALITY_LEVEL.HIRES,
-      activeClass: 'text-primary',
-    },
-  ]
-})
-
-const outputDeviceOptions = computed(() => {
-  if (outputDevices.value.length) {
-    return outputDevices.value.map((device) => {
-      return {
-        title: device.label,
-        value: device.deviceId,
-        activeClass: 'text-primary',
-      }
-    })
-  } else {
-    return [
-      {
-        title: '无输出设备',
-        value: void 0,
-        activeClass: 'text-primary',
-      },
-    ]
-  }
-})
-
 watch(lang, () => {
   locale.value = lang.value
-})
-
-watch(outputdevice, () => {
-  player.setoutputDevice()
-})
-
-watch(outputDevices, (val) => {
-  // set default
-  if (!outputdevice.value && val.length) {
-    outputdevice.value = val[0].deviceId
-  }
 })
 </script>

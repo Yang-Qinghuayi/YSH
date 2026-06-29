@@ -58,9 +58,6 @@ import {
   IOS_FONTS,
   LINUX_FONTS,
   MACOS_FONTS,
-  MONOSPACE_FONTS,
-  SANS_SERIF_FONTS,
-  SERIF_FONTS,
   WINDOWS_FONTS,
 } from '@/services/constants';
 import { getSysFontsList } from '@/utils/bridge';
@@ -68,17 +65,14 @@ import FontSizeSlider from "./FontSizeSlider.vue"
 import FontWeightSlider from "./FontWeightSlider.vue"
 import { isTauriAppPlatform } from '@/services/environment';
 import { useDisplay } from "vuetify";
-const { lgAndUp, smAndUp } = useDisplay();
+const { smAndUp } = useDisplay();
 
-import { getOSPlatform, isCJKEnv } from '@/utils/misc';
-import { useBookIdStore } from '@/store/bookIdStore';
-const { bookId } = storeToRefs(useBookIdStore())
-import { saveViewSettings } from '@/utils/viewSettingsHelper';
+import { getOSPlatform } from '@/utils/misc';
+import { useViewSettings } from '@/hooks/useViewSettings';
 import { useReaderStore } from '@/store/readerStore';
-import { storeToRefs } from "pinia";
-import { max } from 'lodash-es';
 const readerStore = useReaderStore()
-const { getProgress, getViewState, initViewState, getViewSettings, hoveredBookKey, switchShowMenu } = readerStore
+const { switchShowMenu } = readerStore
+const { viewSettings, updateSetting } = useViewSettings()
 const osPlatform = getOSPlatform();
 let defaultSysFonts: string[] = [];
 switch (osPlatform) {
@@ -101,7 +95,6 @@ switch (osPlatform) {
     break;
 }
 const showMenu = defineModel<boolean>("showMenu", { required: true });
-const viewSettings = getViewSettings(bookId.value);
 const overrideFont = ref(false)
 
 const sysFonts = ref<string[]>(defaultSysFonts)
@@ -116,41 +109,43 @@ const genCJKFontsList = (sysFonts: string[]) => {
     .filter((font) => !CJK_EXCLUDE_PATTENS.test(font))
     .sort((a, b) => a.localeCompare(b));
 };
-const CJKFonts = ref<string[]>(genCJKFontsList(sysFonts.value))
+// 使用 computed 保持响应性：Tauri 异步回填 sysFonts 后自动重算
+const CJKFonts = computed(() => genCJKFontsList(sysFonts.value))
 
 const isSymbolicFontName = (font: string) =>
   /emoji|icons|symbol|dingbats|ornaments|webdings|wingdings|miuiex/i.test(font);
 
-const init = async () => {
-  await initLibrary()
-  overrideFont.value = viewSettings?.overrideFont || false
-  defaultCJKFont.value = viewSettings?.defaultCJKFont!
-  setTwoColumn.value = viewSettings?.maxColumnCount! === 2 ? true : false
-
-  if (isTauriAppPlatform()) {
-    getSysFontsList().then((res) => {
-      if (res.error || res.fonts.length === 0) {
-        console.error('Failed to get system fonts list:', res.error);
-        return;
-      }
-      const fonts = res.fonts.filter((font) => font && !isSymbolicFontName(font));
-      sysFonts.value = [...new Set(fonts)].sort((a, b) => a.localeCompare(b));
-    });
+// 当 viewSettings 就绪（或被外部路径更新）时同步到本地 ref
+watchEffect(() => {
+  if (viewSettings.value) {
+    overrideFont.value = viewSettings.value.overrideFont ?? false
+    defaultCJKFont.value = viewSettings.value.defaultCJKFont ?? ''
+    setTwoColumn.value = viewSettings.value.maxColumnCount === 2
   }
-}
-init()
+})
 
+// 加载系统字体（Tauri 平台）
+if (isTauriAppPlatform()) {
+  getSysFontsList().then((res) => {
+    if (res.error || res.fonts.length === 0) {
+      console.error('Failed to get system fonts list:', res.error);
+      return;
+    }
+    const fonts = res.fonts.filter((font) => font && !isSymbolicFontName(font));
+    sysFonts.value = [...new Set(fonts)].sort((a, b) => a.localeCompare(b));
+  });
+}
 
 watch(overrideFont, () => {
-  saveViewSettings(bookId.value, 'overrideFont', overrideFont.value);
+  updateSetting('overrideFont', overrideFont.value);
 })
 
 watch(defaultCJKFont, () => {
-  saveViewSettings(bookId.value, 'defaultCJKFont', defaultCJKFont.value)
+  updateSetting('defaultCJKFont', defaultCJKFont.value)
 })
 
 watch(setTwoColumn, () => {
-  saveViewSettings(bookId.value, 'maxColumnCount', maxColumnCount.value)
+  updateSetting('maxColumnCount', maxColumnCount.value)
 })
 
 </script>

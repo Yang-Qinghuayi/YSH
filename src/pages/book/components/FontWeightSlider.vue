@@ -8,26 +8,22 @@
 
 import Slider from "vue3-slider";
 import { useTheme } from "vuetify";
-import { saveViewSettings } from '@/utils/viewSettingsHelper';
-import { useBookIdStore } from '@/store/bookIdStore';
-import { storeToRefs } from "pinia";
-const { bookId } = storeToRefs(useBookIdStore())
-import { useReaderStore } from '@/store/readerStore';
+import { useViewSettings } from '@/hooks/useViewSettings';
 import { DEFAULT_BOOK_FONT } from "@/services/constants";
-const readerStore = useReaderStore()
-const { getProgress, getViewState, initViewState, getViewSettings, hoveredBookKey, switchShowMenu } = readerStore
-const viewSettings = getViewSettings(bookId.value);
+
+const { viewSettings, updateSetting } = useViewSettings();
 const fontWeight = ref(DEFAULT_BOOK_FONT.fontWeight);
 
-const init = async () => {
-  await initLibrary()
-  fontWeight.value = viewSettings?.fontWeight ?? DEFAULT_BOOK_FONT.fontWeight;
-}
-init()
+// 当 viewSettings 就绪（或被外部更新）时同步到本地 ref
+watchEffect(() => {
+  if (viewSettings.value) {
+    fontWeight.value = viewSettings.value.fontWeight ?? DEFAULT_BOOK_FONT.fontWeight;
+  }
+});
 
 watch(fontWeight, async () => {
-  await saveViewSettings(bookId.value, 'fontWeight', fontWeight.value);
-})
+  await updateSetting('fontWeight', fontWeight.value);
+});
 
 const vuetifyTheme = useTheme();
 const currentTheme = computed(() => {

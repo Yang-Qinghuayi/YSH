@@ -1,6 +1,8 @@
+// 书籍阅读器内容配色方案（注入到 foliate 书本 iframe 内）
+// 与 Material You 应用主题系统（utils/materialYou.ts）是两套独立的系统
+
 import tinycolor from 'tinycolor2';
 import { stubTranslation as _ } from '../utils/misc';
-import { getContrastOklch, hexToOklch } from '../utils/color';
 
 export type BaseColor = {
   bg: string;
@@ -43,29 +45,29 @@ export type CustomTheme = {
 
 export const generateLightPalette = ({ bg, fg, primary }: BaseColor) => {
   return {
-    'base-100': bg, // Main background
-    'base-200': tinycolor(bg).darken(5).toHexString(), // Slightly darker
-    'base-300': tinycolor(bg).darken(12).toHexString(), // More darker
-    'base-content': fg, // Main text color
-    neutral: tinycolor(bg).darken(15).desaturate(20).toHexString(), // Muted neutral
-    'neutral-content': tinycolor(fg).lighten(20).desaturate(20).toHexString(), // Slightly lighter text
+    'base-100': bg,
+    'base-200': tinycolor(bg).darken(5).toHexString(),
+    'base-300': tinycolor(bg).darken(12).toHexString(),
+    'base-content': fg,
+    neutral: tinycolor(bg).darken(15).desaturate(20).toHexString(),
+    'neutral-content': tinycolor(fg).lighten(20).desaturate(20).toHexString(),
     primary: primary,
-    secondary: tinycolor(primary).lighten(20).toHexString(), // Lighter secondary
-    accent: tinycolor(primary).analogous()[1]!.toHexString(), // Analogous accent
+    secondary: tinycolor(primary).lighten(20).toHexString(),
+    accent: tinycolor(primary).analogous()[1]!.toHexString(),
   } as Palette;
 };
 
 export const generateDarkPalette = ({ bg, fg, primary }: BaseColor) => {
   return {
-    'base-100': bg, // Main background
-    'base-200': tinycolor(bg).lighten(5).toHexString(), // Slightly lighter
-    'base-300': tinycolor(bg).lighten(12).toHexString(), // More lighter
-    'base-content': fg, // Main text color
-    neutral: tinycolor(bg).lighten(15).desaturate(20).toHexString(), // Muted neutral
-    'neutral-content': tinycolor(fg).darken(20).desaturate(20).toHexString(), // Darkened text
+    'base-100': bg,
+    'base-200': tinycolor(bg).lighten(5).toHexString(),
+    'base-300': tinycolor(bg).lighten(12).toHexString(),
+    'base-content': fg,
+    neutral: tinycolor(bg).lighten(15).desaturate(20).toHexString(),
+    'neutral-content': tinycolor(fg).darken(20).desaturate(20).toHexString(),
     primary: primary,
-    secondary: tinycolor(primary).darken(20).toHexString(), // Darker secondary
-    accent: tinycolor(primary).triad()[1]!.toHexString(), // Triad accent
+    secondary: tinycolor(primary).darken(20).toHexString(),
+    accent: tinycolor(primary).triad()[1]!.toHexString(),
   } as Palette;
 };
 
@@ -159,72 +161,3 @@ export const themes = [
     },
   },
 ] as Theme[];
-
-const generateCustomThemeVariables = (palette: Palette): string => {
-  return `
-    --b1: ${hexToOklch(palette['base-100'])};
-    --b2: ${hexToOklch(palette['base-200'])};
-    --b3: ${hexToOklch(palette['base-300'])};
-    --bc: ${hexToOklch(palette['base-content'])};
-    
-    --p: ${hexToOklch(palette.primary)};
-    --pc: ${getContrastOklch(palette.primary)};
-    
-    --s: ${hexToOklch(palette.secondary)};
-    --sc: ${getContrastOklch(palette.secondary)};
-    
-    --a: ${hexToOklch(palette.accent)};
-    --ac: ${getContrastOklch(palette.accent)};
-    
-    --n: ${hexToOklch(palette.neutral)};
-    --nc: ${hexToOklch(palette['neutral-content'])};
-    
-    --in: 69.37% 0.047 231;
-    --inc: 100% 0 0;
-    --su: 78.15% 0.12 160;
-    --suc: 100% 0 0;
-    --wa: 90.69% 0.123 84;
-    --wac: 0% 0 0;
-    --er: 70.9% 0.184 22;
-    --erc: 100% 0 0;
-  `;
-};
-
-export const applyCustomTheme = (customTheme: CustomTheme) => {
-  const lightPalette = generateLightPalette(customTheme.colors.light);
-  const darkPalette = generateDarkPalette(customTheme.colors.dark);
-
-  const lightThemeName = `${customTheme.name}-light`;
-  const darkThemeName = `${customTheme.name}-dark`;
-
-  const css = `
-    [data-theme="${lightThemeName}"] {
-      ${generateCustomThemeVariables(lightPalette)}
-    }
-    
-    [data-theme="${darkThemeName}"] {
-      ${generateCustomThemeVariables(darkPalette)}
-    }
-    
-    :root {
-      --${lightThemeName}: 1;
-      --${darkThemeName}: 1;
-    }
-  `;
-
-  const styleElement = document.createElement('style');
-  styleElement.id = `theme-${lightThemeName}-styles`;
-  styleElement.textContent = css;
-
-  const existingStyle = document.getElementById(styleElement.id);
-  if (existingStyle) {
-    existingStyle.remove();
-  }
-
-  document.head.appendChild(styleElement);
-
-  return {
-    light: lightThemeName,
-    dark: darkThemeName,
-  };
-};

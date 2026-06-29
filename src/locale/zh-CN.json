@@ -1,5 +1,5 @@
 {
-  "book":{
+  "book": {
     "bookshelf": "书架"
   },
   "message": {
@@ -252,7 +252,9 @@
     "relaunch": "重启应用",
     "gen_from_color": "从颜色生成",
     "gen_from_image": "从图片生成",
-    "gen_color_value": "颜色值（hex）"
+    "gen_color_value": "颜色值（hex）",
+    "palette": "调色板",
+    "material_you_seed": "Material You 种子色"
   },
   "theme": {
     "RedSandDunes": "红沙滩",

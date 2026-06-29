@@ -3,27 +3,29 @@ import { isTauriAppPlatform } from '@/services/environment';
 import useShortcuts from '@/hooks/useShortcuts';
 import { useSidebarStore } from '@/store/sidebarStore';
 import { useSettingsStore } from '@/store/settingsStore';
-import { getStyles } from '@/utils/style';
+import { saveViewSettings } from '@/utils/viewSettingsHelper';
 import { tauriHandleToggleFullScreen, tauriQuitApp } from '@/utils/window';
 import { eventDispatcher } from '@/utils/event';
 import { MAX_ZOOM_LEVEL, MIN_ZOOM_LEVEL, ZOOM_STEP } from '@/services/constants';
 
 const useBookShortcuts = (sideBarBookKey: string) => {
-  const { getView, getViewSettings, setViewSettings } = useReaderStore();
-  const { toggleSideBar, setSideBarBookKey } = useSidebarStore();
+  const { getView, getViewSettings } = useReaderStore();
+  const { toggleSideBar } = useSidebarStore();
   const { setFontLayoutSettingsDialogOpen } = useSettingsStore();
   const viewSettings = getViewSettings(sideBarBookKey ?? '');
   const fontSize = viewSettings?.defaultFontSize ?? 16;
   const lineHeight = viewSettings?.lineHeight ?? 1.6;
   const distance = fontSize * lineHeight * 3;
 
+  /**
+   * 切换滚动/分页模式，并持久化到磁盘。
+   * 使用 saveViewSettings 替代直接 setViewSettings，
+   * 确保重新打开书籍后模式设置不丢失。
+   */
   const toggleScrollMode = () => {
     const viewSettings = getViewSettings(sideBarBookKey ?? '');
     if (viewSettings && sideBarBookKey) {
-      viewSettings.scrolled = !viewSettings.scrolled;
-      setViewSettings(sideBarBookKey, viewSettings!);
-      const flowMode = viewSettings.scrolled ? 'scrolled' : 'paginated';
-      getView(sideBarBookKey)?.renderer.setAttribute('flow', flowMode);
+      saveViewSettings(sideBarBookKey, 'scrolled', !viewSettings.scrolled);
     }
   };
 
@@ -91,15 +93,17 @@ const useBookShortcuts = (sideBarBookKey: string) => {
     eventDispatcher.dispatch('search', { term: '' });
   };
 
+  /**
+   * 以下 zoom 操作通过 saveViewSettings 持久化，
+   * 重新打开书籍后缩放级别得以保留。
+   */
   const zoomIn = () => {
     if (!sideBarBookKey) return;
     const view = getView(sideBarBookKey);
     if (!view?.renderer?.setStyles) return;
     const viewSettings = getViewSettings(sideBarBookKey)!;
-    const zoomLevel = viewSettings!.zoomLevel + ZOOM_STEP;
-    viewSettings!.zoomLevel = Math.min(zoomLevel, MAX_ZOOM_LEVEL);
-    setViewSettings(sideBarBookKey, viewSettings!);
-    view?.renderer.setStyles?.(getStyles(viewSettings!));
+    const newZoom = Math.min(viewSettings.zoomLevel + ZOOM_STEP, MAX_ZOOM_LEVEL);
+    saveViewSettings(sideBarBookKey, 'zoomLevel', newZoom);
   };
 
   const zoomOut = () => {
@@ -107,20 +111,15 @@ const useBookShortcuts = (sideBarBookKey: string) => {
     const view = getView(sideBarBookKey);
     if (!view?.renderer?.setStyles) return;
     const viewSettings = getViewSettings(sideBarBookKey)!;
-    const zoomLevel = viewSettings!.zoomLevel - ZOOM_STEP;
-    viewSettings!.zoomLevel = Math.max(zoomLevel, MIN_ZOOM_LEVEL);
-    setViewSettings(sideBarBookKey, viewSettings!);
-    view?.renderer.setStyles?.(getStyles(viewSettings!));
+    const newZoom = Math.max(viewSettings.zoomLevel - ZOOM_STEP, MIN_ZOOM_LEVEL);
+    saveViewSettings(sideBarBookKey, 'zoomLevel', newZoom);
   };
 
   const resetZoom = () => {
     if (!sideBarBookKey) return;
     const view = getView(sideBarBookKey);
     if (!view?.renderer?.setStyles) return;
-    const viewSettings = getViewSettings(sideBarBookKey)!;
-    viewSettings!.zoomLevel = 100;
-    setViewSettings(sideBarBookKey, viewSettings!);
-    view?.renderer.setStyles?.(getStyles(viewSettings!));
+    saveViewSettings(sideBarBookKey, 'zoomLevel', 100);
   };
 
   useShortcuts(

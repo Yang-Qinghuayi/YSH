@@ -1,0 +1,3 @@
+/* Tailwind CSS v4 - 不包含 preflight，避免与 Vuetify 样式重置冲突 */
+@import "tailwindcss/theme" layer(theme);
+@import "tailwindcss/utilities" layer(utilities);

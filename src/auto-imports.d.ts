@@ -157,7 +157,6 @@ declare global {
   const useCssVar: typeof import('@vueuse/core').useCssVar
   const useCssVars: typeof import('vue').useCssVars
   const useCurrentElement: typeof import('@vueuse/core').useCurrentElement
-  const useCurrentTheme: typeof import('./hooks/useTheme').useCurrentTheme
   const useCycleList: typeof import('@vueuse/core').useCycleList
   const useDark: typeof import('@vueuse/core').useDark
   const useDateFormat: typeof import('@vueuse/core').useDateFormat
@@ -174,7 +173,6 @@ declare global {
   const useDownloadMusic: typeof import('./hooks/useDownload').useDownloadMusic
   const useDraggable: typeof import('@vueuse/core').useDraggable
   const useDropZone: typeof import('@vueuse/core').useDropZone
-  const useDynamicChangeTheme: typeof import('./hooks/useTheme').useDynamicChangeTheme
   const useElementBounding: typeof import('@vueuse/core').useElementBounding
   const useElementByPoint: typeof import('@vueuse/core').useElementByPoint
   const useElementHover: typeof import('@vueuse/core').useElementHover
@@ -213,6 +211,7 @@ declare global {
   const useMagicKeys: typeof import('@vueuse/core').useMagicKeys
   const useMainSize: typeof import('./hooks/useMainSize').useMainSize
   const useManualRefHistory: typeof import('@vueuse/core').useManualRefHistory
+  const useMaterialYouTheme: typeof import('./hooks/useMaterialYouTheme').useMaterialYouTheme
   const useMediaControls: typeof import('@vueuse/core').useMediaControls
   const useMediaDevices: typeof import('./hooks/useMediaDevices').default
   const useMediaQuery: typeof import('@vueuse/core').useMediaQuery
@@ -304,6 +303,7 @@ declare global {
   const useVModel: typeof import('@vueuse/core').useVModel
   const useVModels: typeof import('@vueuse/core').useVModels
   const useVibrate: typeof import('@vueuse/core').useVibrate
+  const useViewSettings: typeof import('./hooks/useViewSettings').useViewSettings
   const useVirtualList: typeof import('@vueuse/core').useVirtualList
   const useWakeLock: typeof import('@vueuse/core').useWakeLock
   const useWebNotification: typeof import('@vueuse/core').useWebNotification
