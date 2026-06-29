@@ -17,6 +17,7 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     Title: typeof import('./components/Title.vue')['default']
+    WorkspaceInit: typeof import('./components/WorkspaceInit.vue')['default']
   }
 }
 
@@ -27,4 +28,5 @@ declare global {
   const RouterLink: typeof import('vue-router')['RouterLink']
   const RouterView: typeof import('vue-router')['RouterView']
   const Title: typeof import('./components/Title.vue')['default']
+  const WorkspaceInit: typeof import('./components/WorkspaceInit.vue')['default']
 }

@@ -19,9 +19,20 @@
       "allow": [
         {
           "path": "$APPDATA/YSH/**/*"
+        },
+        {
+          "path": "$APPDATA/**/*"
         }
       ],
       "deny": []
+    },
+    {
+      "identifier": "fs:scope-home-recursive",
+      "allow": [
+        {
+          "path": "$HOME/**"
+        }
+      ]
     },
     {
       "identifier": "fs:allow-appdata-read",

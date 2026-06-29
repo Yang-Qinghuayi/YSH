@@ -19,6 +19,7 @@
         <span class="text-xs mt-1">{{ item.title }}</span>
       </v-btn>
     </v-bottom-navigation>
+
   </v-app>
 </template>
 

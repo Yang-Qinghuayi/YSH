@@ -22,15 +22,20 @@ const musicRoutes: RouteRecordRaw[] = [
     name: "setting",
     component: Setting,
   },
-  {
-    path: "/letter",
-    name: "letter",
-    component: () => import("@/pages/letter/index.vue"),
-  },
+  // {
+  //   path: "/letter",
+  //   name: "letter",
+  //   component: () => import("@/pages/letter/index.vue"),
+  // },
   {
     path: "/novel",
     name: "novel",
     component: () => import("@/pages/novel/index.vue"),
+  },
+  {
+    path: "/lore",
+    name: "lore",
+    component: () => import("@/pages/lore/index.vue"),
   },
 ];
 

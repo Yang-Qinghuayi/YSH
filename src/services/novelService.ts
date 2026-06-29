@@ -7,12 +7,12 @@
  */
 
 import { useAppService } from '@/hooks/useEnv'
+import { getDataBase } from '@/services/workspaceService'
 import type { Novel, ChapterMeta } from '@/types/novel'
 
-const BASE_DIR = 'Data' as const
 const NOVELS_DIR = 'novels'
 
-// 获取小说根目录路径
+// 获取小说根目录路径（相对于数据根目录）
 function novelDir(novelId: string) {
   return `${NOVELS_DIR}/${novelId}`
 }
@@ -31,22 +31,23 @@ function chapterPath(novelId: string, filename: string) {
 export async function loadAllNovels(): Promise<Novel[]> {
   const appService = await useAppService()
   const fs = appService.fs
+  const { base, pathPrefix: P } = getDataBase()
 
-  const dirExists = await fs.exists(NOVELS_DIR, BASE_DIR).catch(() => false)
+  const dirExists = await fs.exists(P + NOVELS_DIR, base).catch(() => false)
   if (!dirExists) return []
 
-  const entries = await fs.readDir(NOVELS_DIR, BASE_DIR).catch(() => [] as { path: string; isDir: boolean }[])
+  const entries = await fs.readDir(P + NOVELS_DIR, base).catch(() => [] as { path: string; isDir: boolean }[])
   const novels: Novel[] = []
 
   for (const entry of entries) {
     if (!entry.isDir) continue
     // entry.path 可能是完整路径或相对路径，取最后一段作为 novelId
     const novelId = entry.path.split('/').pop() || entry.path
-    const metaPath = novelMetaPath(novelId)
-    const exists = await fs.exists(metaPath, BASE_DIR).catch(() => false)
+    const metaPath = P + novelMetaPath(novelId)
+    const exists = await fs.exists(metaPath, base).catch(() => false)
     if (!exists) continue
 
-    const raw = await fs.readFile(metaPath, BASE_DIR, 'text').catch(() => null)
+    const raw = await fs.readFile(metaPath, base, 'text').catch(() => null)
     if (!raw || typeof raw !== 'string') continue
 
     try {
@@ -64,13 +65,14 @@ export async function loadAllNovels(): Promise<Novel[]> {
 export async function saveNovelMeta(novel: Novel): Promise<void> {
   const appService = await useAppService()
   const fs = appService.fs
+  const { base, pathPrefix: P } = getDataBase()
 
   // 确保目录存在
-  await fs.createDir(novelDir(novel.id), BASE_DIR, true).catch(() => {})
-  await fs.createDir(`${novelDir(novel.id)}/chapters`, BASE_DIR, true).catch(() => {})
+  await fs.createDir(P + novelDir(novel.id), base, true).catch(() => {})
+  await fs.createDir(P + `${novelDir(novel.id)}/chapters`, base, true).catch(() => {})
 
   const updated = { ...novel, updatedAt: Date.now() }
-  await fs.writeFile(novelMetaPath(novel.id), BASE_DIR, JSON.stringify(updated, null, 2))
+  await fs.writeFile(P + novelMetaPath(novel.id), base, JSON.stringify(updated, null, 2))
 }
 
 /** 创建新小说 */
@@ -92,17 +94,19 @@ export async function createNovel(title: string, synopsis = ''): Promise<Novel> 
 /** 删除小说（删除整个目录） */
 export async function deleteNovel(novelId: string): Promise<void> {
   const appService = await useAppService()
-  await appService.fs.removeDir(novelDir(novelId), BASE_DIR, true).catch(() => {})
+  const { base, pathPrefix: P } = getDataBase()
+  await appService.fs.removeDir(P + novelDir(novelId), base, true).catch(() => {})
 }
 
 /** 加载章节内容 */
 export async function loadChapterContent(novelId: string, filename: string): Promise<string> {
   const appService = await useAppService()
-  const path = chapterPath(novelId, filename)
-  const exists = await appService.fs.exists(path, BASE_DIR).catch(() => false)
+  const { base, pathPrefix: P } = getDataBase()
+  const path = P + chapterPath(novelId, filename)
+  const exists = await appService.fs.exists(path, base).catch(() => false)
   if (!exists) return ''
 
-  const content = await appService.fs.readFile(path, BASE_DIR, 'text')
+  const content = await appService.fs.readFile(path, base, 'text')
   return typeof content === 'string' ? content : ''
 }
 
@@ -113,7 +117,8 @@ export async function saveChapterContent(
   content: string,
 ): Promise<void> {
   const appService = await useAppService()
-  await appService.fs.writeFile(chapterPath(novelId, filename), BASE_DIR, content)
+  const { base, pathPrefix: P } = getDataBase()
+  await appService.fs.writeFile(P + chapterPath(novelId, filename), base, content)
 }
 
 /** 新建章节 */
@@ -131,10 +136,11 @@ export async function createChapter(novel: Novel, title: string): Promise<{ nove
 
   // 创建空 md 文件
   const appService = await useAppService()
-  await appService.fs.createDir(`${novelDir(novel.id)}/chapters`, BASE_DIR, true).catch(() => {})
+  const { base, pathPrefix: P } = getDataBase()
+  await appService.fs.createDir(P + `${novelDir(novel.id)}/chapters`, base, true).catch(() => {})
   await appService.fs.writeFile(
-    chapterPath(novel.id, filename),
-    BASE_DIR,
+    P + chapterPath(novel.id, filename),
+    base,
     `# ${title}\n\n`,
   )
 
@@ -154,7 +160,8 @@ export async function deleteChapter(novel: Novel, chapterId: string): Promise<No
   if (!chapter) return novel
 
   const appService = await useAppService()
-  await appService.fs.removeFile(chapterPath(novel.id, chapter.filename), BASE_DIR).catch(() => {})
+  const { base, pathPrefix: P } = getDataBase()
+  await appService.fs.removeFile(P + chapterPath(novel.id, chapter.filename), base).catch(() => {})
 
   const updatedNovel: Novel = {
     ...novel,

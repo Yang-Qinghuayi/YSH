@@ -1,5 +1,8 @@
 <template>
-  <div class="novel-page d-flex h-100">
+  <!-- 未选择工作区时：显示选择界面 -->
+  <WorkspaceInit v-if="!workspaceReady" @done="workspaceReady = true" class="h-100" />
+
+  <div v-else class="novel-page d-flex h-100">
     <!-- ===== 左侧栏 ===== -->
     <div class="novel-sidebar d-flex flex-column pa-2 gap-3">
       <!-- 小说区 -->
@@ -152,7 +155,10 @@ import {
   deleteChapter,
 } from '@/services/novelService'
 import { generateWithDeepSeek, parseMentions } from '@/services/deepseekService'
+import { loadOrCreateLore, loadEntryContent, buildLoreContext } from '@/services/loreService'
+import { isWorkspaceInitialized } from '@/services/workspaceService'
 import type { Novel, ChapterMeta, Character, PlotSkill } from '@/types/novel'
+import WorkspaceInit from '@/components/WorkspaceInit.vue'
 import NovelList from './components/NovelList.vue'
 import ChapterList from './components/ChapterList.vue'
 import NovelEditor from './components/NovelEditor.vue'
@@ -165,6 +171,10 @@ const settingStore = useSettingStore()
 
 const { novels, currentNovel, currentChapter, currentChapterContent, isDirty, isGenerating } =
   storeToRefs(novelStore)
+
+// ===== 工作区状态 =====
+// workspaceDir === null 表示从未选择过，需要先完成初始化
+const workspaceReady = ref(isWorkspaceInitialized())
 
 // ===== 本地状态 =====
 const showCharacterDialog = ref(false)
@@ -317,6 +327,24 @@ async function handleGenerate(cursorPos: number, lineText: string) {
     return
   }
 
+  // 加载 Lore 资料库上下文（忽略错误，不影响主流程）
+  let loreContextText: string | undefined
+  try {
+    const loreMeta = await loadOrCreateLore(currentNovel.value)
+    const enabledMajor = loreMeta.entries.filter((e) => e.enabled && e.importance === 'major')
+    const contentMap = new Map<string, string>()
+    await Promise.all(
+      enabledMajor.map(async (entry) => {
+        const content = await loadEntryContent(loreMeta.id, entry.filename)
+        contentMap.set(entry.id, content)
+      }),
+    )
+    const ctx = buildLoreContext(loreMeta, contentMap)
+    if (ctx.trim()) loreContextText = ctx
+  } catch {
+    // Lore 加载失败不阻断生成
+  }
+
   novelStore.startGenerating()
   const abortSignal = novelStore.abortController?.signal
 
@@ -331,6 +359,7 @@ async function handleGenerate(cursorPos: number, lineText: string) {
         chapterContent: currentChapterContent.value,
         cursorPosition: cursorPos,
         mentions,
+        loreContextText,
       },
       apiKey,
       settingStore.deepseekModel,

@@ -23,6 +23,8 @@ export interface SettingState {
   // AI 写作（DeepSeek）
   deepseekApiKey: string;
   deepseekModel: 'deepseek-chat' | 'deepseek-reasoner';
+  // 工作区文件夹（null = 使用 AppData 默认位置）
+  workspaceDir: string | null;
 }
 
 export const useSettingStore = defineStore('setting', {
@@ -31,8 +33,8 @@ export const useSettingStore = defineStore('setting', {
       'setting',
       {
         locale: 'zhCN',
-        palette: 'default',
-        materialSeed: paletteSeedMap['default'],
+        palette: 'material-terracotta-muse',
+        materialSeed: paletteSeedMap['material-terracotta-muse'],
         seedEnabled: false,
         rail: true,
         showBigCatalog: true,
@@ -40,6 +42,7 @@ export const useSettingStore = defineStore('setting', {
         navPosition: NavPosition.left,
         deepseekApiKey: '',
         deepseekModel: 'deepseek-chat',
+        workspaceDir: null,
       },
       { mergeDefaults: true }
     )

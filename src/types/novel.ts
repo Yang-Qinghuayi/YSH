@@ -55,9 +55,10 @@ export interface Mention {
 export interface AIGenerateParams {
   novel: Novel
   chapter: ChapterMeta
-  chapterContent: string   // 当前章节完整内容
-  cursorPosition: number   // 光标位置（字符偏移量）
-  mentions: Mention[]      // 当前块中的 @提及
+  chapterContent: string    // 当前章节完整内容
+  cursorPosition: number    // 光标位置（字符偏移量）
+  mentions: Mention[]       // 当前块中的 @提及
+  loreContextText?: string  // 可选：当前小说的 Lore 资料库上下文文本
 }
 
 // DeepSeek 配置（存于 setting store）

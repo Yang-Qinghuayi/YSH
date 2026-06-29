@@ -2,8 +2,8 @@ import {
   mdiCog,
   mdiBookshelf,
   mdiBookOpenVariantOutline,
-  mdiEmailFastOutline,
   mdiFeather,
+  mdiBookmarkMultipleOutline,
 } from "@mdi/js";
 import { useI18n } from "@/utils/i18n";
 
@@ -30,16 +30,16 @@ export function useNavItems() {
       to: "/setting",
     },
     {
-      icon: mdiEmailFastOutline,
-      val: "letter",
-      title: "信来",
-      to: "/letter",
-    },
-    {
       icon: mdiFeather,
       val: "novel",
       title: "写作",
       to: "/novel",
+    },
+    {
+      icon: mdiBookmarkMultipleOutline,
+      val: "lore",
+      title: "资料库",
+      to: "/lore",
     },
   ]);
 

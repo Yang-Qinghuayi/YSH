@@ -50,7 +50,7 @@ export function parseMentions(text: string, novel: Novel): Mention[] {
 }
 
 /** 构建系统 Prompt */
-function buildSystemPrompt(novel: Novel, mentions: Mention[]): string {
+function buildSystemPrompt(novel: Novel, mentions: Mention[], loreContextText?: string): string {
   const lines: string[] = [
     '你是一位专业的中文小说写作助手，擅长根据角色技能和剧情技能风格要求撰写高质量的叙事片段。',
     '',
@@ -89,6 +89,12 @@ function buildSystemPrompt(novel: Novel, mentions: Mention[]): string {
     lines.push('【本次调用的技能指导】')
     lines.push(...skillLines)
     lines.push('')
+  }
+
+  // 注入 Lore 资料库上下文（如有）
+  if (loreContextText && loreContextText.trim()) {
+    lines.push('')
+    lines.push(loreContextText)
   }
 
   lines.push('【写作要求】')
@@ -136,7 +142,7 @@ export async function* generateWithDeepSeek(
     dangerouslyAllowBrowser: true,
   })
 
-  const systemPrompt = buildSystemPrompt(params.novel, params.mentions)
+  const systemPrompt = buildSystemPrompt(params.novel, params.mentions, params.loreContextText)
   const userPrompt = buildUserPrompt(params)
 
   const stream = await client.chat.completions.create(

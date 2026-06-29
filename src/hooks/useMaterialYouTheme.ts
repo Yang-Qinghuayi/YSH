@@ -83,7 +83,8 @@ export function useMaterialYouTheme() {
     const { palette, seedEnabled, materialSeed } = settingStore
 
     // 1. 设置 data-palette 属性（触发 CSS 选择器规则）
-    if (palette === 'default') {
+    // 陶土缪斯是 :root 默认值，无需 data-palette；其余调色板显式设置
+    if (palette === 'material-terracotta-muse') {
       delete document.documentElement.dataset.palette
     } else {
       document.documentElement.dataset.palette = palette

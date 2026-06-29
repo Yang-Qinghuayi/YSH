@@ -15,7 +15,6 @@
 <script setup lang="ts">
 import { useLenis } from '@/hooks/useLenis';
 
-// Vuetify 的 v-main ref 是组件实例，通过 $el 拿底层 <main> DOM
 const mainRef = ref<{ $el: HTMLElement } | null>(null);
 const mainEl = ref<HTMLElement | null>(null);
 
@@ -23,5 +22,11 @@ onMounted(() => {
   mainEl.value = mainRef.value?.$el ?? null;
 });
 
-useLenis(mainEl);
+const { pause, resume } = useLenis(mainEl);
+
+// 阅读页有自己的滚动逻辑，Lenis 会干扰 → 进入时暂停，离开时恢复
+const route = useRoute();
+watch(() => route.path, (path) => {
+  path === '/book' ? pause() : resume();
+}, { immediate: true });
 </script>
