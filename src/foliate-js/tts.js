@@ -21,15 +21,34 @@ const getAlphabet = el => {
     return x ? x : el.parentElement ? getAlphabet(el.parentElement) : null
 }
 
-const getSegmenter = (lang = 'en', granularity = 'word') => {
-    const segmenter = new Intl.Segmenter(lang, { granularity })
+const getSegmenter = (lang, granularity = 'word') => {
+    const segmenter = new Intl.Segmenter(lang || undefined, { granularity })
     const granularityIsWord = granularity === 'word'
     return function* (strs, makeRange) {
-        const str = strs.join('')
+        const str = strs.join('').replace(/\r\n/g, '  ').replace(/\r/g, ' ').replace(/\n/g, ' ')
         let name = 0
         let strIndex = -1
         let sum = 0
-        for (const { index, segment, isWordLike } of segmenter.segment(str)) {
+        const rawSegments = Array.from(segmenter.segment(str))
+        const mergedSegments = []
+        for (let i = 0, j = 0; i < rawSegments.length; i++) {
+            const current = rawSegments[i]
+            const segment = ' ' + current.segment
+            const endsWithAbbr = /\s([A-Z]{1,2}[a-z]{0,5}|[a-z]{1,3})\.\s*$/.test(segment)
+            if (!endsWithAbbr || i >= (rawSegments.length-1)) {
+                const mergedSegment = {
+                    index: rawSegments[j].index,
+                    segment: '',
+                    isWordLike: (i == j) ? current.isWordLike : true,
+                }
+                while (j <= i) {
+                    mergedSegment.segment += rawSegments[j++].segment
+                }
+                mergedSegments.push(mergedSegment)
+            }
+        }
+
+        for (const { index, segment, isWordLike } of mergedSegments) {
             if (granularityIsWord && !isWordLike) continue
             while (sum <= index) sum += strs[++strIndex].length
             const startIndex = strIndex
@@ -44,7 +63,7 @@ const getSegmenter = (lang = 'en', granularity = 'word') => {
     }
 }
 
-const fragmentToSSML = (fragment, inherited) => {
+const fragmentToSSML = (fragment, nodeFilter, inherited) => {
     const ssml = document.implementation.createDocument(NS.SSML, 'speak')
     const { lang } = inherited
     if (lang) ssml.documentElement.setAttributeNS(NS.XML, 'lang', lang)
@@ -53,7 +72,8 @@ const fragmentToSSML = (fragment, inherited) => {
         if (!node) return
         if (node.nodeType === 3) return ssml.createTextNode(node.textContent)
         if (node.nodeType === 4) return ssml.createCDATASection(node.textContent)
-        if (node.nodeType !== 1) return
+        if (node.nodeType !== 1 && node.nodeType !== 11) return
+        if (nodeFilter && nodeFilter(node) === NodeFilter.FILTER_REJECT) return
 
         let el
         const nodeName = node.nodeName.toLowerCase()
@@ -66,15 +86,15 @@ const fragmentToSSML = (fragment, inherited) => {
         else if (nodeName === 'em' || nodeName === 'strong')
             el = ssml.createElementNS(NS.SSML, 'emphasis')
 
-        const lang = node.lang || node.getAttributeNS(NS.XML, 'lang')
+        const lang = node.lang || node.getAttributeNS?.(NS.XML, 'lang')
         if (lang) {
             if (!el) el = ssml.createElementNS(NS.SSML, 'lang')
             el.setAttributeNS(NS.XML, 'lang', lang)
         }
 
-        const alphabet = node.getAttributeNS(NS.SSML, 'alphabet') || inheritedAlphabet
+        const alphabet = node.getAttributeNS?.(NS.SSML, 'alphabet') || inheritedAlphabet
         if (!el) {
-            const ph = node.getAttributeNS(NS.SSML, 'ph')
+            const ph = node.getAttributeNS?.(NS.SSML, 'ph')
             if (ph) {
                 el = ssml.createElementNS(NS.SSML, 'phoneme')
                 if (alphabet) el.setAttribute('alphabet', alphabet)
@@ -92,11 +112,11 @@ const fragmentToSSML = (fragment, inherited) => {
         }
         return el
     }
-    convert(fragment.firstChild, ssml.documentElement, inherited.alphabet)
+    convert(fragment, ssml.documentElement, inherited.alphabet)
     return ssml
 }
 
-const getFragmentWithMarks = (range, textWalker, granularity) => {
+const getFragmentWithMarks = (range, textWalker, nodeFilter, granularity) => {
     const lang = getLang(range.commonAncestorContainer)
     const alphabet = getAlphabet(range.commonAncestorContainer)
 
@@ -106,25 +126,121 @@ const getFragmentWithMarks = (range, textWalker, granularity) => {
     // we need ranges on both the original document (for highlighting)
     // and the document fragment (for inserting marks)
     // so unfortunately need to do it twice, as you can't copy the ranges
-    const entries = [...textWalker(range, segmenter)]
-    const fragmentEntries = [...textWalker(fragment, segmenter)]
+    const entries = [...textWalker(range, segmenter, nodeFilter)]
+    const fragmentEntries = [...textWalker(fragment, segmenter, nodeFilter)]
 
     for (const [name, range] of fragmentEntries) {
         const mark = document.createElement('foliate-mark')
         mark.dataset.name = name
         range.insertNode(mark)
     }
-    const ssml = fragmentToSSML(fragment, { lang, alphabet })
+    const ssml = fragmentToSSML(fragment, nodeFilter, { lang, alphabet })
     return { entries, ssml }
 }
 
 const rangeIsEmpty = range => !range.toString().trim()
 
-function* getBlocks(doc) {
+// For PDF text layers, split content into sentence-level blocks so TTS
+// reads one sentence at a time instead of the whole page in one block.
+// Text nodes are split at sentence boundaries so that every block range
+// aligns with node edges — this prevents the text walker from including
+// text outside the sentence in word marks.
+function* getPDFSentenceBlocks(doc, textLayer) {
+    const collectNodes = () => {
+        const w = doc.createTreeWalker(textLayer, NodeFilter.SHOW_TEXT)
+        const res = []
+        for (let n = w.nextNode(); n; n = w.nextNode()) res.push(n)
+        return res
+    }
+
+    let nodes = collectNodes()
+    if (!nodes.length) return
+
+    const fullText = nodes.map(n => n.nodeValue).join('')
+    if (!fullText.trim()) return
+
+    // Find sentence boundary positions
+    const lang = getLang(textLayer) || undefined
+    const segmenter = new Intl.Segmenter(lang, { granularity: 'sentence' })
+    const boundaries = new Set()
+    for (const { index } of segmenter.segment(fullText))
+        if (index > 0) boundaries.add(index)
+
+    // Split text nodes at sentence boundaries so ranges align with node edges.
+    // Process in reverse order to preserve earlier character positions.
+    let cum = 0
+    const nodeStarts = nodes.map(n => { const s = cum; cum += n.nodeValue.length; return s })
+
+    for (const pos of [...boundaries].sort((a, b) => b - a)) {
+        for (let i = 0; i < nodes.length; i++) {
+            const start = nodeStarts[i]
+            const end = start + nodes[i].nodeValue.length
+            if (pos > start && pos < end) {
+                nodes[i].splitText(pos - start)
+                break
+            }
+        }
+    }
+
+    // Re-collect nodes after splits and group into sentence blocks
+    nodes = collectNodes()
+    cum = 0
+    let groupStart = 0
+    let blockCount = 0
+
+    for (let i = 0; i < nodes.length; i++) {
+        cum += nodes[i].nodeValue.length
+        const isEnd = i === nodes.length - 1 || boundaries.has(cum)
+        if (isEnd) {
+            const range = doc.createRange()
+            range.setStart(nodes[groupStart], 0)
+            range.setEnd(nodes[i], nodes[i].nodeValue.length)
+            if (!rangeIsEmpty(range)) {
+                blockCount++
+                yield range
+            }
+            groupStart = i + 1
+        }
+    }
+}
+
+function* getBlocks(doc, nodeFilter) {
+    const root = doc.body
+        ?? doc.querySelector('body')
+        ?? doc.documentElement
+
+    // For PDF text layers, yield sentence-level blocks
+    const textLayer = root.querySelector?.('.textLayer')
+    if (textLayer) {
+        yield* getPDFSentenceBlocks(doc, textLayer)
+        return
+    }
+
     let last
-    const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_ELEMENT)
-    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    let sawBlock = false
+    let sawSkipped = false
+    const walker = doc.createTreeWalker(root, NodeFilter.SHOW_ELEMENT)
+    let node = walker.nextNode()
+    while (node) {
         const name = node.tagName.toLowerCase()
+        // A rejected block element (e.g. a footnote/endnote aside) must not be
+        // read: skip its whole subtree and end the preceding block before it
+        // so its text doesn't leak into the adjacent block. Inline rejects are
+        // left to the text walker in getFragmentWithMarks().
+        if (blockTags.has(name)
+                && nodeFilter?.(node) === NodeFilter.FILTER_REJECT) {
+            sawSkipped = true
+            if (last) {
+                last.setEndBefore(node)
+                if (!rangeIsEmpty(last)) yield last
+                last = null
+            }
+            const skipped = node
+            do node = walker.nextNode()
+            while (node && (skipped.compareDocumentPosition(node)
+                & Node.DOCUMENT_POSITION_CONTAINED_BY))
+            continue
+        }
         if (blockTags.has(name)) {
             if (last) {
                 last.setEndBefore(node)
@@ -132,14 +248,19 @@ function* getBlocks(doc) {
             }
             last = doc.createRange()
             last.setStart(node, 0)
+            sawBlock = true
         }
+        node = walker.nextNode()
     }
-    if (!last) {
+    if (last) {
+        last.setEndAfter(root.lastChild ?? root)
+        if (!rangeIsEmpty(last)) yield last
+    } else if (!sawBlock && !sawSkipped) {
         last = doc.createRange()
-        last.setStart(doc.body.firstChild ?? doc.body, 0)
+        last.setStart(root.firstChild ?? root, 0)
+        last.setEndAfter(root.lastChild ?? root)
+        if (!rangeIsEmpty(last)) yield last
     }
-    last.setEndAfter(doc.body.lastChild ?? doc.body)
-    if (!rangeIsEmpty(last)) yield last
 }
 
 class ListIterator {
@@ -207,11 +328,11 @@ export class TTS {
     #ranges
     #lastMark
     #serializer = new XMLSerializer()
-    constructor(doc, textWalker, highlight, granularity) {
+    constructor(doc, textWalker, nodeFilter, highlight, granularity) {
         this.doc = doc
         this.highlight = highlight
-        this.#list = new ListIterator(getBlocks(doc), range => {
-            const { entries, ssml } = getFragmentWithMarks(range, textWalker, granularity)
+        this.#list = new ListIterator(getBlocks(doc, nodeFilter), range => {
+            const { entries, ssml } = getFragmentWithMarks(range, textWalker, nodeFilter, granularity)
             this.#ranges = new Map(entries)
             return [ssml, range]
         })
@@ -231,7 +352,8 @@ export class TTS {
             node.parentNode.removeChild(node)
             node = next
         }
-        return this.#serializer.serializeToString(ssml)
+        const ssmlStr = this.#serializer.serializeToString(ssml)
+        return ssmlStr
     }
     start() {
         this.#lastMark = null
@@ -256,6 +378,75 @@ export class TTS {
         if (paused && range) this.highlight(range.cloneRange())
         return this.#speak(doc)
     }
+    prevMark(paused) {
+        const marks = Array.from(this.#ranges.keys())
+        if (marks.length === 0) return
+
+        const currentIndex = this.#lastMark ? marks.indexOf(this.#lastMark) : -1
+        if (currentIndex > 0) {
+            const prevMarkName = marks[currentIndex - 1]
+            const range = this.#ranges.get(prevMarkName)
+            if (range) {
+                this.#lastMark = prevMarkName
+                if (paused) this.highlight(range.cloneRange())
+
+                const [doc] = this.#list.current() ?? []
+                return this.#speak(doc, ssml => this.#getMarkElement(ssml, prevMarkName))
+            }
+        } else {
+            const [doc, range] = this.#list.prev() ?? []
+            if (doc && range) {
+                const prevMarks = Array.from(this.#ranges.keys())
+                if (prevMarks.length > 0) {
+                    const lastMarkName = prevMarks[prevMarks.length - 1]
+                    const lastMarkRange = this.#ranges.get(lastMarkName)
+                    if (lastMarkRange) {
+                        this.#lastMark = lastMarkName
+                        if (paused) this.highlight(lastMarkRange.cloneRange())
+                        return this.#speak(doc, ssml => this.#getMarkElement(ssml, lastMarkName))
+                    }
+                } else {
+                    this.#lastMark = null
+                    if (paused) this.highlight(range.cloneRange())
+                    return this.#speak(doc)
+                }
+            }
+        }
+    }
+    nextMark(paused) {
+        const marks = Array.from(this.#ranges.keys())
+        if (marks.length === 0) return
+
+        const currentIndex = this.#lastMark ? marks.indexOf(this.#lastMark) : -1
+        if (currentIndex >= 0 && currentIndex < marks.length - 1) {
+            const nextMarkName = marks[currentIndex + 1]
+            const range = this.#ranges.get(nextMarkName)
+            if (range) {
+                this.#lastMark = nextMarkName
+                if (paused) this.highlight(range.cloneRange())
+                const [doc] = this.#list.current() ?? []
+                return this.#speak(doc, ssml => this.#getMarkElement(ssml, nextMarkName))
+            }
+        } else {
+            const [doc, range] = this.#list.next() ?? []
+            if (doc && range) {
+                const nextMarks = Array.from(this.#ranges.keys())
+                if (nextMarks.length > 0) {
+                    const firstMarkName = nextMarks[0]
+                    const firstMarkRange = this.#ranges.get(firstMarkName)
+                    if (firstMarkRange) {
+                        this.#lastMark = firstMarkName
+                        if (paused) this.highlight(firstMarkRange.cloneRange())
+                        return this.#speak(doc, ssml => this.#getMarkElement(ssml, firstMarkName))
+                    }
+                } else {
+                    this.#lastMark = null
+                    if (paused) this.highlight(range.cloneRange())
+                    return this.#speak(doc)
+                }
+            }
+        }
+    }
     from(range) {
         this.#lastMark = null
         const [doc] = this.#list.find(range_ =>
@@ -268,11 +459,18 @@ export class TTS {
             }
         return this.#speak(doc, ssml => this.#getMarkElement(ssml, mark))
     }
+    getLastRange() {
+        if (this.#lastMark) {
+            const range = this.#ranges.get(this.#lastMark)
+            if (range) return range.cloneRange()
+        }
+    }
     setMark(mark) {
         const range = this.#ranges.get(mark)
         if (range) {
             this.#lastMark = mark
             this.highlight(range.cloneRange())
+            return range
         }
     }
 }

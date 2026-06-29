@@ -94,7 +94,9 @@ const childGetter = (doc, ns) => {
 
 const resolveURL = (url, relativeTo) => {
     try {
-        if (relativeTo.includes(':')) return new URL(url, relativeTo)
+        // replace %2c in the url with a comma, this might be introduced by calibre
+        url = url.replace(/%2c/gi, ',').replace(/%3a/gi, ':')
+        if (relativeTo.includes(':') && !relativeTo.startsWith('OEBPS')) return new URL(url, relativeTo)
         // the base needs to be a valid URL, so set a base URL and then remove it
         const root = 'https://invalid.invalid/'
         const obj = new URL(url, root + relativeTo)
@@ -203,7 +205,7 @@ const getMetadata = opf => {
         if (!els) return null
         return Object.groupBy(els.map(parse), x => x.property)
     }
-    const dc = Object.fromEntries(Object.entries(Object.groupBy(els.dc, el => el.localName))
+    const dc = Object.fromEntries(Object.entries(Object.groupBy(els.dc || [], el => el.localName))
         .map(([name, els]) => [name, els.map(parse)]))
     const properties = getProperties() ?? {}
     const legacyMeta = Object.fromEntries(els.legacyMeta?.map(el =>
@@ -233,6 +235,10 @@ const getMetadata = opf => {
     const makeCollection = x => ({
         name: makeLanguageMap(x),
         // NOTE: webpub requires number but EPUB allows values like "2.2.1"
+        position: one(x.props?.['group-position']),
+    })
+    const makeSeries = x => ({
+        name: x.value,
         position: one(x.props?.['group-position']),
     })
     const makeAltIdentifier = x => {
@@ -275,11 +281,11 @@ const getMetadata = opf => {
         subject: dc.subject?.map(makeContributor),
         belongsTo: {
             collection: belongsTo.collection?.map(makeCollection),
-            series: belongsTo.series?.map(makeCollection)
-            ?? legacyMeta?.['calibre:series'] ? {
+            series: belongsTo.series?.map(makeSeries)
+            ?? (legacyMeta?.['calibre:series'] ? {
                 name: legacyMeta?.['calibre:series'],
                 position: parseFloat(legacyMeta?.['calibre:series_index']),
-            } : null,
+            } : null),
         },
         altIdentifier: dc.identifier?.map(makeAltIdentifier),
         source: dc.source?.map(makeAltIdentifier), // NOTE: not in webpub schema
@@ -292,9 +298,12 @@ const getMetadata = opf => {
     for (const [keys, val] of [].concat(
         dc.creator?.map(makeContributor)?.map(remapContributor('author')) ?? [],
         dc.contributor?.map(makeContributor)?.map(remapContributor('contributor')) ?? []))
-        for (const key of keys)
+        for (const key of keys) {
+            // if already parsed publisher don't remap it from author/contributor again
+            if (key === 'publisher' && metadata.publisher) continue
             if (metadata[key]) metadata[key].push(val)
             else metadata[key] = [val]
+        }
     tidy(metadata)
     if (metadata.altIdentifier === metadata.identifier)
         delete metadata.altIdentifier
@@ -389,6 +398,32 @@ const parseClock = str => {
         : unit === 'ms' ? .001
         : 1
     return n * f
+}
+
+const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp']
+const FONT_EXTENSIONS = ['woff', 'woff2', 'ttf', 'otf']
+
+const getImageMediaType = (path) => {
+    const extension = path.toLowerCase().split('.').pop()
+    const mediaTypeMap = {
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'webp': 'image/webp',
+    }
+    return mediaTypeMap[extension] || 'image/jpeg'
+}
+
+const getFontMediaType = (path) => {
+    const extension = path.toLowerCase().split('.').pop()
+    const mediaTypeMap = {
+        'woff': 'font/woff',
+        'woff2': 'font/woff2',
+        'ttf': 'font/ttf',
+        'otf': 'font/otf',
+    }
+    return mediaTypeMap[extension] || 'font/ttf'
 }
 
 class MediaOverlay extends EventTarget {
@@ -550,12 +585,37 @@ class MediaOverlay extends EventTarget {
     }
 }
 
-const isUUID = /([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})/
+const isUUID = /([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})/i
 
 const getUUID = opf => {
-    for (const el of opf.getElementsByTagNameNS(NS.DC, 'identifier')) {
-        const [id] = getElementText(el).split(':').slice(-1)
-        if (isUUID.test(id)) return id
+    const extractUUID = el => {
+        const text = getElementText(el)
+        const id = text.split(':').slice(-1)[0]
+        const match = isUUID.exec(id)
+        return match ? match[0] : null
+    }
+    const identifiers = Array.from(opf.getElementsByTagNameNS(NS.DC, 'identifier'))
+    // 1. Prefer the unique-identifier (used by Adobe font obfuscation)
+    const uniqueIdAttr = opf.documentElement.getAttribute('unique-identifier')
+    if (uniqueIdAttr) {
+        const el = identifiers.find(el => el.getAttribute('id') === uniqueIdAttr)
+        if (el) {
+            const uuid = extractUUID(el)
+            if (uuid) return uuid
+        }
+    }
+    // 2. Prefer urn:uuid: identifiers (standard UUID URN per RFC 4122)
+    for (const el of identifiers) {
+        const text = getElementText(el)
+        if (/^urn:uuid:/i.test(text)) {
+            const uuid = extractUUID(el)
+            if (uuid) return uuid
+        }
+    }
+    // 3. Fall back to any identifier containing a UUID
+    for (const el of identifiers) {
+        const uuid = extractUUID(el)
+        if (uuid) return uuid
     }
     return ''
 }
@@ -645,6 +705,7 @@ class Resources {
                 item.properties = item.properties?.split(/\s/)
                 return item
             })
+        this.manifestById = new Map(this.manifest.map(item => [item.id, item]))
         this.spine = $$itemref
             .map(getAttributes('idref', 'id', 'linear', 'properties'))
             .map(item => (item.properties = item.properties?.split(/\s/), item))
@@ -669,13 +730,19 @@ class Resources {
             ?? this.getItemByID($$$(opf, 'meta')
                 .find(filterAttribute('name', 'cover'))
                 ?.getAttribute('content'))
+            ?? this.manifest.find(item => item.id === 'cover'
+                && item.mediaType.startsWith('image'))
+            ?? this.manifest.find(item => item.href.includes('cover')
+                && item.mediaType.startsWith('image'))
             ?? this.getItemByHref(this.guide
                 ?.find(ref => ref.type.includes('cover'))?.href)
+            // last resort: first image in manifest
+            ?? this.manifest.find(item => item.mediaType.startsWith('image'))
 
         this.cfis = CFI.fromElements($$itemref)
     }
     getItemByID(id) {
-        return this.manifest.find(item => item.id === id)
+        return this.manifestById.get(id)
     }
     getItemByHref(href) {
         return this.manifest.find(item => item.href === href)
@@ -703,15 +770,16 @@ class Resources {
 
 class Loader {
     #cache = new Map()
+    #cacheXHTMLContent = new Map()
     #children = new Map()
     #refCount = new Map()
-    allowScript = false
     eventTarget = new EventTarget()
-    constructor({ loadText, loadBlob, resources }) {
+    constructor({ loadText, loadBlob, resources, entries }) {
         this.loadText = loadText
         this.loadBlob = loadBlob
         this.manifest = resources.manifest
         this.assets = resources.manifest
+        this.entries = entries
         // needed only when replacing in (X)HTML w/o parsing (see below)
         //.filter(({ mediaType }) => ![MIME.XHTML, MIME.HTML].includes(mediaType))
     }
@@ -726,6 +794,9 @@ class Loader {
         const url = URL.createObjectURL(new Blob([newData], { type: newType }))
         this.#cache.set(href, url)
         this.#refCount.set(href, 1)
+        if (newType === MIME.XHTML || newType === MIME.HTML) {
+            this.#cacheXHTMLContent.set(url, {href, type: newType, data: newData})
+        }
         if (parent) {
             const childList = this.#children.get(parent)
             if (childList) childList.push(href)
@@ -749,8 +820,10 @@ class Loader {
         //console.log(`unreferencing ${href}, now ${count}`)
         if (count < 1) {
             //console.log(`unloading ${href}`)
-            URL.revokeObjectURL(this.#cache.get(href))
+            const url = this.#cache.get(href)
+            URL.revokeObjectURL(url)
             this.#cache.delete(href)
+            this.#cacheXHTMLContent.delete(url)
             this.#refCount.delete(href)
             // unref children
             const childList = this.#children.get(href)
@@ -764,7 +837,12 @@ class Loader {
         const { href, mediaType } = item
 
         const isScript = MIME.JS.test(item.mediaType)
-        if (isScript && !this.allowScript) return null
+        const detail = { type: mediaType, href, isScript, allow: true}
+        const event = new CustomEvent('load', { detail })
+        this.eventTarget.dispatchEvent(event)
+        const { allow, url } = await event.detail
+        if (!allow) return null
+        if (url !== undefined) return url
 
         const parent = parents.at(-1)
         if (this.#cache.has(href)) return this.ref(href, parent)
@@ -778,11 +856,47 @@ class Loader {
         const tryLoadBlob = Promise.resolve().then(() => this.loadBlob(href))
         return this.createURL(href, tryLoadBlob, mediaType, parent)
     }
+    async loadItemXHTMLContent(item, parents = []) {
+        const url = await this.loadItem(item, parents)
+        if (url) return this.#cacheXHTMLContent.get(url)?.data
+    }
+    tryImageEntryItem(path) {
+        if (!IMAGE_EXTENSIONS.some(ext => path.toLowerCase().endsWith(`.${ext}`))) {
+            return null
+        }
+        if (!this.entries.get(path)) {
+            return null
+        }
+        return {
+            href: path,
+            mediaType: getImageMediaType(path),
+        }
+    }
+    tryFontEntryItem(path) {
+        if (!FONT_EXTENSIONS.some(ext => path.toLowerCase().endsWith(`.${ext}`))) {
+            return null
+        }
+        if (this.entries.get(path)) {
+            return {
+                href: path,
+                mediaType: getFontMediaType(path),
+            }
+        }
+        return {
+            href: `fonts/${path.split('/').pop()}`,
+            mediaType: getFontMediaType(path),
+        }
+    }
     async loadHref(href, base, parents = []) {
         if (isExternal(href)) return href
         const path = resolveURL(href, base)
-        const item = this.manifest.find(item => item.href === path)
-        if (!item) return href
+        let item = this.manifest.find(item => item.href === path)
+        if (!item) {
+            item = this.tryImageEntryItem(path) ?? this.tryFontEntryItem(path)
+            if (!item) {
+                return href
+            }
+        }
         return this.loadItem(item, parents.concat(base))
     }
     async loadReplaced(item, parents = []) {
@@ -832,7 +946,6 @@ class Loader {
                 }
             }
             // replace hrefs (excluding anchors)
-            // TODO: srcset?
             const replace = async (el, attr) => el.setAttribute(attr,
                 await this.loadHref(el.getAttribute(attr), href, parents))
             for (const el of doc.querySelectorAll('link[href]')) await replace(el, 'href')
@@ -842,6 +955,11 @@ class Loader {
             for (const el of doc.querySelectorAll('[*|href]:not([href])'))
                 el.setAttributeNS(NS.XLINK, 'href', await this.loadHref(
                     el.getAttributeNS(NS.XLINK, 'href'), href, parents))
+            for (const el of doc.querySelectorAll('[srcset]'))
+                el.setAttribute('srcset', await replaceSeries(el.getAttribute('srcset'),
+                    /(\s*)(.+?)\s*((?:\s[\d.]+[wx])+\s*(?:,|$)|,\s+|$)/g,
+                    (_, p1, p2, p3) => this.loadHref(p2, href, parents)
+                        .then(p2 => `${p1}${p2}${p3}`)))
             // replace inline styles
             for (const el of doc.querySelectorAll('style'))
                 if (el.textContent) el.textContent =
@@ -924,16 +1042,42 @@ export class EPUB {
     parser = new DOMParser()
     #loader
     #encryption
-    constructor({ loadText, loadBlob, getSize, sha1 }) {
+    constructor({ entries, loadText, loadBlob, getSize, sha1 }) {
+        this.entries = entries.reduce((map, entry) => {
+            map.set(entry.filename, entry)
+            return map
+        }, new Map())
         this.loadText = loadText
         this.loadBlob = loadBlob
         this.getSize = getSize
         this.#encryption = new Encryption(deobfuscators(sha1))
     }
+    #sanitizeXMLEntities(str) {
+        // Common HTML entities that aren't valid in XML
+        const entityMap = {
+            'nbsp': '&#160;',
+            'mdash': '&#8212;',
+            'ndash': '&#8211;',
+            'ldquo': '&#8220;',
+            'rdquo': '&#8221;',
+            'lsquo': '&#8216;',
+            'rsquo': '&#8217;',
+            'hellip': '&#8230;',
+            'copy': '&#169;',
+            'reg': '&#174;',
+            'trade': '&#8482;',
+            'bull': '&#8226;',
+            'middot': '&#183;',
+        }
+        return str.replace(/&([a-z]+);/gi, (match, entity) => {
+            return entityMap[entity.toLowerCase()] || match
+        })
+    }
     async #loadXML(uri) {
         const str = await this.loadText(uri)
         if (!str) return null
-        const doc = this.parser.parseFromString(str, MIME.XML)
+        const sanitized = this.#sanitizeXMLEntities(str)
+        const doc = this.parser.parseFromString(sanitized, MIME.XML)
         if (doc.querySelector('parsererror'))
             throw new Error(`XML parsing error: ${uri}
 ${doc.querySelector('parsererror').innerText}`)
@@ -965,6 +1109,7 @@ ${doc.querySelector('parsererror').innerText}`)
             loadBlob: uri => Promise.resolve(this.loadBlob(uri))
                 .then(this.#encryption.getDecoder(uri)),
             resources: this.resources,
+            entries: this.entries,
         })
         this.transformTarget = this.#loader.eventTarget
         this.sections = this.resources.spine.map((spineItem, index) => {
@@ -978,10 +1123,13 @@ ${doc.querySelector('parsererror').innerText}`)
                 id: item.href,
                 load: () => this.#loader.loadItem(item),
                 unload: () => this.#loader.unloadItem(item),
+                loadText: () => this.#loader.loadText(item.href),
+                loadContent: () => this.#loader.loadItemXHTMLContent(item),
                 createDocument: () => this.loadDocument(item),
                 size: this.getSize(item.href),
                 cfi: this.resources.cfis[index],
                 linear,
+                spineProperties: properties,
                 pageSpread: getPageSpread(properties),
                 resolveHref: href => resolveURL(href, item.href),
                 mediaOverlay: item.mediaOverlay
@@ -999,7 +1147,14 @@ ${doc.querySelector('parsererror').innerText}`)
         } catch(e) {
             console.warn(e)
         }
-        if (!this.toc && ncxPath) try {
+        // Some publishers ship an EPUB3 nav doc whose <li>s contain only
+        // plain text (no <a href>). parseNav returns a non-empty array, so
+        // the original check `if (!this.toc)` would skip the NCX fallback
+        // and the reader ends up with an unusable empty TOC. Detect this
+        // case by recursively checking whether any item has a real href.
+        const hasNavigableHref = items => Array.isArray(items) && items.some(
+            it => (it && (it.href || hasNavigableHref(it.subitems))))
+        if (!hasNavigableHref(this.toc) && ncxPath) try {
             const resolve = url => resolveURL(url, ncxPath)
             const ncx = parseNCX(await this.#loadXML(ncxPath), resolve)
             this.toc = ncx.toc
@@ -1007,6 +1162,7 @@ ${doc.querySelector('parsererror').innerText}`)
         } catch(e) {
             console.warn(e)
         }
+
         this.landmarks ??= this.resources.guide
 
         const { metadata, rendition, media } = getMetadata(opf)
@@ -1071,4 +1227,25 @@ ${doc.querySelector('parsererror').innerText}`)
     destroy() {
         this.#loader?.destroy()
     }
+}
+
+// Standalone OPF metadata extractor.
+//
+// Exposed so callers that already have the OPF bytes in hand (e.g. a
+// platform-native pre-parser that read the zip on a faster runtime)
+// can derive `Book.metadata` without driving the full `EPUB.init()` —
+// which would force `@zip.js/zip.js` to scan the central directory
+// and inflate nav.xhtml/ncx the importer never reads. The output
+// shape is identical to what `EPUB.init()` would produce, so the
+// import-path BookDoc and the reader-path BookDoc remain byte-stable
+// across `Book.metadata.identifier`, title, contributors, refines
+// chains, ONIX5, and `belongs-to-collection`.
+//
+// Two entry points to fit different callers:
+//   - `getEpubMetadata(opfDoc)`        — already-parsed OPF Document
+//   - `parseEpubMetadataFromXML(xml)`  — raw OPF XML string
+export const getEpubMetadata = opf => getMetadata(opf)
+export const parseEpubMetadataFromXML = xml => {
+    const opf = new DOMParser().parseFromString(xml, 'application/xml')
+    return getMetadata(opf)
 }

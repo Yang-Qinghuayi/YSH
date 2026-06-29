@@ -138,8 +138,8 @@ const docLoadHandler = (event: Event) => {
   }
 };
 
-// renderer.relocate 仅用于更新进度显示；连续换章由 checkScrollProgress (renderer.scroll) 统一处理
-const docRelocateHandler = (_event: Event) => { };
+// 连续滚动已由新版 paginator 内置（多视图 + #loadAdjacentSection 预加载相邻章节），
+// 外层不再监听 scroll 触发跳章。relocate 仅用于更新进度，由 progressRelocateHandler 处理。
 
 const docTransformHandler = (event: Event) => {
   const { detail } = event as CustomEvent;
@@ -166,50 +166,6 @@ const docTransformHandler = (event: Event) => {
 useFoliateEvents(viewRef, {
   onLoad: docLoadHandler,
   onRelocate: progressRelocateHandler,
-  onRendererRelocate: docRelocateHandler,
-});
-
-// 实时 scroll 监听：paginator 在每次原生 scroll 时 dispatch 无 detail 的 'scroll' event
-// 用 paginator 内部同款条件 (viewSize - end <= 2) 判断是否到底/到顶
-// paginator 的 #locked 机制已防止重复导航，无需我们手动 guard
-
-// 导航冷却：防止「导航到新章后 start=0 立刻再触发 prev 」的死循环
-let navCooldown = false;
-const startNavCooldown = () => {
-  navCooldown = true;
-  // 给 foliate 加载新章节留出足够时间（#locked 释放 + 内容渲染）
-  setTimeout(() => { navCooldown = false; }, 800);
-};
-
-const checkScrollProgress = () => {
-  if (navCooldown) return;
-
-  const renderer = viewRef.value?.renderer;
-  // renderer.scrolled 确保只在 scrolled 模式下生效，翻页模式不触发
-  if (!renderer?.scrolled) return;
-
-  const viewSettings = getViewSettings(bookId.value);
-  if (!viewSettings?.continuousScroll) return;
-
-  // 与 paginator #scrollNext/#scrollPrev 内部判断条件完全一致
-  if (renderer.viewSize - renderer.end <= 2) {
-    startNavCooldown();
-    viewRef.value?.next(1);
-  } else if (renderer.start <= 0 && renderer.viewSize > renderer.size) {
-    startNavCooldown();
-    viewRef.value?.prev(1);
-  }
-};
-
-// 当 viewRef 就绪时注册 renderer 的实时 scroll 事件
-// 注意：renderer 可能在 view 创建后异步就绪，用 ?. 双重守卫
-watch(viewRef, (newView, oldView) => {
-  oldView?.renderer?.removeEventListener('scroll', checkScrollProgress);
-  newView?.renderer?.addEventListener('scroll', checkScrollProgress);
-}, { immediate: true });
-
-onUnmounted(() => {
-  viewRef.value?.renderer?.removeEventListener('scroll', checkScrollProgress);
 });
 
 onActivated(() => {

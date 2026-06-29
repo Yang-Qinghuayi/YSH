@@ -1,4 +1,7 @@
-const getTypes = el => new Set(el?.getAttributeNS?.('http://www.idpf.org/2007/ops', 'type')?.split(' '))
+const getTypes = el => new Set([
+    ...(el?.getAttributeNS?.('http://www.idpf.org/2007/ops', 'type')?.split(' ') ?? []),
+    ...(el?.attributes?.getNamedItem?.('epub:type')?.value?.split(' ') ?? []),
+])
 const getRoles = el => new Set(el?.getAttribute?.('role')?.split(' '))
 
 const isSuper = el => {
@@ -52,7 +55,7 @@ const extractFootnote = (doc, anchor) => {
 
 export class FootnoteHandler extends EventTarget {
     detectFootnotes = true
-    #showFragment(book, { index, anchor }, href) {
+    #showFragment(book, { index, anchor, check }, href) {
         const view = document.createElement('foliate-view')
         return new Promise((resolve, reject) => {
             view.addEventListener('load', e => {
@@ -62,10 +65,56 @@ export class FootnoteHandler extends EventTarget {
                     const type = getReferencedType(el)
                     const hidden = el?.matches?.('aside') && type === 'footnote'
                     if (el) {
-                        const range = el.startContainer ? el : doc.createRange()
-                        if (!el.startContainer) {
-                            if (el.matches('li, aside')) range.selectNodeContents(el)
-                            else range.selectNode(el)
+                        let range
+                        if (el.startContainer) {
+                            range = el
+                        } else if (el.matches('li, aside')) {
+                            range = doc.createRange()
+                            range.selectNodeContents(el)
+                        } else if (el.matches('dt')) {
+                            range = doc.createRange()
+                            range.setStartBefore(el)
+                            let sibling = el.nextElementSibling
+                            let lastDD = null
+                            while (sibling && sibling.matches('dd')) {
+                                lastDD = sibling
+                                sibling = sibling.nextElementSibling
+                            }
+                            range.setEndAfter(lastDD || el)
+                        } else if (el.closest('li')) {
+                            range = doc.createRange()
+                            range.selectNodeContents(el.closest('li'))
+                        } else if (el.closest('.note')) {
+                            range = doc.createRange()
+                            range.selectNodeContents(el.closest('.note'))
+                        } else if (el.querySelector('a')) {
+                            range = doc.createRange()
+                            range.setStartBefore(el)
+                            let next = el.nextElementSibling
+                            while (next) {
+                                if (next.querySelector('a')) break
+                                next = next.nextElementSibling
+                            }
+                            if (next) {
+                                range.setEndBefore(next)
+                            } else {
+                                range.setEndAfter(el.parentNode.lastChild)
+                            }
+                            if (check && el.children.length > 3) {
+                                reject(new Error('Failed to locate footnote content'))
+                                return
+                            }
+                        } else if (check) {
+                            reject(new Error('Failed to locate footnote content'))
+                            return
+                        } else {
+                            range = doc.createRange()
+                            const hasContent = el.textContent?.trim() || el.children.length > 0
+                            if (!hasContent && el.parentElement) {
+                                range.selectNodeContents(el.parentElement)
+                            } else {
+                                range.selectNode(el)
+                            }
                         }
                         const frag = range.extractContents()
                         doc.body.replaceChildren()
@@ -85,17 +134,17 @@ export class FootnoteHandler extends EventTarget {
         })
     }
     handle(book, e) {
-        const { a, href } = e.detail
+        const { a, href, follow, check } = e.detail
         const { yes, maybe } = isFootnoteReference(a)
-        if (yes) {
+        if (yes || follow) {
             e.preventDefault()
             return Promise.resolve(book.resolveHref(href)).then(target =>
                 this.#showFragment(book, target, href))
         }
-        else if (this.detectFootnotes && maybe()) {
+        else if (this.detectFootnotes && (maybe() || check)) {
             e.preventDefault()
             return Promise.resolve(book.resolveHref(href)).then(({ index, anchor }) => {
-                const target = { index, anchor: doc => extractFootnote(doc, anchor) }
+                const target = { index, anchor: doc => extractFootnote(doc, anchor), check }
                 return this.#showFragment(book, target, href)
             })
         }
