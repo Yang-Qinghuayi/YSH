@@ -9,6 +9,7 @@ declare global {
   const DisplayBreakpoint: typeof import('./hooks/useBreakpoint').DisplayBreakpoint
   const EffectScope: typeof import('vue').EffectScope
   const GridType: typeof import('./hooks/useResponsiveGrid').GridType
+  const UI_FONT_OPTIONS: typeof import('./hooks/useMaterialYouTheme').UI_FONT_OPTIONS
   const asyncComputed: typeof import('@vueuse/core').asyncComputed
   const autoResetRef: typeof import('@vueuse/core').autoResetRef
   const computed: typeof import('vue').computed

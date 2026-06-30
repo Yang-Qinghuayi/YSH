@@ -1,45 +1,9 @@
 <template>
   <div class="entry-editor d-flex flex-column h-100">
     <!-- 顶部元数据表单 -->
-    <div class="entry-meta-form px-4 pt-3 pb-2 flex-shrink-0">
-      <!-- 标题行：名称 + 保存按钮 -->
-      <div class="d-flex align-center gap-2 mb-3">
-        <v-text-field
-          :model-value="entry.name"
-          label="条目名称"
-          density="compact"
-          variant="underlined"
-          hide-details
-          class="entry-name-field"
-          @update:model-value="handleMetaChange('name', $event)"
-        />
-        <v-spacer />
-        <span v-if="isDirty" class="text-caption text-medium-emphasis">未保存</span>
-        <v-btn
-          v-if="isDirty"
-          size="small"
-          variant="tonal"
-          color="primary"
-          @click="emit('save')"
-        >
-          保存
-        </v-btn>
-      </div>
-
-      <!-- 类型 + 重要度 + 启用 -->
-      <div class="d-flex flex-wrap gap-2 mb-2">
-        <v-select
-          :model-value="entry.type"
-          :items="typeOptions"
-          item-title="label"
-          item-value="value"
-          label="类型"
-          density="compact"
-          variant="outlined"
-          hide-details
-          style="max-width: 130px"
-          @update:model-value="handleMetaChange('type', $event)"
-        />
+    <div class="entry-meta-form flex-shrink-0">
+      <!-- 重要度 + 启用 -->
+      <div class="d-flex align-center flex-wrap gap-2 mb-2">
         <v-select
           :model-value="entry.importance"
           :items="importanceOptions"
@@ -48,17 +12,21 @@
           label="重要度"
           density="compact"
           variant="outlined"
+          rounded="xl"
+          color="primary"
           hide-details
-          style="max-width: 110px"
+          style="max-width: 120px"
           @update:model-value="handleMetaChange('importance', $event)"
         />
-        <v-checkbox
-          :model-value="entry.enabled"
-          label="启用"
-          density="compact"
-          hide-details
-          @update:model-value="handleMetaChange('enabled', $event)"
-        />
+        <!-- 自定义启用切换，确保 off 状态清晰可见 -->
+        <button
+          class="enabled-toggle"
+          :class="{ 'is-on': entry.enabled }"
+          @click="handleMetaChange('enabled', !entry.enabled)"
+        >
+          <span class="et-track"><span class="et-thumb" /></span>
+          <span class="et-label">{{ entry.enabled ? 'AI 读取中' : 'AI 不读取' }}</span>
+        </button>
       </div>
 
       <!-- 简介 -->
@@ -67,6 +35,8 @@
         label="索引简介（3-5 句，供 AI 快速参考）"
         density="compact"
         variant="outlined"
+        rounded="xl"
+        color="primary"
         hide-details
         rows="2"
         auto-grow
@@ -74,67 +44,50 @@
         @update:model-value="handleMetaChange('briefDescription', $event)"
       />
 
-      <!-- 关键词 + 标签 -->
-      <div class="d-flex gap-2">
-        <v-combobox
-          :model-value="entry.keywords"
-          label="别名 / 触发词"
-          density="compact"
-          variant="outlined"
-          hide-details
-          multiple
-          chips
-          closable-chips
-          class="flex-1"
-          @update:model-value="handleMetaChange('keywords', $event)"
-        />
-        <v-combobox
-          :model-value="entry.tags"
-          label="标签"
-          density="compact"
-          variant="outlined"
-          hide-details
-          multiple
-          chips
-          closable-chips
-          class="flex-1"
-          @update:model-value="handleMetaChange('tags', $event)"
-        />
-      </div>
+      <!-- 关键词 -->
+      <v-combobox
+        :model-value="entry.keywords"
+        label="别名 / 触发词"
+        density="compact"
+        variant="outlined"
+        rounded="xl"
+        color="primary"
+        hide-details
+        multiple
+        chips
+        closable-chips
+        @update:model-value="handleMetaChange('keywords', $event)"
+      />
     </div>
-
-    <v-divider />
 
     <!-- CodeMirror 正文编辑区 -->
     <div ref="editorContainer" class="editor-area flex-1 overflow-hidden" />
 
     <!-- 底部提示 -->
-    <div class="editor-footer px-4 py-1 text-caption text-medium-emphasis">
-      在此编写条目正文（支持 Markdown），内容会注入到 AI 写作上下文中
+    <div class="editor-footer">
+      <span class="lg-section-label">在此编写条目正文（支持 Markdown），内容会注入到 AI 写作上下文中</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, watch, shallowRef } from 'vue'
-import { EditorView, ViewUpdate } from '@codemirror/view'
+import { EditorView, ViewUpdate, placeholder } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
 import { markdown } from '@codemirror/lang-markdown'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { useTheme } from 'vuetify'
-import type { EntryMeta, EntryType, EntryImportance } from '@/types/lore'
-import { ENTRY_TYPE_LABELS, ENTRY_IMPORTANCE_LABELS } from '@/types/lore'
+import type { EntryMeta, EntryImportance } from '@/types/lore'
+import { ENTRY_IMPORTANCE_LABELS } from '@/types/lore'
 
 const props = defineProps<{
   entry: EntryMeta
   content: string
-  isDirty: boolean
 }>()
 
 const emit = defineEmits<{
   'update:content': [content: string]
   'update:meta': [patch: Partial<EntryMeta>]
-  save: []
 }>()
 
 const editorContainer = ref<HTMLElement | null>(null)
@@ -143,7 +96,6 @@ const editorView = shallowRef<EditorView | null>(null)
 const vuetifyTheme = useTheme()
 const isDark = computed(() => vuetifyTheme.global.current.value.dark)
 
-const typeOptions = Object.entries(ENTRY_TYPE_LABELS).map(([value, label]) => ({ value, label }))
 const importanceOptions = Object.entries(ENTRY_IMPORTANCE_LABELS).map(([value, label]) => ({ value, label }))
 
 // 元数据变更（表单字段）
@@ -158,12 +110,14 @@ function createEditor(content: string) {
   const extensions = [
     markdown(),
     EditorView.lineWrapping,
+    placeholder('在此编写条目正文…'),
     EditorView.theme({
       '&': { height: '100%', fontSize: '15px' },
       '.cm-scroller': { overflow: 'auto', fontFamily: 'inherit', lineHeight: '1.8' },
       '.cm-content': { maxWidth: '720px', margin: '0 auto', padding: '16px 24px 80px' },
       '.cm-line': { padding: '0' },
       '.cm-focused': { outline: 'none' },
+      '.cm-placeholder': { color: 'rgba(var(--v-theme-on-surface), 0.3)', fontStyle: 'italic' },
     }),
     EditorView.updateListener.of((update: ViewUpdate) => {
       if (update.docChanged) {
@@ -206,21 +160,73 @@ onBeforeUnmount(() => editorView.value?.destroy())
 .entry-editor {
   height: 100%;
   overflow: hidden;
+  padding: 12px;
+  gap: 12px;
 }
 
 .entry-meta-form {
-  border-bottom: none;
+  padding: 8px 4px 0;
 }
 
-.entry-name-field {
-  flex: 1;
+/* ---- 自定义启用切换 ---- */
+.enabled-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 2px 0;
+  user-select: none;
+}
+
+.et-track {
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(var(--v-theme-on-surface), 0.28);
+  background: rgba(var(--v-theme-on-surface), 0.07);
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.22s ease, border-color 0.22s ease;
+}
+.is-on .et-track {
+  background: rgb(var(--v-theme-primary));
+  border-color: transparent;
+}
+
+.et-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: rgba(var(--v-theme-on-surface), 0.4);
+  transition: left 0.22s ease, background 0.22s ease;
+}
+.is-on .et-thumb {
+  left: 19px;
+  background: #fff;
+}
+
+.et-label {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: rgba(var(--v-theme-on-surface), 0.45);
+  transition: color 0.22s ease;
+}
+.is-on .et-label {
+  color: rgb(var(--v-theme-primary));
 }
 
 .editor-area {
   height: 0; /* flex-1 需要固定高度基准 */
+  border-radius: 14px;
 }
 
 .editor-footer {
-  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  padding: 4px 4px 0;
+  text-align: center;
 }
 </style>

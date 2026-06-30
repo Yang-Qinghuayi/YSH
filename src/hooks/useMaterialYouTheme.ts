@@ -70,6 +70,16 @@ function syncVuetifyTheme(vuetifyTheme: ReturnType<typeof useTheme>, isDark: boo
   vuetifyTheme.themes.value[themeName].colors = colors as any
 }
 
+/** 字体键名 → CSS font-family 完整值 */
+export const UI_FONT_OPTIONS = [
+  { key: 'LXGW WenKai',   label: '霞鹜文楷',  css: '"LXGW WenKai", "LXGW WenKai Screen", "霞鹜文楷", serif' },
+  { key: 'Noto Serif SC', label: '思源宋体',  css: '"Noto Serif SC", "Source Han Serif SC", serif' },
+  { key: 'Noto Sans SC',  label: '思源黑体',  css: '"Noto Sans SC", "Source Han Sans SC", sans-serif' },
+  { key: 'system-ui',     label: '系统默认',  css: 'system-ui, sans-serif' },
+] as const
+
+const UI_FONT_MAP = Object.fromEntries(UI_FONT_OPTIONS.map(f => [f.key, f.css]))
+
 /**
  * Material You 主题管理 composable
  * 替换原来的 useCurrentTheme + useDynamicChangeTheme
@@ -80,7 +90,11 @@ export function useMaterialYouTheme() {
   const prefersDark = usePreferredDark()
 
   const applyTheme = () => {
-    const { palette, seedEnabled, materialSeed } = settingStore
+    const { palette, seedEnabled, materialSeed, uiFont } = settingStore
+
+    // 0. 同步全局字体变量
+    const fontFamily = UI_FONT_MAP[uiFont] ?? UI_FONT_MAP['LXGW WenKai']
+    document.documentElement.style.setProperty('--font-sans', fontFamily)
 
     // 1. 设置 data-palette 属性（触发 CSS 选择器规则）
     // 陶土缪斯是 :root 默认值，无需 data-palette；其余调色板显式设置

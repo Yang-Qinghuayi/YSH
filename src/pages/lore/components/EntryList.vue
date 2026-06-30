@@ -4,9 +4,9 @@
     <div
       v-for="entry in entries"
       :key="entry.id"
-      class="entry-item d-flex align-center rounded px-2 py-1 cursor-pointer"
-      :class="{ 'entry-active': currentEntryId === entry.id }"
-      @click="emit('select', entry)"
+      class="entry-item"
+      :class="{ 'entry-active': currentEntryId === entry.id, 'entry-disabled': !entry.enabled }"
+      @click="handleItemClick(entry)"
     >
       <!-- 重要度星标 -->
       <v-icon
@@ -14,158 +14,270 @@
         :icon="mdiStar"
         size="12"
         color="warning"
-        class="mr-1 flex-shrink-0"
+        class="entry-star"
       />
       <v-icon
         v-else
         :icon="mdiCircleSmall"
         size="16"
-        class="mr-1 flex-shrink-0 text-medium-emphasis"
+        class="entry-dot"
       />
 
-      <!-- 名称 + 类型 -->
-      <div class="flex-1 min-width-0">
-        <div class="text-body-2 text-truncate">{{ entry.name }}</div>
-      </div>
+      <!-- 名称：已选中时点击进入内联编辑 -->
+      <input
+        v-if="editingEntryId === entry.id"
+        ref="nameInputRef"
+        v-model="editingName"
+        class="entry-name-input"
+        @blur="commitRename"
+        @keyup.enter="commitRename"
+        @keyup.esc="cancelRename"
+        @click.stop
+      />
+      <span v-else class="entry-name text-truncate">{{ entry.name }}</span>
 
-      <!-- 类型芯片 -->
-      <v-chip size="x-small" variant="text" class="text-caption text-medium-emphasis ml-1 flex-shrink-0">
-        {{ ENTRY_TYPE_LABELS[entry.type] }}
-      </v-chip>
+      <!-- 禁用图标 -->
+      <v-icon
+        v-if="!entry.enabled"
+        :icon="mdiEyeOffOutline"
+        size="12"
+        class="entry-disabled-icon"
+      />
 
       <!-- 删除按钮（悬停显示） -->
-      <v-btn
-        icon
-        size="x-small"
-        variant="text"
-        color="error"
-        class="delete-btn"
+      <button
+        class="entry-del"
+        tabindex="-1"
         @click.stop="emit('delete', entry.id)"
       >
-        <v-icon :icon="mdiClose" size="14" />
-      </v-btn>
+        <v-icon :icon="mdiClose" size="13" />
+      </button>
     </div>
 
     <!-- 空状态 -->
-    <div v-if="entries.length === 0" class="text-caption text-medium-emphasis px-2 py-2">
-      {{ filterType === 'all' ? '还没有条目，添加一个吧' : `暂无「${ENTRY_TYPE_LABELS[filterType as EntryType]}」条目` }}
+    <div v-if="entries.length === 0 && !showCreateInput" class="entry-empty">
+      还没有条目，添加一个吧
     </div>
 
-    <!-- 新增条目按钮 -->
-    <v-btn
-      size="small"
-      variant="text"
-      prepend-icon="mdi-plus"
-      class="mt-1 justify-start"
-      @click="showCreateInput = true"
-    >
+    <!-- 新增条目按钮（输入中时隐藏） -->
+    <button v-if="!showCreateInput" class="add-btn lg-pill" @click="openCreate">
+      <v-icon :icon="mdiPlus" size="15" />
       新增条目
-    </v-btn>
+    </button>
 
-    <!-- 新增条目输入框 -->
-    <v-expand-transition>
-      <div v-if="showCreateInput" class="px-1">
-        <v-text-field
-          v-model="newEntryName"
-          label="条目名称"
-          density="compact"
-          variant="outlined"
-          hide-details
-          autofocus
-          @keyup.enter="confirmCreate"
-          @keyup.esc="cancelCreate"
-        />
-        <v-select
-          v-model="newEntryType"
-          :items="typeOptions"
-          item-title="label"
-          item-value="value"
-          label="类型"
-          density="compact"
-          variant="outlined"
-          hide-details
-          class="mt-2"
-        />
-        <div class="d-flex gap-1 mt-1">
-          <v-btn size="x-small" variant="text" @click="cancelCreate">取消</v-btn>
-          <v-btn
-            size="x-small"
-            color="primary"
-            variant="tonal"
-            :disabled="!newEntryName.trim()"
-            @click="confirmCreate"
-          >
-            创建
-          </v-btn>
-        </div>
-      </div>
-    </v-expand-transition>
+    <!-- 新增条目输入框：Enter 确认，Esc 取消，无按钮 -->
+    <input
+      v-if="showCreateInput"
+      ref="createInputRef"
+      v-model="newEntryName"
+      class="create-input"
+      placeholder="条目名称…"
+      @keyup.enter="confirmCreate"
+      @keyup.esc="cancelCreate"
+      @blur="cancelCreate"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { mdiStar, mdiCircleSmall, mdiClose } from '@mdi/js'
-import type { EntryMeta, EntryType } from '@/types/lore'
-import { ENTRY_TYPE_LABELS } from '@/types/lore'
+import { mdiStar, mdiCircleSmall, mdiClose, mdiPlus, mdiEyeOffOutline } from '@mdi/js'
+import type { EntryMeta } from '@/types/lore'
 
 const props = defineProps<{
   entries: EntryMeta[]
   currentEntryId?: string
-  filterType: EntryType | 'all'
 }>()
 
 const emit = defineEmits<{
   select: [entry: EntryMeta]
   delete: [entryId: string]
-  create: [name: string, type: EntryType]
+  create: [name: string]
+  rename: [entryId: string, name: string]
 }>()
 
+// ---- 新增条目 ----
 const showCreateInput = ref(false)
 const newEntryName = ref('')
-const newEntryType = ref<EntryType>('world')
+const createInputRef = ref<HTMLInputElement | null>(null)
 
-const typeOptions = Object.entries(ENTRY_TYPE_LABELS).map(([value, label]) => ({ value, label }))
+function openCreate() {
+  showCreateInput.value = true
+  nextTick(() => createInputRef.value?.focus())
+}
 
 function confirmCreate() {
   const name = newEntryName.value.trim()
-  if (!name) return
-  emit('create', name, newEntryType.value)
+  if (!name) { cancelCreate(); return }
+  emit('create', name)
   cancelCreate()
 }
 
 function cancelCreate() {
   showCreateInput.value = false
   newEntryName.value = ''
-  newEntryType.value = 'world'
+}
+
+// ---- 条目点击 ----
+function handleItemClick(entry: EntryMeta) {
+  if (entry.id === props.currentEntryId) {
+    // 已选中 → 进入名称编辑
+    startRename(entry)
+  } else {
+    emit('select', entry)
+  }
+}
+
+// ---- 名称内联编辑 ----
+const editingEntryId = ref<string | null>(null)
+const editingName = ref('')
+const nameInputRef = ref<HTMLInputElement | null>(null)
+
+function startRename(entry: EntryMeta) {
+  editingEntryId.value = entry.id
+  editingName.value = entry.name
+  nextTick(() => nameInputRef.value?.select())
+}
+
+function commitRename() {
+  const name = editingName.value.trim()
+  if (name && editingEntryId.value) {
+    emit('rename', editingEntryId.value, name)
+  }
+  editingEntryId.value = null
+  editingName.value = ''
+}
+
+function cancelRename() {
+  editingEntryId.value = null
+  editingName.value = ''
 }
 </script>
 
 <style scoped>
+/* ---- 列表项 ---- */
 .entry-item {
-  transition: background 0.15s;
-  user-select: none;
+  display: flex;
+  align-items: center;
+  border-radius: 14px;
+  padding: 6px 8px;
   cursor: pointer;
+  user-select: none;
+  transition: background 0.18s ease, box-shadow 0.18s ease;
+  gap: 7px;
 }
-
 .entry-item:hover {
-  background: rgba(var(--v-theme-on-surface), 0.06);
+  background: rgba(var(--v-theme-on-surface), 0.055);
 }
-
 .entry-active {
-  background: rgba(var(--v-theme-primary), 0.12);
-  color: rgb(var(--v-theme-primary));
+  background: rgba(var(--v-theme-primary), 0.1);
+  box-shadow: inset 0 0 0 1px rgba(var(--v-theme-primary), 0.2);
 }
 
-.entry-item .delete-btn {
-  opacity: 0;
-  transition: opacity 0.15s;
+.entry-star,
+.entry-dot {
+  flex-shrink: 0;
+}
+.entry-dot {
+  color: rgba(var(--v-theme-on-surface), 0.3);
 }
 
-.entry-item:hover .delete-btn {
-  opacity: 1;
-}
-
-.min-width-0 {
+.entry-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 450;
+  color: rgba(var(--v-theme-on-surface), 0.82);
+  transition: color 0.18s ease;
   min-width: 0;
+}
+.entry-active .entry-name {
+  color: rgb(var(--v-theme-primary));
+  font-weight: 500;
+}
+
+/* 禁用条目 */
+.entry-disabled .entry-name {
+  color: rgba(var(--v-theme-on-surface), 0.38);
+}
+.entry-disabled-icon {
+  flex-shrink: 0;
+  color: rgba(var(--v-theme-on-surface), 0.3);
+}
+
+/* 内联重命名输入框 */
+.entry-name-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgb(var(--v-theme-primary));
+  background: transparent;
+  border: none;
+  outline: none;
+  border-bottom: 1px solid rgba(var(--v-theme-primary), 0.5);
+  padding: 0 2px;
+  line-height: 1.4;
+}
+
+/* 删除按钮 */
+.entry-del {
+  opacity: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  color: rgba(var(--v-theme-error), 0.7);
+  transition: opacity 0.18s ease, background 0.15s ease;
+  flex-shrink: 0;
+}
+.entry-item:hover .entry-del {
+  opacity: 1;
+  pointer-events: auto;
+}
+.entry-del:hover {
+  background: rgba(var(--v-theme-error), 0.1);
+}
+
+/* 空状态 */
+.entry-empty {
+  font-size: 12px;
+  color: rgba(var(--v-theme-on-surface), 0.35);
+  padding: 4px 8px;
+}
+
+/* 新增按钮 */
+.add-btn {
+  width: 100%;
+  justify-content: flex-start;
+  padding: 7px 12px;
+  margin-top: 2px;
+}
+
+/* 新增条目输入框 */
+.create-input {
+  width: 100%;
+  margin-top: 4px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--v-theme-primary), 0.35);
+  background: rgba(var(--v-theme-primary), 0.05);
+  color: rgba(var(--v-theme-on-surface), 0.88);
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.18s ease;
+}
+.create-input::placeholder {
+  color: rgba(var(--v-theme-on-surface), 0.3);
+}
+.create-input:focus {
+  border-color: rgba(var(--v-theme-primary), 0.6);
+  background: rgba(var(--v-theme-primary), 0.07);
 }
 </style>

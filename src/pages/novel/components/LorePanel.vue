@@ -7,73 +7,38 @@
     scrollable
     @update:model-value="(v) => emit('update:visible', v)"
   >
-    <v-card class="lore-dialog-card d-flex flex-column h-100">
+    <v-card class="lore-dialog-card lg-card d-flex flex-column h-100">
       <!-- 标题栏 -->
       <div class="lore-dialog-header d-flex align-center px-4 py-3 flex-shrink-0">
-        <v-icon :icon="mdiBookmarkMultipleOutline" class="mr-2" />
-        <span class="text-h6">设定资料库</span>
-        <span class="text-caption text-medium-emphasis ml-2">{{ novel.title }}</span>
+        <v-icon :icon="mdiBookmarkMultipleOutline" size="20" class="mr-2" color="primary" />
+        <span class="lore-dialog-title">设定资料库</span>
+        <span class="lore-dialog-subtitle ml-2 text-truncate">{{ novel.title }}</span>
         <v-spacer />
-        <v-btn icon size="small" variant="text" @click="emit('update:visible', false)">
-          <v-icon :icon="mdiClose" size="20" />
-        </v-btn>
+        <button class="lg-icon-btn" title="关闭" @click="emit('update:visible', false)">
+          <v-icon :icon="mdiClose" size="18" />
+        </button>
       </div>
-
-      <v-divider />
 
       <!-- 主体：左右两栏 -->
       <div class="lore-page d-flex flex-1 overflow-hidden">
         <!-- ===== 左侧栏 ===== -->
-        <div class="lore-sidebar d-flex flex-column pa-2 gap-2">
-          <!-- 类型筛选 -->
-          <div v-if="lore">
-            <div class="sidebar-section-title text-caption font-weight-bold text-medium-emphasis px-2 mb-1">
-              分类筛选
-            </div>
-            <div class="d-flex flex-column gap-1 px-1">
-              <!-- 全部 -->
-              <div
-                class="filter-item d-flex align-center justify-space-between rounded px-2 py-1 cursor-pointer"
-                :class="{ 'filter-active': filterType === 'all' }"
-                @click="filterType = 'all'"
-              >
-                <span class="text-body-2">全部</span>
-                <v-chip size="x-small" variant="tonal">{{ typeCounts['all'] ?? 0 }}</v-chip>
-              </div>
-              <!-- 各类型 -->
-              <div
-                v-for="(label, type) in ENTRY_TYPE_LABELS"
-                :key="type"
-                class="filter-item d-flex align-center justify-space-between rounded px-2 py-1 cursor-pointer"
-                :class="{ 'filter-active': filterType === type }"
-                @click="filterType = type as EntryType"
-              >
-                <span class="text-body-2">{{ label }}</span>
-                <v-chip size="x-small" variant="tonal" v-if="typeCounts[type]">
-                  {{ typeCounts[type] }}
-                </v-chip>
-              </div>
-            </div>
-          </div>
-
-          <v-divider v-if="lore" />
-
+        <div class="lore-sidebar d-flex flex-column gap-2">
           <!-- 条目列表 -->
-          <div v-if="lore" class="flex-1 overflow-y-auto">
-            <div class="sidebar-section-title text-caption font-weight-bold text-medium-emphasis px-2 mb-1">
-              条目
+          <div v-if="lore" class="lore-section lore-entries lg-card--inset pa-2 d-flex flex-column flex-1">
+            <div class="lg-section-label px-1 mb-1">条目</div>
+            <div class="flex-1 overflow-y-auto lore-entries-scroll">
+              <EntryList
+                :entries="filteredEntries"
+                :current-entry-id="currentEntry?.id"
+                @select="handleSelectEntry"
+                @delete="handleDeleteEntry"
+                @create="handleCreateEntry"
+                @rename="handleRenameEntry"
+              />
             </div>
-            <EntryList
-              :entries="filteredEntries"
-              :current-entry-id="currentEntry?.id"
-              :filter-type="filterType"
-              @select="handleSelectEntry"
-              @delete="handleDeleteEntry"
-              @create="handleCreateEntry"
-            />
           </div>
 
-          <!-- 加载/空状态 -->
+          <!-- 加载状态 -->
           <div v-else class="d-flex align-center justify-center flex-1 text-medium-emphasis text-body-2">
             加载中…
           </div>
@@ -84,11 +49,17 @@
           <!-- 未选择时的占位 -->
           <div
             v-if="!currentEntry"
-            class="d-flex flex-column align-center justify-center h-100 gap-3 text-medium-emphasis"
+            class="lore-empty d-flex flex-column align-center justify-center h-100 gap-3"
           >
-            <v-icon :icon="mdiBookmarkMultipleOutline" size="56" />
-            <div v-if="!lore || lore.entries.length === 0">从左侧「新增条目」开始构建资料库</div>
-            <div v-else>从左侧选择一个条目进行编辑</div>
+            <div class="lore-empty-icon lg-card--inset">
+              <v-icon :icon="mdiBookmarkMultipleOutline" size="40" />
+            </div>
+            <div class="lore-empty-title">
+              {{ !lore || lore.entries.length === 0 ? '开始构建资料库' : '选择一个条目' }}
+            </div>
+            <div class="lore-empty-sub">
+              {{ !lore || lore.entries.length === 0 ? '从左侧「新增条目」开始构建资料库' : '从左侧选择一个条目进行编辑' }}
+            </div>
           </div>
 
           <!-- 条目编辑器 -->
@@ -96,10 +67,8 @@
             v-else
             :entry="currentEntry"
             :content="currentEntryContent"
-            :is-dirty="isDirty"
             @update:content="handleContentChange"
             @update:meta="handleMetaChange"
-            @save="handleSave"
           />
         </div>
       </div>
@@ -124,8 +93,7 @@ import {
   updateEntryMeta,
   deleteEntry,
 } from '@/services/loreService'
-import type { EntryMeta, EntryType } from '@/types/lore'
-import { ENTRY_TYPE_LABELS } from '@/types/lore'
+import type { EntryMeta } from '@/types/lore'
 import type { Novel } from '@/types/novel'
 import EntryList from '@/pages/lore/components/EntryList.vue'
 import EntryEditor from '@/pages/lore/components/EntryEditor.vue'
@@ -138,7 +106,7 @@ const emit = defineEmits<{
 
 const loreStore = useLoreStore()
 
-const { lore, currentEntry, currentEntryContent, isDirty, filterType, filteredEntries, typeCounts } =
+const { lore, currentEntry, currentEntryContent, isDirty, filteredEntries } =
   storeToRefs(loreStore)
 
 const showError = ref(false)
@@ -214,12 +182,12 @@ async function handleSelectEntry(entry: EntryMeta) {
   }
 }
 
-async function handleCreateEntry(name: string, type: EntryType) {
+async function handleCreateEntry(name: string) {
   if (!lore.value) return
   try {
-    const { lore: updatedLore, entry } = await createEntry(lore.value, { name, type })
+    const { lore: updatedLore, entry } = await createEntry(lore.value, { name })
     loreStore.updateLore(updatedLore)
-    loreStore.openEntry(entry, `# ${name}\n\n`)
+    loreStore.openEntry(entry, '')
     emit('saved')
   } catch (e) {
     showErrorMsg('创建条目失败：' + (e instanceof Error ? e.message : String(e)))
@@ -237,6 +205,20 @@ async function handleDeleteEntry(entryId: string) {
     emit('saved')
   } catch (e) {
     showErrorMsg('删除条目失败：' + (e instanceof Error ? e.message : String(e)))
+  }
+}
+
+async function handleRenameEntry(entryId: string, name: string) {
+  if (!lore.value) return
+  try {
+    const updatedLore = await updateEntryMeta(lore.value, entryId, { name })
+    loreStore.updateLore(updatedLore)
+    if (currentEntry.value?.id === entryId) {
+      loreStore.updateCurrentEntryMeta({ name })
+    }
+    emit('saved')
+  } catch (e) {
+    showErrorMsg('重命名失败：' + (e instanceof Error ? e.message : String(e)))
   }
 }
 
@@ -285,44 +267,73 @@ function showErrorMsg(msg: string) {
 <style scoped>
 .lore-dialog-card {
   overflow: hidden;
+  border-radius: 20px;
+  background: rgba(var(--v-theme-surface), 0.86);
 }
 
+/* 标题栏 */
 .lore-dialog-header {
-  background: rgba(var(--v-theme-surface), 0.88);
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.06);
+}
+.lore-dialog-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(var(--v-theme-on-surface), 0.88);
+}
+.lore-dialog-subtitle {
+  font-size: 11.5px;
+  color: rgba(var(--v-theme-on-surface), 0.45);
+  max-width: 240px;
 }
 
 .lore-page {
   height: 100%;
   overflow: hidden;
+  padding: 12px;
+  gap: 12px;
 }
 
+/* 左侧栏 */
 .lore-sidebar {
-  width: 220px;
+  width: 232px;
   flex-shrink: 0;
-  overflow-y: auto;
-  border-right: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  overflow: hidden;
+}
+.lore-section {
+  flex-shrink: 0;
+}
+.lore-entries {
+  flex: 1;
+  min-height: 0;
+}
+.lore-entries-scroll {
+  min-height: 0;
 }
 
 .lore-main {
   min-width: 0;
 }
 
-.sidebar-section-title {
-  letter-spacing: 0.05em;
+/* 空状态 */
+.lore-empty {
+  color: rgba(var(--v-theme-on-surface), 0.45);
 }
-
-.filter-item {
-  transition: background 0.15s;
-  user-select: none;
-  cursor: pointer;
+.lore-empty-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(var(--v-theme-primary), 0.7);
 }
-
-.filter-item:hover {
-  background: rgba(var(--v-theme-on-surface), 0.06);
+.lore-empty-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: rgba(var(--v-theme-on-surface), 0.78);
 }
-
-.filter-active {
-  background: rgba(var(--v-theme-primary), 0.12);
-  color: rgb(var(--v-theme-primary));
+.lore-empty-sub {
+  font-size: 13px;
+  color: rgba(var(--v-theme-on-surface), 0.45);
 }
 </style>

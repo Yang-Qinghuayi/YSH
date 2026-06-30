@@ -92,6 +92,7 @@ const totalWordCount = computed(() => {
   background: rgba(var(--v-theme-on-surface), 0.05);
   color: rgba(var(--v-theme-on-surface), 0.6);
   font-size: 11.5px;
+  line-height: 1; /* 让文字高度 = 字号，使图标与文字几何中心真正对齐 */
   transition: background 0.18s ease, color 0.18s ease;
 }
 .stat-pill:hover {

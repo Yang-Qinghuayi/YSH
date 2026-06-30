@@ -1,6 +1,6 @@
 <template>
   <v-main class="overflow-y-auto" style="height: calc(100vh - 16px)">
-    <v-container class="px-4 pb-4" style="height: 100%" fluid>
+    <v-container class="px-4 pb-4 pt-0" style="height: 100%" fluid>
       <!-- 全宽拖拽区域：替代 pt-4 padding，高度与 macOS 标题栏对齐（28px）。
            空元素确保点击时 target 就是本身，可靠触发窗口拖拽，
            同时不遮挡下方任何交互内容。 -->

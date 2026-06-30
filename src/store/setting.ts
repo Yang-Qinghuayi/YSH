@@ -20,6 +20,8 @@ export interface SettingState {
   showBigCatalog: boolean;
   miniPlayer: boolean;
   navPosition: NavPosition;
+  // 字体
+  uiFont: string;
   // AI 写作（DeepSeek）
   deepseekApiKey: string;
   deepseekModel: 'deepseek-chat' | 'deepseek-reasoner';
@@ -40,6 +42,7 @@ export const useSettingStore = defineStore('setting', {
         showBigCatalog: true,
         miniPlayer: false,
         navPosition: NavPosition.left,
+        uiFont: 'LXGW WenKai',
         deepseekApiKey: '',
         deepseekModel: 'deepseek-chat',
         workspaceDir: null,

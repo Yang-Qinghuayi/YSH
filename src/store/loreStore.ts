@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import type { Novel } from '@/types/novel'
-import type { Lore, EntryMeta, EntryType } from '@/types/lore'
+import type { Lore, EntryMeta } from '@/types/lore'
 
 export const useLoreStore = defineStore('lore', () => {
   // 当前绑定的小说
@@ -18,28 +18,10 @@ export const useLoreStore = defineStore('lore', () => {
   // 是否有未保存的更改
   const isDirty = ref(false)
 
-  // 类型筛选（'all' 表示全部）
-  const filterType = ref<EntryType | 'all'>('all')
-
-  // 按类型过滤后的条目列表（只显示 enabled，按 order 排序）
+  // 条目列表（全部展示，按 order 排序；enabled 只影响 AI 上下文注入）
   const filteredEntries = computed(() => {
     if (!lore.value) return []
-    return lore.value.entries
-      .filter((e) => e.enabled)
-      .filter((e) => filterType.value === 'all' || e.type === filterType.value)
-      .sort((a, b) => a.order - b.order)
-  })
-
-  // 每种类型的条目数量（只统计 enabled）
-  const typeCounts = computed(() => {
-    if (!lore.value) return {} as Record<string, number>
-    const counts: Record<string, number> = { all: 0 }
-    for (const e of lore.value.entries) {
-      if (!e.enabled) continue
-      counts.all = (counts.all ?? 0) + 1
-      counts[e.type] = (counts[e.type] ?? 0) + 1
-    }
-    return counts
+    return lore.value.entries.slice().sort((a, b) => a.order - b.order)
   })
 
   /** 打开某部小说的资料库 */
@@ -49,7 +31,6 @@ export const useLoreStore = defineStore('lore', () => {
     currentEntry.value = null
     currentEntryContent.value = ''
     isDirty.value = false
-    filterType.value = 'all'
   }
 
   /** 打开某条条目 */
@@ -96,9 +77,7 @@ export const useLoreStore = defineStore('lore', () => {
     currentEntry,
     currentEntryContent,
     isDirty,
-    filterType,
     filteredEntries,
-    typeCounts,
     openNovel,
     openEntry,
     updateContent,

@@ -9,8 +9,7 @@
 import { useAppService } from '@/hooks/useEnv'
 import { getDataBase } from '@/services/workspaceService'
 import type { Novel } from '@/types/novel'
-import type { Lore, EntryMeta, EntryType, EntryImportance } from '@/types/lore'
-import { ENTRY_TYPE_LABELS } from '@/types/lore'
+import type { Lore, EntryMeta, EntryImportance } from '@/types/lore'
 
 const NOVELS_DIR = 'novels'
 
@@ -28,17 +27,17 @@ function entryPath(novelId: string, filename: string) {
 }
 
 /**
- * 迁移旧 character 类型条目为 other（角色已由 Character 档案管理，Lore 不再保留 character 类型）。
- * 幂等：无 character 条目时返回 { changed: false }。
+ * 规范化资料库：剥离旧版本遗留的 type/tags 字段。
+ * 幂等：无遗留字段时返回 { changed: false }。
  */
-function migrateLoreCharacterEntries(lore: Lore): { lore: Lore; changed: boolean } {
+function normalizeLore(lore: Lore): { lore: Lore; changed: boolean } {
   let changed = false
   const entries = lore.entries.map((e) => {
-    if ((e as { type?: string }).type === 'character') {
-      changed = true
-      return { ...e, type: 'other' as EntryType }
-    }
-    return e
+    const rec = e as unknown as Record<string, unknown>
+    if (!('type' in rec) && !('tags' in rec)) return e
+    changed = true
+    const { type: _t, tags: _tg, ...rest } = rec
+    return rest as unknown as EntryMeta
   })
   if (!changed) return { lore, changed: false }
   return { lore: { ...lore, entries }, changed: true }
@@ -58,12 +57,12 @@ export async function loadOrCreateLore(novel: Novel): Promise<Lore> {
     if (raw && typeof raw === 'string') {
       try {
         const lore = JSON.parse(raw) as Lore
-        // 迁移：旧 character 类型条目归一为 other（角色已由 Character 档案管理）
-        const migrated = migrateLoreCharacterEntries(lore)
-        if (migrated.changed) {
-          await saveLoreMeta(migrated.lore).catch(() => {})
+        // 规范化：剥离旧版本遗留的 type/tags 字段
+        const normalized = normalizeLore(lore)
+        if (normalized.changed) {
+          await saveLoreMeta(normalized.lore).catch(() => {})
         }
-        return migrated.lore
+        return normalized.lore
       } catch {
         // 格式错误时重建
       }
@@ -122,7 +121,6 @@ export async function createEntry(
   lore: Lore,
   meta: {
     name: string
-    type?: EntryType
     importance?: EntryImportance
   },
 ): Promise<{ lore: Lore; entry: EntryMeta }> {
@@ -133,9 +131,7 @@ export async function createEntry(
     id,
     filename,
     name: meta.name.trim() || '未命名条目',
-    type: meta.type ?? 'other',
     importance: meta.importance ?? 'important',
-    tags: [],
     briefDescription: '',
     keywords: [],
     enabled: true,
@@ -214,7 +210,7 @@ export function buildLoreContext(
     lines.push('## 重要设定')
     for (const entry of majorEntries) {
       const content = entryContents.get(entry.id) ?? ''
-      lines.push(`### ${entry.name}（${ENTRY_TYPE_LABELS[entry.type]} · 主要）`)
+      lines.push(`### ${entry.name}（主要）`)
       if (entry.keywords.length > 0) {
         lines.push(`别名：${entry.keywords.join('、')}`)
       }
@@ -233,8 +229,7 @@ export function buildLoreContext(
   if (indexEntries.length > 0) {
     lines.push('## 资料索引')
     for (const entry of indexEntries) {
-      const typeLabel = ENTRY_TYPE_LABELS[entry.type] ?? entry.type
-      let line = `- ${entry.name}（${typeLabel}）`
+      let line = `- ${entry.name}`
       if (entry.briefDescription) {
         line += `：${entry.briefDescription}`
       }

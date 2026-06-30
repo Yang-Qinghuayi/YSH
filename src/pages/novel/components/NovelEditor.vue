@@ -75,7 +75,7 @@ function createEditor(content: string) {
     "&": {
       height: "100%",
       fontSize: "15px",
-      fontFamily: '"Noto Serif SC", "Source Han Serif", "Georgia", serif',
+      fontFamily: 'var(--font-sans)',
       background: "transparent",
     },
     ".cm-scroller": { overflow: "auto", lineHeight: "1.85" },

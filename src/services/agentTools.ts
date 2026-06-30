@@ -54,7 +54,7 @@ const queryLoreTool: AgentTool = {
     type: 'function',
     function: {
       name: 'query_lore',
-      description: '按关键词/类型/重要度检索当前小说的资料库（角色/世界观/地点等设定）。返回匹配条目的摘要。',
+      description: '按关键词/重要度检索当前小说的资料库（世界观/地点等设定）。返回匹配条目的摘要。',
       parameters: {
         type: 'object',
         properties: {
@@ -62,11 +62,6 @@ const queryLoreTool: AgentTool = {
             type: 'array',
             items: { type: 'string' },
             description: '关键词，匹配条目名称、别名或简介',
-          },
-          type: {
-            type: 'string',
-            enum: ['character', 'world', 'location', 'faction', 'rule', 'item', 'other'],
-            description: '条目类型筛选',
           },
           importance: {
             type: 'string',
@@ -79,12 +74,10 @@ const queryLoreTool: AgentTool = {
   async execute(args, ctx) {
     try {
       const keywords = (args.keywords as string[] | undefined) ?? []
-      const type = args.type as string | undefined
       const importance = args.importance as string | undefined
 
       const lore = await loadOrCreateLore(ctx.novel)
       let entries = lore.entries.filter((e) => e.enabled)
-      if (type) entries = entries.filter((e) => e.type === type)
       if (importance) entries = entries.filter((e) => e.importance === importance)
       if (keywords.length > 0) {
         entries = entries.filter((e) => {
@@ -102,11 +95,11 @@ const queryLoreTool: AgentTool = {
       for (const e of entries.slice(0, 20)) {
         if (e.importance === 'major') {
           const content = await loadEntryContent(lore.id, e.filename)
-          lines.push(`【${e.name}】（${e.type}·主要）`)
+          lines.push(`【${e.name}】（主要）`)
           if (e.briefDescription) lines.push(`简介：${e.briefDescription}`)
           if (content.trim()) lines.push(content.trim().slice(0, 800))
         } else {
-          lines.push(`- ${e.name}（${e.type}）：${e.briefDescription || '无简介'}`)
+          lines.push(`- ${e.name}：${e.briefDescription || '无简介'}`)
         }
       }
       return { ok: true, data: { count: entries.length }, text: lines.join('\n') }
