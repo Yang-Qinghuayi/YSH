@@ -8,9 +8,60 @@
 
 import { useAppService } from '@/hooks/useEnv'
 import { getDataBase } from '@/services/workspaceService'
-import type { Novel, ChapterMeta, SearchResult } from '@/types/novel'
+import type { Novel, ChapterMeta, Character, SearchResult, LegacyCharacter } from '@/types/novel'
 
 const NOVELS_DIR = 'novels'
+
+/**
+ * 将旧版角色（含 profile / skills）迁移为新的静态档案结构（含 voice）。
+ * 幂等：已迁移（无 skills 且无 profile）的角色直接返回。
+ * - profile → background（旧 profile 是"基本背景、性格、外貌"的混合，归入 background 最接近）
+ * - skills → voice：把所有技能合并为一条文风指导（多条用换行拼接）
+ */
+export function migrateCharacter(raw: LegacyCharacter): Character {
+  // 已无旧字段，视为已迁移
+  if (raw.profile === undefined && (!Array.isArray(raw.skills) || raw.skills.length === 0)) {
+    const { profile: _p, skills: _s, ...rest } = raw
+    return rest as Character
+  }
+
+  const voice = raw.skills && raw.skills.length > 0
+    ? {
+        prompt: raw.skills
+          .map((s) => (s.name ? `${s.name}：${s.prompt}` : s.prompt))
+          .filter(Boolean)
+          .join('\n'),
+      }
+    : undefined
+
+  const { profile, skills, ...rest } = raw
+  const migrated: Character = {
+    ...rest,
+  } as Character
+
+  if (profile && !migrated.background) {
+    migrated.background = profile
+  }
+  if (voice && voice.prompt) {
+    migrated.voice = voice
+  }
+  return migrated
+}
+
+/** 迁移整部小说的角色列表，返回 { novel, changed } */
+function migrateNovel(novel: Novel): { novel: Novel; changed: boolean } {
+  let changed = false
+  const characters = novel.characters.map((c) => {
+    const legacy = c as LegacyCharacter
+    if (legacy.profile === undefined && (!Array.isArray(legacy.skills) || legacy.skills.length === 0)) {
+      return c
+    }
+    changed = true
+    return migrateCharacter(legacy)
+  })
+  if (!changed) return { novel, changed: false }
+  return { novel: { ...novel, characters }, changed: true }
+}
 
 // 获取小说根目录路径（相对于数据根目录）
 function novelDir(novelId: string) {
@@ -52,7 +103,12 @@ export async function loadAllNovels(): Promise<Novel[]> {
 
     try {
       const novel = JSON.parse(raw) as Novel
-      novels.push(novel)
+      // 迁移旧版角色结构（profile/skills → 静态档案 + voice），迁移后写回
+      const { novel: migrated, changed } = migrateNovel(novel)
+      if (changed) {
+        await saveNovelMeta(migrated).catch(() => {})
+      }
+      novels.push(migrated)
     } catch {
       // 忽略格式错误的文件
     }

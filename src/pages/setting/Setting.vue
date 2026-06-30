@@ -31,6 +31,15 @@
             variant="outlined"
             density="compact"
           />
+          <v-switch
+            v-model="agentStore.autoUpdateStoryState"
+            color="primary"
+            density="compact"
+            hide-details
+            label="生成后自动更新角色状态"
+            hint="关闭后，Agent 生成正文不再自动增量更新角色动态状态（心情/位置/伤势/关系等）"
+            persistent-hint
+          />
         </div>
       </div>
 
@@ -44,8 +53,10 @@
 import { mdiEye, mdiEyeOff } from "@mdi/js";
 import AppSettingsTheme from "./components/Theme.vue";
 import { useSettingStore } from "@/store/setting";
+import { useAgentStore } from "@/store/agentStore";
 
 const settingStore = useSettingStore();
+const agentStore = useAgentStore();
 const showApiKey = ref(false);
 
 const modelOptions = [

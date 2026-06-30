@@ -79,35 +79,19 @@ const isDark = computed(() => vuetifyTheme.global.current.value.dark)
 // @提及 自动补全
 function buildCompletions(context: CompletionContext): CompletionResult | null {
   if (!props.novel) return null
-  const word = context.matchBefore(/@[一-龥\w]*(?:\.[一-龥\w]*)?/)
+  const word = context.matchBefore(/@[一-龥\w]*/)
   if (!word) return null
-  const text = word.text.slice(1)
-  const dotIndex = text.indexOf('.')
   const options: { label: string; type: string; detail?: string }[] = []
 
-  if (dotIndex === -1) {
-    for (const char of props.novel.characters) {
-      options.push({ label: `@${char.name}`, type: 'variable', detail: '角色' })
-    }
-    for (const skill of props.novel.plotSkills) {
-      options.push({ label: `@${skill.name}`, type: 'function', detail: '剧情技能' })
-    }
-  } else {
-    const charName = text.slice(0, dotIndex)
-    const char = props.novel.characters.find((c) => c.name === charName)
-    if (char) {
-      for (const skill of char.skills) {
-        options.push({
-          label: `@${charName}.${skill.name}`,
-          type: 'method',
-          detail: skill.prompt.slice(0, 30) + '...',
-        })
-      }
-    }
+  for (const char of props.novel.characters) {
+    options.push({ label: `@${char.name}`, type: 'variable', detail: '角色' })
+  }
+  for (const skill of props.novel.plotSkills) {
+    options.push({ label: `@${skill.name}`, type: 'function', detail: '剧情技能' })
   }
 
   if (!options.length) return null
-  return { from: word.from, options, validFor: /@[一-龥\w]*(?:\.[一-龥\w]*)*/ }
+  return { from: word.from, options, validFor: /@[一-龥\w]*/ }
 }
 
 function handleTab(view: EditorView): boolean {

@@ -61,6 +61,15 @@
             density="compact"
           />
 
+          <v-text-field
+            v-model="editingSkill.description"
+            label="触发说明（供 Agent 按需激活）"
+            placeholder="如：用于制造冲突、推进剧情张力"
+            variant="outlined"
+            density="compact"
+            hide-details
+          />
+
           <v-textarea
             v-model="editingSkill.prompt"
             label="技能描述（AI 写作指导）"

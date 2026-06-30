@@ -46,7 +46,8 @@
             size="x-small"
             variant="tonal"
             color="primary"
-            class="chip-item"
+            class="chip-item chip-clickable"
+            @click="agentStore.openCharacterPanel(char.name)"
           >
             {{ char.name }}
           </v-chip>
@@ -91,21 +92,50 @@
         <div class="text-body-2" v-else>选择或新建章节开始写作</div>
       </div>
 
-      <!-- 编辑器 -->
-      <NovelEditor
-        v-else
-        ref="editorRef"
-        :novel="currentNovel"
-        :chapter="currentChapter"
-        :content="currentChapterContent"
-        :is-generating="isGenerating"
-        :is-dirty="isDirty"
-        @update:content="handleContentChange"
-        @save="handleSave"
-        @generate="handleGenerate"
-        @stop-generate="handleStopGenerate"
-        @open-search="showGlobalSearch = true"
-      />
+      <template v-else>
+        <!-- 章节概要输入条 -->
+        <div class="brief-bar">
+          <v-textarea
+            v-model="chapterBrief"
+            :placeholder="briefPlaceholder"
+            variant="plain"
+            density="compact"
+            rows="1"
+            auto-grow
+            max-rows="4"
+            hide-details
+            class="brief-input"
+          />
+          <v-btn
+            color="primary"
+            variant="tonal"
+            size="small"
+            rounded="pill"
+            :disabled="isGenerating"
+            @click="startChapterAgent"
+          >
+            生成整章
+          </v-btn>
+        </div>
+
+        <!-- 编辑器 -->
+        <NovelEditor
+          ref="editorRef"
+          :novel="currentNovel"
+          :chapter="currentChapter"
+          :content="currentChapterContent"
+          :is-generating="isGenerating"
+          :is-dirty="isDirty"
+          @update:content="handleContentChange"
+          @save="handleSave"
+          @generate="handleGenerate"
+          @stop-generate="handleStopGenerate"
+          @open-search="showGlobalSearch = true"
+        />
+
+        <!-- Agent 状态条 -->
+        <AgentStatusBar @stop="handleStopGenerate" />
+      </template>
     </div>
 
     <!-- ===== 弹窗 ===== -->
@@ -133,6 +163,17 @@
       @jump="handleSearchJump"
     />
 
+    <!-- Agent plan 确认面板 -->
+    <AgentPlanPanel @confirm="handleConfirmPlan" @cancel="handleCancelPlan" />
+
+    <!-- 角色面板（档案 + 状态） -->
+    <CharacterPanel
+      v-if="currentNovel"
+      :characters="currentNovel.characters"
+      @update:character="handleUpdateSingleCharacter"
+      @update:state="handleUpdateCharacterState"
+    />
+
     <!-- 错误提示 -->
     <v-snackbar v-model="showError" color="error" timeout="4000" location="top">
       {{ errorMessage }}
@@ -146,6 +187,7 @@ import { storeToRefs } from 'pinia'
 import { mdiCog, mdiPenPlus } from '@mdi/js'
 import { useNovelStore } from '@/store/novelStore'
 import { useSettingStore } from '@/store/setting'
+import { useAgentStore } from '@/store/agentStore'
 import {
   loadAllNovels,
   createNovel,
@@ -159,21 +201,35 @@ import {
   loadAllChapterWordCounts,
   searchInChapters,
 } from '@/services/novelService'
-import { generateWithDeepSeek, parseMentions } from '@/services/deepseekService'
-import { loadOrCreateLore, loadEntryContent, buildLoreContext } from '@/services/loreService'
+import { parseMentions } from '@/services/deepseekService'
+import {
+  createSession,
+  runPlanPhase,
+  runGeneratePhase,
+  abort as abortSession,
+  type AgentSession,
+  type AgentPlan,
+  type AgentConfig,
+} from '@/services/agentService'
+import { loadStoryState, saveStoryState } from '@/services/storyStateService'
 import { isWorkspaceInitialized } from '@/services/workspaceService'
 import type { Novel, ChapterMeta, Character, PlotSkill, SearchResult } from '@/types/novel'
+import type { CharacterState } from '@/types/storyState'
 import WorkspaceInit from '@/components/WorkspaceInit.vue'
 import NovelList from './components/NovelList.vue'
 import ChapterList from './components/ChapterList.vue'
 import NovelEditor from './components/NovelEditor.vue'
 import CharacterDialog from './components/CharacterDialog.vue'
 import PlotSkillDialog from './components/PlotSkillDialog.vue'
+import AgentPlanPanel from './components/AgentPlanPanel.vue'
+import AgentStatusBar from './components/AgentStatusBar.vue'
+import CharacterPanel from './components/CharacterPanel.vue'
 import GlobalSearch from '@/components/GlobalSearch.vue'
 
 // ===== Store =====
 const novelStore = useNovelStore()
 const settingStore = useSettingStore()
+const agentStore = useAgentStore()
 
 const { novels, currentNovel, currentChapter, currentChapterContent, isDirty, isGenerating } =
   storeToRefs(novelStore)
@@ -189,6 +245,11 @@ const errorMessage = ref('')
 const showGlobalSearch = ref(false)
 
 const editorRef = ref<InstanceType<typeof NovelEditor> | null>(null)
+
+// ===== Agent 状态 =====
+const chapterBrief = ref('')
+const agentSession = ref<AgentSession | null>(null)
+const briefPlaceholder = '写本章概要，Agent 会自动检索资料、选定技能并规划大纲（可用 @角色名 / @剧情技能 强制指定）'
 
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -217,6 +278,8 @@ async function handleSelectNovel(novel: Novel) {
   if (currentNovel.value?.id === novel.id) return
   await trySaveCurrentChapter()
   novelStore.openNovel(novel)
+  // 加载故事状态到缓存（供角色面板展示）
+  loadStoryState(novel.id).then((s) => agentStore.setStoryState(s)).catch(() => {})
   // 后台异步加载尚未计算字数的章节
   loadMissingWordCounts(novel)
 }
@@ -381,7 +444,7 @@ async function handleSearchJump(result: SearchResult) {
   editorRef.value?.jumpToLine(result.lineIndex)
 }
 
-// ===== AI 生成 =====
+// ===== AI 生成（内联续写：Tab 触发，走 Agent 快速模式，跳过确认） =====
 async function handleGenerate(cursorPos: number, lineText: string) {
   if (!currentNovel.value || !currentChapter.value) return
   if (isGenerating.value) return
@@ -392,66 +455,209 @@ async function handleGenerate(cursorPos: number, lineText: string) {
     return
   }
 
-  const mentions = parseMentions(lineText, currentNovel.value)
-  if (!mentions.length) {
-    showErrorMsg('当前行没有有效的 @技能提及，请先输入如 @角色名.技能名')
-    return
-  }
+  const forcedMentions = parseMentions(lineText, currentNovel.value)
+  const brief = `续写一小段，自然衔接前文。${lineText.trim() ? `本行提示：${lineText.trim()}` : ''}`
 
-  // 加载 Lore 资料库上下文（忽略错误，不影响主流程）
-  let loreContextText: string | undefined
-  try {
-    const loreMeta = await loadOrCreateLore(currentNovel.value)
-    const enabledMajor = loreMeta.entries.filter((e) => e.enabled && e.importance === 'major')
-    const contentMap = new Map<string, string>()
-    await Promise.all(
-      enabledMajor.map(async (entry) => {
-        const content = await loadEntryContent(loreMeta.id, entry.filename)
-        contentMap.set(entry.id, content)
-      }),
-    )
-    const ctx = buildLoreContext(loreMeta, contentMap)
-    if (ctx.trim()) loreContextText = ctx
-  } catch {
-    // Lore 加载失败不阻断生成
-  }
-
-  novelStore.startGenerating()
-  const abortSignal = novelStore.abortController?.signal
-
+  const session = createSession({
+    novel: currentNovel.value,
+    chapter: currentChapter.value,
+    chapterContent: currentChapterContent.value,
+    cursorPosition: cursorPos,
+    forcedMentions,
+    skipConfirmation: true,
+  })
+  agentSession.value = session
+  agentStore.clearToolLog()
+  agentStore.setPlan(null)
+  agentStore.setPhase('planning')
   editorRef.value?.moveCursorToNextLine()
 
-  try {
-    const stream = generateWithDeepSeek(
-      {
-        novel: currentNovel.value,
-        chapter: currentChapter.value,
-        chapterContent: currentChapterContent.value,
-        cursorPosition: cursorPos,
-        mentions,
-        loreContextText,
-      },
-      apiKey,
-      settingStore.deepseekModel,
-      600,
-      abortSignal,
-    )
+  await runPlanPhase(session, brief, buildAgentConfig(), {
+    onStatus: (s) => agentStore.setStatus(s),
+    onPhase: (p) => {
+      agentStore.setPhase(p)
+      syncGenerating(p)
+    },
+    onToolCall: (log) => agentStore.addToolLog(log),
+    onTextDelta: (delta) => {
+      editorRef.value?.appendContent(delta)
+    },
+    onError: (e) => {
+      showErrorMsg('AI 生成失败：' + (e instanceof Error ? e.message : String(e)))
+    },
+    onDone: async () => {
+      try {
+        const s = await loadStoryState(session.novelId)
+        agentStore.setStoryState(s)
+      } catch {
+        // 忽略
+      }
+      agentStore.resetAgent()
+      agentSession.value = null
+      novelStore.stopGenerating()
+    },
+  })
+}
 
-    for await (const chunk of stream) {
-      if (abortSignal?.aborted) break
-      editorRef.value?.appendContent(chunk)
-    }
-  } catch (e: unknown) {
-    if (e instanceof Error && e.name !== 'AbortError') {
-      showErrorMsg('AI 生成失败：' + e.message)
-    }
-  } finally {
+function handleStopGenerate() {
+  if (agentSession.value) {
+    abortSession(agentSession.value)
+  }
+  novelStore.stopGenerating()
+}
+
+// ===== Agent 整章生成（plan → 确认 → 生成） =====
+function buildAgentConfig(): AgentConfig {
+  return {
+    apiKey: settingStore.deepseekApiKey,
+    model: settingStore.deepseekModel,
+    autoUpdateStoryState: agentStore.autoUpdateStoryState,
+  }
+}
+
+function syncGenerating(phase: string) {
+  if (phase === 'planning' || phase === 'generating' || phase === 'finalizing') {
+    if (!isGenerating.value) novelStore.startGenerating()
+  } else {
     novelStore.stopGenerating()
   }
 }
 
-function handleStopGenerate() {
+async function startChapterAgent() {
+  if (!currentNovel.value || !currentChapter.value) return
+  if (isGenerating.value) return
+
+  const apiKey = settingStore.deepseekApiKey
+  if (!apiKey) {
+    showErrorMsg('请先在「设置」中填写 DeepSeek API Key')
+    return
+  }
+  if (!chapterBrief.value.trim()) {
+    showErrorMsg('请先填写本章概要')
+    return
+  }
+
+  const forcedMentions = parseMentions(chapterBrief.value, currentNovel.value)
+  const session = createSession({
+    novel: currentNovel.value,
+    chapter: currentChapter.value,
+    chapterContent: currentChapterContent.value,
+    cursorPosition: currentChapterContent.value.length,
+    forcedMentions,
+    skipConfirmation: false,
+  })
+  agentSession.value = session
+  agentStore.clearToolLog()
+  agentStore.setPlan(null)
+  agentStore.setPhase('planning')
+
+  await runPlanPhase(session, chapterBrief.value, buildAgentConfig(), {
+    onStatus: (s) => agentStore.setStatus(s),
+    onPhase: (p) => {
+      agentStore.setPhase(p)
+      syncGenerating(p)
+    },
+    onToolCall: (log) => agentStore.addToolLog(log),
+    onPlanReady: (plan) => {
+      agentStore.setPlan(plan)
+      agentStore.planDialogVisible = true
+    },
+    onError: (e) => {
+      showErrorMsg('Agent 规划失败：' + (e instanceof Error ? e.message : String(e)))
+      agentStore.resetAgent()
+      novelStore.stopGenerating()
+    },
+  })
+}
+
+async function handleConfirmPlan(plan: AgentPlan) {
+  const session = agentSession.value
+  if (!session) return
+  session.plan = plan
+  agentStore.planDialogVisible = false
+  agentStore.setPhase('generating')
+  syncGenerating('generating')
+
+  await runGeneratePhase(session, buildAgentConfig(), {
+    onStatus: (s) => agentStore.setStatus(s),
+    onPhase: (p) => {
+      agentStore.setPhase(p)
+      syncGenerating(p)
+    },
+    onToolCall: (log) => agentStore.addToolLog(log),
+    onTextDelta: (delta) => {
+      editorRef.value?.appendContent(delta)
+    },
+    onError: (e) => {
+      showErrorMsg('Agent 生成失败：' + (e instanceof Error ? e.message : String(e)))
+    },
+    onDone: async () => {
+      // 刷新故事状态缓存，角色面板实时更新
+      try {
+        const s = await loadStoryState(session.novelId)
+        agentStore.setStoryState(s)
+      } catch {
+        // 忽略
+      }
+      agentStore.resetAgent()
+      agentSession.value = null
+      novelStore.stopGenerating()
+    },
+  })
+}
+
+function handleCancelPlan() {
+  const session = agentSession.value
+  if (session) abortSession(session)
+  agentStore.planDialogVisible = false
+  agentStore.resetAgent()
+  agentSession.value = null
   novelStore.stopGenerating()
+}
+
+// ===== 角色面板：档案/状态编辑落盘 =====
+async function handleUpdateSingleCharacter(character: Character) {
+  if (!currentNovel.value) return
+  const characters = currentNovel.value.characters.map((c) =>
+    c.id === character.id ? character : c,
+  )
+  await handleUpdateCharacters(characters)
+}
+
+async function handleUpdateCharacterState(patch: {
+  characterName: string
+  data: Partial<CharacterState>
+}) {
+  if (!currentNovel.value) return
+  try {
+    const state = await loadStoryState(currentNovel.value.id)
+    const idx = state.characterStates.findIndex((c) => c.characterName === patch.characterName)
+    const now = Date.now()
+    if (idx >= 0) {
+      state.characterStates[idx] = {
+        ...state.characterStates[idx],
+        ...patch.data,
+        characterName: patch.characterName,
+        relationships: state.characterStates[idx].relationships,
+        updatedAt: now,
+      }
+    } else {
+      state.characterStates.push({
+        characterName: patch.characterName,
+        mood: patch.data.mood,
+        location: patch.data.location,
+        injuries: patch.data.injuries,
+        notes: patch.data.notes,
+        relationships: [],
+        lastUpdatedChapterId: currentChapter.value?.id ?? '',
+        updatedAt: now,
+      })
+    }
+    await saveStoryState(state)
+    agentStore.setStoryState(state)
+  } catch (e) {
+    showErrorMsg('保存角色状态失败：' + (e instanceof Error ? e.message : String(e)))
+  }
 }
 
 // ===== 工具函数 =====
@@ -555,5 +761,32 @@ onBeforeUnmount(() => {
 /* ====== 主编辑区 ====== */
 .editor-main {
   min-width: 0;
+  position: relative;
+}
+
+/* 章节概要输入条 */
+.brief-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.06);
+  background: rgba(var(--v-theme-surface), 0.6);
+}
+.brief-input {
+  flex: 1;
+  font-size: 13px;
+}
+.brief-input :deep(.v-field__input) {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+/* 可点击的角色 chip */
+.chip-clickable {
+  cursor: pointer;
+}
+.chip-clickable:hover {
+  filter: brightness(1.08);
 }
 </style>
