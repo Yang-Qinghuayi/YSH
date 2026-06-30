@@ -1,9 +1,9 @@
 /**
  * loreService.ts
  * Lore 资料库的文件读写服务
- * 数据存储路径（Data 基目录下，与 novel 同级）：
- *   novels/<novel-id>/lore/lore.json             ← Lore 元数据 + 全部 EntryMeta
- *   novels/<novel-id>/lore/entries/<id>.md        ← 每条条目的 Markdown 正文
+ * 数据存储路径（扁平结构，均在小说文件夹根下）：
+ *   <小说文件夹>/lore/lore.json             ← Lore 元数据 + 全部 EntryMeta
+ *   <小说文件夹>/lore/entries/<id>.md        ← 每条条目的 Markdown 正文
  */
 
 import { useAppService } from '@/hooks/useEnv'
@@ -11,19 +11,17 @@ import { getDataBase } from '@/services/workspaceService'
 import type { Novel } from '@/types/novel'
 import type { Lore, EntryMeta, EntryImportance } from '@/types/lore'
 
-const NOVELS_DIR = 'novels'
-
 // 路径工具函数（返回相对路径，由 getDataBase() 拼接前缀）
-function loreDir(novelId: string) {
-  return `${NOVELS_DIR}/${novelId}/lore`
+function loreDir() {
+  return 'lore'
 }
 
-function loreMetaPath(novelId: string) {
-  return `${loreDir(novelId)}/lore.json`
+function loreMetaPath() {
+  return `${loreDir()}/lore.json`
 }
 
-function entryPath(novelId: string, filename: string) {
-  return `${loreDir(novelId)}/entries/${filename}`
+function entryPath(filename: string) {
+  return `${loreDir()}/entries/${filename}`
 }
 
 /**
@@ -49,7 +47,7 @@ export async function loadOrCreateLore(novel: Novel): Promise<Lore> {
   const fs = appService.fs
   const { base, pathPrefix: P } = getDataBase()
 
-  const metaPath = P + loreMetaPath(novel.id)
+  const metaPath = P + loreMetaPath()
   const exists = await fs.exists(metaPath, base).catch(() => false)
 
   if (exists) {
@@ -86,19 +84,19 @@ export async function saveLoreMeta(lore: Lore): Promise<void> {
   const fs = appService.fs
   const { base, pathPrefix: P } = getDataBase()
 
-  const dir = P + loreDir(lore.id)
+  const dir = P + loreDir()
   await fs.createDir(dir, base, true).catch(() => {})
   await fs.createDir(`${dir}/entries`, base, true).catch(() => {})
 
   const updated = { ...lore, updatedAt: Date.now() }
-  await fs.writeFile(P + loreMetaPath(lore.id), base, JSON.stringify(updated, null, 2))
+  await fs.writeFile(P + loreMetaPath(), base, JSON.stringify(updated, null, 2))
 }
 
 /** 加载条目正文内容 */
-export async function loadEntryContent(novelId: string, filename: string): Promise<string> {
+export async function loadEntryContent(filename: string): Promise<string> {
   const appService = await useAppService()
   const { base, pathPrefix: P } = getDataBase()
-  const path = P + entryPath(novelId, filename)
+  const path = P + entryPath(filename)
   const exists = await appService.fs.exists(path, base).catch(() => false)
   if (!exists) return ''
   const content = await appService.fs.readFile(path, base, 'text')
@@ -107,13 +105,12 @@ export async function loadEntryContent(novelId: string, filename: string): Promi
 
 /** 保存条目正文内容 */
 export async function saveEntryContent(
-  novelId: string,
   filename: string,
   content: string,
 ): Promise<void> {
   const appService = await useAppService()
   const { base, pathPrefix: P } = getDataBase()
-  await appService.fs.writeFile(P + entryPath(novelId, filename), base, content)
+  await appService.fs.writeFile(P + entryPath(filename), base, content)
 }
 
 /** 创建新条目（返回更新后的 lore 和新条目 meta） */
@@ -141,9 +138,9 @@ export async function createEntry(
   // 创建空正文文件
   const appService = await useAppService()
   const { base, pathPrefix: P } = getDataBase()
-  await appService.fs.createDir(P + `${loreDir(lore.id)}/entries`, base, true).catch(() => {})
+  await appService.fs.createDir(P + `${loreDir()}/entries`, base, true).catch(() => {})
   await appService.fs.writeFile(
-    P + entryPath(lore.id, filename),
+    P + entryPath(filename),
     base,
     `# ${entry.name}\n\n`,
   )
@@ -179,7 +176,7 @@ export async function deleteEntry(lore: Lore, entryId: string): Promise<Lore> {
 
   const appService = await useAppService()
   const { base, pathPrefix: P } = getDataBase()
-  await appService.fs.removeFile(P + entryPath(lore.id, entry.filename), base).catch(() => {})
+  await appService.fs.removeFile(P + entryPath(entry.filename), base).catch(() => {})
 
   const updatedLore: Lore = {
     ...lore,

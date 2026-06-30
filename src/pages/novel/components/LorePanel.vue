@@ -133,7 +133,7 @@ async function focusEntry(entryId: string | null | undefined) {
   if (currentEntry.value?.id === entry.id) return
   await trySaveCurrent()
   try {
-    const content = await loadEntryContent(lore.value!.id, entry.filename)
+    const content = await loadEntryContent(entry.filename)
     loreStore.openEntry(entry, content)
   } catch (e) {
     showErrorMsg('加载条目失败：' + (e instanceof Error ? e.message : String(e)))
@@ -175,7 +175,7 @@ async function handleSelectEntry(entry: EntryMeta) {
   if (currentEntry.value?.id === entry.id) return
   await trySaveCurrent()
   try {
-    const content = await loadEntryContent(lore.value!.id, entry.filename)
+    const content = await loadEntryContent(entry.filename)
     loreStore.openEntry(entry, content)
   } catch (e) {
     showErrorMsg('加载条目失败：' + (e instanceof Error ? e.message : String(e)))
@@ -244,7 +244,7 @@ async function handleMetaChange(patch: Partial<EntryMeta>) {
 async function handleSave() {
   if (!lore.value || !currentEntry.value) return
   try {
-    await saveEntryContent(lore.value.id, currentEntry.value.filename, currentEntryContent.value)
+    await saveEntryContent(currentEntry.value.filename, currentEntryContent.value)
     loreStore.markSaved()
   } catch (e) {
     showErrorMsg('保存失败：' + (e instanceof Error ? e.message : String(e)))

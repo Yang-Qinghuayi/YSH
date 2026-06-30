@@ -1,16 +1,14 @@
 /**
  * novelService.ts
  * 小说数据的文件读写服务
- * 数据存储路径（Data 基目录下）：
- *   novels/<novel-id>/novel.json      ← 小说元数据 + 角色 + 章节列表
- *   novels/<novel-id>/chapters/<filename>.md  ← 每章节的 Markdown 内容
+ * 数据存储路径（扁平结构：一个文件夹 = 一本小说，文件夹直接是小说根）：
+ *   <小说文件夹>/novel.json            ← 小说元数据 + 角色 + 章节列表
+ *   <小说文件夹>/chapters/<filename>.md ← 每章节的 Markdown 内容
  */
 
 import { useAppService } from '@/hooks/useEnv'
 import { getDataBase } from '@/services/workspaceService'
 import type { Novel, ChapterMeta, Character, SearchResult, LegacyCharacter } from '@/types/novel'
-
-const NOVELS_DIR = 'novels'
 
 /**
  * 将旧版角色（含 profile / skills）迁移为新的静态档案结构（含 voice）。
@@ -63,58 +61,40 @@ function migrateNovel(novel: Novel): { novel: Novel; changed: boolean } {
   return { novel: { ...novel, characters }, changed: true }
 }
 
-// 获取小说根目录路径（相对于数据根目录）
-function novelDir(novelId: string) {
-  return `${NOVELS_DIR}/${novelId}`
+// novel.json 路径（相对于小说文件夹根）
+function novelMetaPath() {
+  return 'novel.json'
 }
 
-// 获取 novel.json 路径
-function novelMetaPath(novelId: string) {
-  return `${novelDir(novelId)}/novel.json`
+// 获取章节文件路径（相对于小说文件夹根）
+function chapterPath(filename: string) {
+  return `chapters/${filename}`
 }
 
-// 获取章节文件路径
-function chapterPath(novelId: string, filename: string) {
-  return `${novelDir(novelId)}/chapters/${filename}`
-}
-
-/** 加载所有小说（扫描 novels/ 目录） */
-export async function loadAllNovels(): Promise<Novel[]> {
+/** 加载当前小说（读 novel.json，不存在返回 null） */
+export async function loadCurrentNovel(): Promise<Novel | null> {
   const appService = await useAppService()
   const fs = appService.fs
   const { base, pathPrefix: P } = getDataBase()
 
-  const dirExists = await fs.exists(P + NOVELS_DIR, base).catch(() => false)
-  if (!dirExists) return []
+  const metaPath = P + novelMetaPath()
+  const exists = await fs.exists(metaPath, base).catch(() => false)
+  if (!exists) return null
 
-  const entries = await fs.readDir(P + NOVELS_DIR, base).catch(() => [] as { path: string; isDir: boolean }[])
-  const novels: Novel[] = []
+  const raw = await fs.readFile(metaPath, base, 'text').catch(() => null)
+  if (!raw || typeof raw !== 'string') return null
 
-  for (const entry of entries) {
-    if (!entry.isDir) continue
-    // entry.path 可能是完整路径或相对路径，取最后一段作为 novelId
-    const novelId = entry.path.split('/').pop() || entry.path
-    const metaPath = P + novelMetaPath(novelId)
-    const exists = await fs.exists(metaPath, base).catch(() => false)
-    if (!exists) continue
-
-    const raw = await fs.readFile(metaPath, base, 'text').catch(() => null)
-    if (!raw || typeof raw !== 'string') continue
-
-    try {
-      const novel = JSON.parse(raw) as Novel
-      // 迁移旧版角色结构（profile/skills → 静态档案 + voice），迁移后写回
-      const { novel: migrated, changed } = migrateNovel(novel)
-      if (changed) {
-        await saveNovelMeta(migrated).catch(() => {})
-      }
-      novels.push(migrated)
-    } catch {
-      // 忽略格式错误的文件
+  try {
+    const novel = JSON.parse(raw) as Novel
+    // 迁移旧版角色结构（profile/skills → 静态档案 + voice），迁移后写回
+    const { novel: migrated, changed } = migrateNovel(novel)
+    if (changed) {
+      await saveNovelMeta(migrated).catch(() => {})
     }
+    return migrated
+  } catch {
+    return null
   }
-
-  return novels.sort((a, b) => b.updatedAt - a.updatedAt)
 }
 
 /** 保存小说元数据（含角色、章节列表） */
@@ -123,15 +103,14 @@ export async function saveNovelMeta(novel: Novel): Promise<void> {
   const fs = appService.fs
   const { base, pathPrefix: P } = getDataBase()
 
-  // 确保目录存在
-  await fs.createDir(P + novelDir(novel.id), base, true).catch(() => {})
-  await fs.createDir(P + `${novelDir(novel.id)}/chapters`, base, true).catch(() => {})
+  // 确保章节目录存在
+  await fs.createDir(P + 'chapters', base, true).catch(() => {})
 
   const updated = { ...novel, updatedAt: Date.now() }
-  await fs.writeFile(P + novelMetaPath(novel.id), base, JSON.stringify(updated, null, 2))
+  await fs.writeFile(P + novelMetaPath(), base, JSON.stringify(updated, null, 2))
 }
 
-/** 创建新小说 */
+/** 创建新小说（在当前小说文件夹根写入 novel.json） */
 export async function createNovel(title: string, synopsis = ''): Promise<Novel> {
   const novel: Novel = {
     id: `novel-${Date.now()}`,
@@ -146,18 +125,11 @@ export async function createNovel(title: string, synopsis = ''): Promise<Novel> 
   return novel
 }
 
-/** 删除小说（删除整个目录） */
-export async function deleteNovel(novelId: string): Promise<void> {
-  const appService = await useAppService()
-  const { base, pathPrefix: P } = getDataBase()
-  await appService.fs.removeDir(P + novelDir(novelId), base, true).catch(() => {})
-}
-
 /** 加载章节内容 */
-export async function loadChapterContent(novelId: string, filename: string): Promise<string> {
+export async function loadChapterContent(filename: string): Promise<string> {
   const appService = await useAppService()
   const { base, pathPrefix: P } = getDataBase()
-  const path = P + chapterPath(novelId, filename)
+  const path = P + chapterPath(filename)
   const exists = await appService.fs.exists(path, base).catch(() => false)
   if (!exists) return ''
 
@@ -167,13 +139,12 @@ export async function loadChapterContent(novelId: string, filename: string): Pro
 
 /** 保存章节内容 */
 export async function saveChapterContent(
-  novelId: string,
   filename: string,
   content: string,
 ): Promise<void> {
   const appService = await useAppService()
   const { base, pathPrefix: P } = getDataBase()
-  await appService.fs.writeFile(P + chapterPath(novelId, filename), base, content)
+  await appService.fs.writeFile(P + chapterPath(filename), base, content)
 }
 
 /** 新建章节 */
@@ -192,9 +163,9 @@ export async function createChapter(novel: Novel, title: string): Promise<{ nove
   // 创建空 md 文件
   const appService = await useAppService()
   const { base, pathPrefix: P } = getDataBase()
-  await appService.fs.createDir(P + `${novelDir(novel.id)}/chapters`, base, true).catch(() => {})
+  await appService.fs.createDir(P + 'chapters', base, true).catch(() => {})
   await appService.fs.writeFile(
-    P + chapterPath(novel.id, filename),
+    P + chapterPath(filename),
     base,
     '',
   )
@@ -237,14 +208,13 @@ export function formatTotalWordCount(n: number): string {
 
 /** 批量读取章节文件，返回 chapterId → wordCount 的 Map */
 export async function loadAllChapterWordCounts(
-  novelId: string,
   chapters: ChapterMeta[],
 ): Promise<Map<string, number>> {
   const result = new Map<string, number>()
   await Promise.all(
     chapters.map(async (chapter) => {
       try {
-        const content = await loadChapterContent(novelId, chapter.filename)
+        const content = await loadChapterContent(chapter.filename)
         result.set(chapter.id, countWords(content))
       } catch {
         // 读取失败忽略，保留 undefined
@@ -256,7 +226,6 @@ export async function loadAllChapterWordCounts(
 
 /** 跨章节全文搜索，返回所有匹配行（并发读取） */
 export async function searchInChapters(
-  novelId: string,
   chapters: ChapterMeta[],
   query: string,
 ): Promise<SearchResult[]> {
@@ -268,7 +237,7 @@ export async function searchInChapters(
   await Promise.all(
     chapters.map(async (chapter) => {
       try {
-        const content = await loadChapterContent(novelId, chapter.filename)
+        const content = await loadChapterContent(chapter.filename)
         const lines = content.split('\n')
         lines.forEach((line, lineIndex) => {
           const lowerLine = line.toLowerCase()
@@ -310,7 +279,7 @@ export async function deleteChapter(novel: Novel, chapterId: string): Promise<No
 
   const appService = await useAppService()
   const { base, pathPrefix: P } = getDataBase()
-  await appService.fs.removeFile(P + chapterPath(novel.id, chapter.filename), base).catch(() => {})
+  await appService.fs.removeFile(P + chapterPath(chapter.filename), base).catch(() => {})
 
   const updatedNovel: Novel = {
     ...novel,

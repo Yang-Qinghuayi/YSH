@@ -2,10 +2,7 @@ import { defineStore } from 'pinia'
 import type { Novel, ChapterMeta } from '@/types/novel'
 
 export const useNovelStore = defineStore('novel', () => {
-  // 当前打开的小说列表（侧栏展示）
-  const novels = ref<Novel[]>([])
-
-  // 当前正在编辑的小说
+  // 当前正在编辑的小说（一次一本）
   const currentNovel = ref<Novel | null>(null)
 
   // 当前正在编辑的章节元数据
@@ -23,13 +20,8 @@ export const useNovelStore = defineStore('novel', () => {
   // AI 生成是否被中断
   const abortController = ref<AbortController | null>(null)
 
-  // 设置小说列表
-  function setNovels(list: Novel[]) {
-    novels.value = list
-  }
-
   // 打开小说
-  function openNovel(novel: Novel) {
+  function openNovel(novel: Novel | null) {
     currentNovel.value = novel
     currentChapter.value = null
     currentChapterContent.value = ''
@@ -57,10 +49,6 @@ export const useNovelStore = defineStore('novel', () => {
   // 在当前小说中更新角色/技能等（本地状态）
   function updateCurrentNovel(updated: Novel) {
     currentNovel.value = updated
-    const index = novels.value.findIndex((n) => n.id === updated.id)
-    if (index !== -1) {
-      novels.value[index] = updated
-    }
   }
 
   // 在当前小说中更新章节列表
@@ -83,14 +71,12 @@ export const useNovelStore = defineStore('novel', () => {
   }
 
   return {
-    novels,
     currentNovel,
     currentChapter,
     currentChapterContent,
     isDirty,
     isGenerating,
     abortController,
-    setNovels,
     openNovel,
     openChapter,
     updateContent,

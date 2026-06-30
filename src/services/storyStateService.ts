@@ -1,18 +1,16 @@
 /**
  * storyStateService.ts
  * 故事状态层的文件读写服务
- * 数据存储路径（Data 基目录下，与 novel.json / lore 同级）：
- *   novels/<novel-id>/story-state.json  ← 故事状态（角色动态状态/时间线/伏笔）
+ * 数据存储路径（扁平结构，与 novel.json / lore 同级，均在小说文件夹根）：
+ *   <小说文件夹>/story-state.json  ← 故事状态（角色动态状态/时间线/伏笔）
  */
 
 import { useAppService } from '@/hooks/useEnv'
 import { getDataBase } from '@/services/workspaceService'
 import type { StoryState } from '@/types/storyState'
 
-const NOVELS_DIR = 'novels'
-
-function storyStatePath(novelId: string) {
-  return `${NOVELS_DIR}/${novelId}/story-state.json`
+function storyStatePath() {
+  return 'story-state.json'
 }
 
 /** 构造空骨架 */
@@ -26,11 +24,11 @@ export function emptyStoryState(novelId: string): StoryState {
   }
 }
 
-/** 加载故事状态（不存在则返回空骨架，不写盘） */
+/** 加载故事状态（不存在则返回空骨架，不写盘）。novelId 仅用于写元数据，不参与路径 */
 export async function loadStoryState(novelId: string): Promise<StoryState> {
   const appService = await useAppService()
   const { base, pathPrefix: P } = getDataBase()
-  const path = P + storyStatePath(novelId)
+  const path = P + storyStatePath()
 
   const exists = await appService.fs.exists(path, base).catch(() => false)
   if (!exists) return emptyStoryState(novelId)
@@ -53,16 +51,17 @@ export async function loadStoryState(novelId: string): Promise<StoryState> {
   }
 }
 
-/** 保存故事状态 */
-export async function saveStoryState(state: StoryState): Promise<void> {
+/** 保存故事状态，返回写入磁盘的最终对象（含 updatedAt） */
+export async function saveStoryState(state: StoryState): Promise<StoryState> {
   const appService = await useAppService()
   const { base, pathPrefix: P } = getDataBase()
 
-  const dir = P + `${NOVELS_DIR}/${state.novelId}`
-  await appService.fs.createDir(dir, base, true).catch(() => {})
+  // 确保小说文件夹根存在
+  await appService.fs.createDir(P, base, true).catch(() => {})
 
   const updated = { ...state, updatedAt: Date.now() }
-  await appService.fs.writeFile(P + storyStatePath(state.novelId), base, JSON.stringify(updated, null, 2))
+  await appService.fs.writeFile(P + storyStatePath(), base, JSON.stringify(updated, null, 2))
+  return updated
 }
 
 /** 按 characterName 取单个角色状态（不存在则返回 null） */

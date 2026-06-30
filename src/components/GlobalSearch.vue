@@ -72,9 +72,8 @@ import type { ChapterMeta, SearchResult } from '@/types/novel'
 
 const props = defineProps<{
   visible: boolean
-  novelId: string
   chapters: ChapterMeta[]
-  searchFn: (novelId: string, chapters: ChapterMeta[], query: string) => Promise<SearchResult[]>
+  searchFn: (chapters: ChapterMeta[], query: string) => Promise<SearchResult[]>
 }>()
 
 const emit = defineEmits<{
@@ -105,7 +104,7 @@ watch(query, (q) => {
 async function doSearch(q: string) {
   isSearching.value = true
   try {
-    const res = await props.searchFn(props.novelId, props.chapters, q)
+    const res = await props.searchFn(props.chapters, q)
     results.value = res
     selectedIndex.value = 0
   } catch {

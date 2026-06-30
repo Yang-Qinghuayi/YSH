@@ -8,13 +8,13 @@
       </div>
 
       <!-- 标题 -->
-      <h2 class="card-title">选择工作区</h2>
+      <h2 class="card-title">打开你的小说</h2>
       <p class="card-desc">
-        选择一个文件夹存放你的小说和资料，<br />
-        就像一个本地的创作库。
+        打开一个小说文件夹，或新建一部。<br />
+        一个文件夹就是一部小说。
       </p>
 
-      <!-- 主要操作 -->
+      <!-- 主要操作：打开文件夹 -->
       <v-btn
         color="primary"
         block
@@ -35,11 +35,59 @@
         <div class="divider-line" />
       </div>
 
-      <!-- 使用默认 -->
-      <button class="secondary-btn" @click="handleUseDefault">
-        使用默认存储位置
-      </button>
-      <p class="secondary-desc">存储在系统 AppData 目录</p>
+      <!-- 新建小说（仅 Tauri，需选父目录） -->
+      <template v-if="isTauri">
+        <div class="divider-row">
+          <div class="divider-line" />
+          <span class="divider-text">或</span>
+          <div class="divider-line" />
+        </div>
+        <button class="secondary-btn" @click="showCreateInput = !showCreateInput">
+          <v-icon :icon="mdiPlus" size="16" class="mr-1" />
+          新建小说
+        </button>
+
+        <v-expand-transition>
+          <div v-if="showCreateInput" class="create-wrap">
+            <v-text-field
+              v-model="newTitle"
+              placeholder="小说标题（将作为文件夹名）"
+              density="compact"
+              variant="outlined"
+              hide-details
+              autofocus
+              rounded="xl"
+              class="create-input"
+              @keyup.enter="handleCreate"
+            />
+            <v-btn
+              color="primary"
+              block
+              rounded="pill"
+              elevation="0"
+              :loading="creating"
+              :disabled="!newTitle.trim()"
+              class="mt-3"
+              @click="handleCreate"
+            >
+              选择位置并创建
+            </v-btn>
+          </div>
+        </v-expand-transition>
+      </template>
+
+      <!-- Web 兜底：使用默认存储位置 -->
+      <template v-else>
+        <div class="divider-row">
+          <div class="divider-line" />
+          <span class="divider-text">或</span>
+          <div class="divider-line" />
+        </div>
+        <button class="secondary-btn" @click="handleUseDefault">
+          使用默认存储位置
+        </button>
+        <p class="secondary-desc">存储在系统 AppData 目录</p>
+      </template>
 
       <!-- 已选路径预览 -->
       <transition name="slide-down">
@@ -48,16 +96,6 @@
             <v-icon :icon="mdiCheckCircleOutline" size="16" color="success" class="mr-2 flex-shrink-0" />
             <span class="path-text">{{ selectedPath }}</span>
           </div>
-          <v-btn
-            color="primary"
-            block
-            rounded="pill"
-            elevation="0"
-            class="mt-3"
-            @click="handleConfirm"
-          >
-            开始使用
-          </v-btn>
         </div>
       </transition>
 
@@ -66,21 +104,34 @@
 </template>
 
 <script setup lang="ts">
-import { mdiBookshelf, mdiFolderOpenOutline, mdiCheckCircleOutline } from '@mdi/js'
+import { mdiBookshelf, mdiFolderOpenOutline, mdiCheckCircleOutline, mdiPlus } from '@mdi/js'
 import { useSettingStore } from '@/store/setting'
-import { pickWorkspaceDir, setWorkspaceDir } from '@/services/workspaceService'
+import {
+  pickWorkspaceDir,
+  setWorkspaceDir,
+  createNovelFolder,
+} from '@/services/workspaceService'
+import { isTauriAppPlatform } from '@/services/environment'
 
 const settingStore = useSettingStore()
+const isTauri = isTauriAppPlatform()
 const picking = ref(false)
+const creating = ref(false)
 const selectedPath = ref<string | null>(null)
+const showCreateInput = ref(false)
+const newTitle = ref('')
 
 const emit = defineEmits<{ done: [] }>()
 
+/** 打开已有小说文件夹 */
 async function handlePickFolder() {
   picking.value = true
   try {
     const dir = await pickWorkspaceDir()
-    if (dir) selectedPath.value = dir
+    if (dir) {
+      setWorkspaceDir(dir)
+      emit('done')
+    }
   } catch (e) {
     console.error('选择文件夹失败：', e)
   } finally {
@@ -88,10 +139,23 @@ async function handlePickFolder() {
   }
 }
 
-function handleConfirm() {
-  if (!selectedPath.value) return
-  setWorkspaceDir(selectedPath.value)
-  emit('done')
+/** 新建小说：输入标题 → 选父目录 → 创建以标题命名的文件夹 */
+async function handleCreate() {
+  const title = newTitle.value.trim()
+  if (!title) return
+  creating.value = true
+  try {
+    // 选父目录（复用文件夹选择器）
+    const parent = await pickWorkspaceDir()
+    if (!parent) return
+    const target = await createNovelFolder(parent, title)
+    selectedPath.value = target
+    emit('done')
+  } catch (e) {
+    console.error('创建小说失败：', e)
+  } finally {
+    creating.value = false
+  }
 }
 
 function handleUseDefault() {
@@ -190,6 +254,9 @@ function handleUseDefault() {
   cursor: pointer;
   transition: background 0.18s ease, border-color 0.18s ease;
   font-weight: 450;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .secondary-btn:hover {
   background: rgba(var(--v-theme-on-surface), 0.05);
@@ -200,6 +267,25 @@ function handleUseDefault() {
   font-size: 11px;
   color: rgba(var(--v-theme-on-surface), 0.3);
   margin: 6px 0 0;
+}
+
+/* 新建表单 */
+.create-wrap {
+  margin-top: 12px;
+  text-align: left;
+}
+.create-input :deep(.v-field__outline__start),
+.create-input :deep(.v-field__outline__end),
+.create-input :deep(.v-field__outline__notch) {
+  border-color: rgba(var(--v-theme-on-surface), 0.18) !important;
+}
+.create-input :deep(.v-field--focused .v-field__outline__start),
+.create-input :deep(.v-field--focused .v-field__outline__end),
+.create-input :deep(.v-field--focused .v-field__outline__notch) {
+  border-color: rgb(var(--v-theme-primary)) !important;
+}
+.create-input :deep(input::placeholder) {
+  color: rgba(var(--v-theme-on-surface), 0.38);
 }
 
 /* 已选路径 */

@@ -24,6 +24,32 @@
         <span class="stat-num">{{ characterCount }}</span>
       </div>
     </div>
+
+    <!-- 右：操作按钮组 -->
+    <div class="action-group" v-if="novel">
+      <button
+        v-if="isTauri"
+        class="action-btn"
+        title="在文件夹中打开"
+        @click="emit('open-folder')"
+      >
+        <v-icon :icon="mdiFolderOpen" size="16" />
+      </button>
+      <button
+        class="action-btn"
+        title="查看故事状态"
+        @click="emit('view-state')"
+      >
+        <v-icon :icon="mdiStateMachine" size="16" />
+      </button>
+      <button
+        class="action-btn"
+        title="切换小说"
+        @click="emit('switch-novel')"
+      >
+        <v-icon :icon="mdiSwapHorizontal" size="16" />
+      </button>
+    </div>
   </div>
 </template>
 
@@ -32,13 +58,25 @@ import {
   mdiBookOpenVariant,
   mdiCounter,
   mdiAccountGroupOutline,
+  mdiFolderOpen,
+  mdiStateMachine,
+  mdiSwapHorizontal,
 } from '@mdi/js'
 import { formatTotalWordCount } from '@/services/novelService'
+import { isTauriAppPlatform } from '@/services/environment'
 import type { Novel } from '@/types/novel'
 
 const props = defineProps<{
   novel: Novel | null
 }>()
+
+const emit = defineEmits<{
+  'open-folder': []
+  'view-state': []
+  'switch-novel': []
+}>()
+
+const isTauri = isTauriAppPlatform()
 
 const chapterCount = computed(() => props.novel?.chapters.length ?? 0)
 const characterCount = computed(() => props.novel?.characters.length ?? 0)
@@ -106,6 +144,34 @@ const totalWordCount = computed(() => {
 .stat-unit {
   font-size: 10.5px;
   opacity: 0.7;
+}
+
+/* 操作按钮组 */
+.action-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: 4px;
+  padding-left: 6px;
+  border-left: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+}
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: rgba(var(--v-theme-on-surface), 0.55);
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+.action-btn:hover {
+  background: rgba(var(--v-theme-on-surface), 0.08);
+  color: rgba(var(--v-theme-on-surface), 0.85);
 }
 
 /* 窄屏：隐藏简介与单位，统计精简 */

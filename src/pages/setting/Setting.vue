@@ -23,13 +23,7 @@
           hide-details
         >
           <template #item="{ item, props: itemProps }">
-            <v-list-item v-bind="itemProps">
-              <template #title>
-                <span :style="{ fontFamily: getFontCss(item.value), fontWeight: 'normal' }">
-                  {{ item.title }}
-                </span>
-              </template>
-            </v-list-item>
+            <v-list-item v-bind="itemProps" :style="{ fontFamily: getFontCss(item.value) }" />
           </template>
           <template #selection="{ item }">
             <span :style="{ fontFamily: selectedFontCss }">{{ item.title }}</span>

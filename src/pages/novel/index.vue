@@ -1,7 +1,7 @@
 <template>
   <div class="novel-root">
   <!-- 未选择工作区时：显示选择界面 -->
-  <WorkspaceInit v-if="!workspaceReady" @done="workspaceReady = true" class="h-100" />
+  <WorkspaceInit v-if="!workspaceReady" @done="handleWorkspaceReady" class="h-100" />
 
   <div v-else class="novel-page d-flex h-100">
     <!-- ===== 主编辑区 ===== -->
@@ -10,6 +10,9 @@
       <NovelOverviewBar
         v-if="currentNovel"
         :novel="currentNovel"
+        @open-folder="handleOpenFolder"
+        @view-state="showStoryStateDialog = true"
+        @switch-novel="switchNovel"
       />
 
       <!-- 未选择章节时的占位 -->
@@ -27,10 +30,16 @@
           <div class="empty-sub">
             {{ currentNovel ? '在左侧选择章节，或新建一章开始写作' : '在左侧新建一部小说，开启 AI 辅助写作之旅' }}
           </div>
-          <button v-if="!currentNovel" class="lg-pill empty-btn" @click="novelListRef?.openCreate()">
-            <v-icon :icon="mdiPlus" size="16" />
-            新建小说
-          </button>
+          <div v-if="!currentNovel" class="empty-actions">
+            <button class="lg-pill empty-btn" @click="switchNovel">
+              <v-icon :icon="mdiPlus" size="16" />
+              新建 / 打开小说
+            </button>
+            <button class="lg-pill empty-btn empty-btn--ghost" @click="showImportDialog = true">
+              <v-icon :icon="mdiImport" size="16" />
+              导入小说
+            </button>
+          </div>
           <button v-else class="lg-pill empty-btn" @click="chapterListRef?.openCreate()">
             <v-icon :icon="mdiPlus" size="16" />
             新建章节
@@ -96,7 +105,7 @@
         <button class="lg-icon-btn rail-toggle" title="展开侧栏" @click="sidebarCollapsed = false">
           <v-icon :icon="mdiMenuClose" size="18" />
         </button>
-        <button class="rail-avatar" :class="{ 'rail-avatar--active': currentNovel }" title="我的小说" @click="sidebarCollapsed = false">
+        <button class="rail-avatar" :class="{ 'rail-avatar--active': currentNovel }" :title="currentNovel ? currentNovel.title : '切换小说'" @click="switchNovel">
           {{ currentNovel ? currentNovel.title.slice(0, 1) : '书' }}
         </button>
         <button class="lg-icon-btn" title="章节" :disabled="!currentNovel" @click="sidebarCollapsed = false">
@@ -112,23 +121,27 @@
 
       <!-- 展开态：分组玻璃卡片 -->
       <template v-else>
-        <!-- 小说区 -->
+        <!-- 当前小说区：标题 + 切换/导入入口 -->
         <div class="sidebar-card lg-card">
           <div class="sidebar-card__head">
             <v-icon :icon="mdiBookOpenVariant" size="14" class="lg-section-label" />
-            <span class="lg-section-label">我的小说</span>
-            <button v-if="sidebarCollapsed === false" class="lg-icon-btn collapse-inline" title="折叠侧栏" @click="sidebarCollapsed = true">
+            <span class="lg-section-label">当前小说</span>
+            <button class="lg-icon-btn collapse-inline" title="折叠侧栏" @click="sidebarCollapsed = true">
               <v-icon :icon="mdiMenuOpen" size="16" />
             </button>
           </div>
-          <NovelList
-            ref="novelListRef"
-            :novels="novels"
-            :current-novel-id="currentNovel?.id"
-            @select="handleSelectNovel"
-            @delete="handleDeleteNovel"
-            @create="handleCreateNovel"
-          />
+          <div class="current-novel-box">
+            <div v-if="currentNovel" class="current-novel-title text-truncate">{{ currentNovel.title }}</div>
+            <div v-else class="current-novel-title current-novel-title--empty">未打开小说</div>
+            <div class="current-novel-actions">
+              <button class="lg-pill mini-action" @click="switchNovel">
+                <v-icon :icon="mdiSwapHorizontal" size="13" /> 切换
+              </button>
+              <button class="lg-pill mini-action mini-action--ghost" @click="showImportDialog = true">
+                <v-icon :icon="mdiImport" size="13" /> 导入
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- 章节区 -->
@@ -205,7 +218,6 @@
     <GlobalSearch
       v-if="currentNovel"
       v-model:visible="showGlobalSearch"
-      :novel-id="currentNovel.id"
       :chapters="currentNovel.chapters"
       :search-fn="searchInChapters"
       @jump="handleSearchJump"
@@ -231,6 +243,20 @@
       @saved="reloadLoreEntries"
     />
 
+    <!-- 故事状态查看/编辑弹窗 -->
+    <StoryStateDialog
+      v-if="currentNovel"
+      v-model="showStoryStateDialog"
+      :novel-id="currentNovel.id"
+      :characters="currentNovel.characters"
+    />
+
+    <!-- 导入小说对话框 -->
+    <ImportNovelDialog
+      v-model:visible="showImportDialog"
+      @imported="handleImported"
+    />
+
     <!-- 错误提示 -->
     <v-snackbar v-model="showError" color="error" timeout="4000" location="top">
       {{ errorMessage }}
@@ -252,14 +278,15 @@ import {
   mdiFormatListBulleted,
   mdiAccountGroupOutline,
   mdiBookshelf,
+  mdiImport,
+  mdiSwapHorizontal,
 } from '@mdi/js'
 import { useNovelStore } from '@/store/novelStore'
 import { useSettingStore } from '@/store/setting'
 import { useAgentStore } from '@/store/agentStore'
 import {
-  loadAllNovels,
+  loadCurrentNovel,
   createNovel,
-  deleteNovel,
   saveNovelMeta,
   loadChapterContent,
   saveChapterContent,
@@ -281,12 +308,17 @@ import {
 } from '@/services/agentService'
 import { loadStoryState, saveStoryState } from '@/services/storyStateService'
 import { loadOrCreateLore } from '@/services/loreService'
-import { isWorkspaceInitialized } from '@/services/workspaceService'
+import {
+  isWorkspaceInitialized,
+  getWorkspaceDir,
+  getDirName,
+} from '@/services/workspaceService'
+import { isTauriAppPlatform } from '@/services/environment'
+import { openPath } from '@tauri-apps/plugin-opener'
 import type { Novel, ChapterMeta, Character, SearchResult } from '@/types/novel'
 import type { CharacterState } from '@/types/storyState'
 import type { EntryMeta } from '@/types/lore'
 import WorkspaceInit from '@/components/WorkspaceInit.vue'
-import NovelList from './components/NovelList.vue'
 import ChapterList from './components/ChapterList.vue'
 import NovelEditor from './components/NovelEditor.vue'
 import NovelOverviewBar from './components/NovelOverviewBar.vue'
@@ -295,6 +327,8 @@ import AgentPlanPanel from './components/AgentPlanPanel.vue'
 import AgentStatusBar from './components/AgentStatusBar.vue'
 import CharacterPanel from './components/CharacterPanel.vue'
 import LorePanel from './components/LorePanel.vue'
+import StoryStateDialog from './components/StoryStateDialog.vue'
+import ImportNovelDialog from './components/ImportNovelDialog.vue'
 import GlobalSearch from '@/components/GlobalSearch.vue'
 
 // ===== Store =====
@@ -302,11 +336,12 @@ const novelStore = useNovelStore()
 const settingStore = useSettingStore()
 const agentStore = useAgentStore()
 
-const { novels, currentNovel, currentChapter, currentChapterContent, isDirty, isGenerating } =
+const { currentNovel, currentChapter, currentChapterContent, isDirty, isGenerating } =
   storeToRefs(novelStore)
 
 // ===== 工作区状态 =====
 const workspaceReady = ref(isWorkspaceInitialized())
+const isTauri = isTauriAppPlatform()
 
 // ===== 本地状态 =====
 const showCharacterDialog = ref(false)
@@ -314,11 +349,12 @@ const showError = ref(false)
 const errorMessage = ref('')
 const showGlobalSearch = ref(false)
 const showLorePanel = ref(false)
+const showImportDialog = ref(false)
+const showStoryStateDialog = ref(false)
 const loreEntries = ref<EntryMeta[]>([])
 const pendingLoreEntryId = ref<string | null>(null)
 
 const editorRef = ref<InstanceType<typeof NovelEditor> | null>(null)
-const novelListRef = ref<InstanceType<typeof NovelList> | null>(null)
 const chapterListRef = ref<InstanceType<typeof ChapterList> | null>(null)
 
 // ===== 侧栏折叠 =====
@@ -363,11 +399,8 @@ let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
 
 // ===== 初始化 =====
 onMounted(async () => {
-  try {
-    const list = await loadAllNovels()
-    novelStore.setNovels(list)
-  } catch (e) {
-    showErrorMsg('加载小说列表失败：' + (e instanceof Error ? e.message : String(e)))
+  if (workspaceReady.value) {
+    await loadCurrentNovelData()
   }
 
   // Cmd+Shift+F / Ctrl+Shift+F 唤起全局搜索（独立监听，绕过 useShortcuts 的 contentEditable 过滤）
@@ -381,17 +414,54 @@ onMounted(async () => {
   onBeforeUnmount(() => window.removeEventListener('keydown', handleGlobalSearchKey))
 })
 
-// ===== 小说操作 =====
-async function handleSelectNovel(novel: Novel) {
-  if (currentNovel.value?.id === novel.id) return
+/**
+ * 加载当前小说文件夹的数据。
+ * 若文件夹里没有 novel.json（空文件夹），以文件夹名作为标题创建一本新小说。
+ */
+async function loadCurrentNovelData() {
+  try {
+    let novel = await loadCurrentNovel()
+    if (!novel) {
+      // 空文件夹：以文件夹名作为小说标题创建
+      const dir = getWorkspaceDir()
+      const title = dir ? await getDirName(dir).catch(() => '未命名小说') : '未命名小说'
+      novel = await createNovel(title, '')
+    }
+    novelStore.openNovel(novel)
+    // 加载故事状态到缓存（供角色面板展示）
+    loadStoryState(novel.id).then((s) => agentStore.setStoryState(s)).catch(() => {})
+    // 加载设定资料库条目缓存（供侧栏 chip 展示）
+    loadLoreEntries(novel)
+    // 后台异步加载尚未计算字数的章节
+    loadMissingWordCounts(novel)
+  } catch (e) {
+    showErrorMsg('加载小说失败：' + (e instanceof Error ? e.message : String(e)))
+  }
+}
+
+/** WorkspaceInit 完成（选/建好小说文件夹）后加载该小说 */
+async function handleWorkspaceReady() {
+  workspaceReady.value = true
+  await loadCurrentNovelData()
+}
+
+/** 切换小说：保存当前章节后回到选择界面 */
+async function switchNovel() {
   await trySaveCurrentChapter()
-  novelStore.openNovel(novel)
-  // 加载故事状态到缓存（供角色面板展示）
-  loadStoryState(novel.id).then((s) => agentStore.setStoryState(s)).catch(() => {})
-  // 加载设定资料库条目缓存（供侧栏 chip 展示）
-  loadLoreEntries(novel)
-  // 后台异步加载尚未计算字数的章节
-  loadMissingWordCounts(novel)
+  novelStore.openNovel(null)
+  loreEntries.value = []
+  workspaceReady.value = false
+}
+
+/** 在系统文件管理器中打开当前小说文件夹（仅 Tauri） */
+async function handleOpenFolder() {
+  const dir = getWorkspaceDir()
+  if (!dir) return
+  try {
+    await openPath(dir)
+  } catch (e) {
+    showErrorMsg('打开文件夹失败：' + (e instanceof Error ? e.message : String(e)))
+  }
 }
 
 /** 后台读取未计算字数的章节，填充 wordCount 并持久化到 novel.json */
@@ -399,7 +469,7 @@ async function loadMissingWordCounts(novel: Novel) {
   const missing = novel.chapters.filter((c) => c.wordCount === undefined)
   if (!missing.length) return
   try {
-    const wcMap = await loadAllChapterWordCounts(novel.id, missing)
+    const wcMap = await loadAllChapterWordCounts(missing)
     // 确保用户没有切换到其他小说
     if (!currentNovel.value || currentNovel.value.id !== novel.id) return
     const updatedNovel: Novel = {
@@ -416,27 +486,10 @@ async function loadMissingWordCounts(novel: Novel) {
   }
 }
 
-async function handleCreateNovel(title: string) {
-  try {
-    const novel = await createNovel(title, '')
-    novelStore.setNovels([...novels.value, novel])
-    novelStore.openNovel(novel)
-  } catch (e) {
-    showErrorMsg('创建小说失败：' + (e instanceof Error ? e.message : String(e)))
-  }
-}
-
-async function handleDeleteNovel(novelId: string) {
-  try {
-    await deleteNovel(novelId)
-    const updated = novels.value.filter((n) => n.id !== novelId)
-    novelStore.setNovels(updated)
-    if (currentNovel.value?.id === novelId) {
-      novelStore.openNovel(updated[0] ?? null)
-    }
-  } catch (e) {
-    showErrorMsg('删除小说失败：' + (e instanceof Error ? e.message : String(e)))
-  }
+/** 导入小说完成：导入流程已切换到新小说文件夹，直接加载当前小说 */
+async function handleImported(_novel: Novel) {
+  showImportDialog.value = false
+  await loadCurrentNovelData()
 }
 
 // ===== 章节操作 =====
@@ -444,7 +497,7 @@ async function handleSelectChapter(chapter: ChapterMeta) {
   if (currentChapter.value?.id === chapter.id) return
   await trySaveCurrentChapter()
   try {
-    const content = await loadChapterContent(currentNovel.value!.id, chapter.filename)
+    const content = await loadChapterContent(chapter.filename)
     novelStore.openChapter(chapter, content)
   } catch (e) {
     showErrorMsg('加载章节失败：' + (e instanceof Error ? e.message : String(e)))
@@ -486,7 +539,6 @@ async function handleSave() {
   if (!currentNovel.value || !currentChapter.value) return
   try {
     await saveChapterContent(
-      currentNovel.value.id,
       currentChapter.value.filename,
       currentChapterContent.value,
     )
@@ -534,7 +586,7 @@ async function handleSearchJump(result: SearchResult) {
   if (currentChapter.value?.id !== chapter.id) {
     await trySaveCurrentChapter()
     try {
-      const content = await loadChapterContent(currentNovel.value.id, chapter.filename)
+      const content = await loadChapterContent(chapter.filename)
       novelStore.openChapter(chapter, content)
     } catch (e) {
       showErrorMsg('加载章节失败：' + (e instanceof Error ? e.message : String(e)))
@@ -881,6 +933,41 @@ onBeforeUnmount(() => {
   border-radius: 7px;
 }
 
+/* 当前小说区 */
+.current-novel-box {
+  padding: 2px 6px 4px;
+}
+.current-novel-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(var(--v-theme-on-surface), 0.85);
+  line-height: 1.3;
+  margin-bottom: 6px;
+}
+.current-novel-title--empty {
+  font-weight: 400;
+  color: rgba(var(--v-theme-on-surface), 0.4);
+}
+.current-novel-actions {
+  display: flex;
+  gap: 6px;
+}
+.mini-action {
+  flex: 1;
+  justify-content: center;
+  padding: 4px 8px;
+  font-size: 11px;
+  background: rgba(var(--v-theme-on-surface), 0.05);
+  color: rgba(var(--v-theme-on-surface), 0.7);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+}
+.mini-action:hover {
+  background: rgba(var(--v-theme-on-surface), 0.1);
+}
+.mini-action--ghost {
+  background: transparent;
+}
+
 /* 芯片区 */
 .chip-wrap {
   display: flex;
@@ -951,6 +1038,20 @@ onBeforeUnmount(() => {
 .empty-btn:hover {
   background: rgba(var(--v-theme-primary), 0.18);
   color: rgb(var(--v-theme-primary));
+}
+.empty-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+.empty-btn--ghost {
+  background: rgba(var(--v-theme-on-surface), 0.05);
+  color: rgba(var(--v-theme-on-surface), 0.7);
+  border-color: rgba(var(--v-theme-on-surface), 0.12);
+}
+.empty-btn--ghost:hover {
+  background: rgba(var(--v-theme-on-surface), 0.1);
+  color: rgba(var(--v-theme-on-surface), 0.85);
 }
 
 /* 章节概要输入条 */

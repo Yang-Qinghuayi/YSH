@@ -94,7 +94,7 @@ const queryLoreTool: AgentTool = {
       const lines: string[] = ['匹配条目：']
       for (const e of entries.slice(0, 20)) {
         if (e.importance === 'major') {
-          const content = await loadEntryContent(lore.id, e.filename)
+          const content = await loadEntryContent(e.filename)
           lines.push(`【${e.name}】（主要）`)
           if (e.briefDescription) lines.push(`简介：${e.briefDescription}`)
           if (content.trim()) lines.push(content.trim().slice(0, 800))
@@ -132,7 +132,7 @@ const searchChaptersTool: AgentTool = {
       const limit = Number(args.limit ?? 15)
       if (!query.trim()) return { ok: true, text: '搜索词为空。' }
 
-      const results = await searchInChapters(ctx.novel.id, ctx.novel.chapters, query)
+      const results = await searchInChapters(ctx.novel.chapters, query)
       const sliced = results.slice(0, limit)
       if (sliced.length === 0) return { ok: true, text: `未在已写章节中找到"${query}"。` }
 

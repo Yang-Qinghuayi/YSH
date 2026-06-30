@@ -1,6 +1,6 @@
 <template>
   <div>
-    <app-title path="common.theme_color" />
+    <div class="font-bold mb-3">{{ t('common.theme_color') }}</div>
 
     <!-- 调色板选择 -->
     <div class="mt-3 d-flex align-center gap-2">
@@ -43,7 +43,6 @@ import { storeToRefs } from 'pinia'
 import { useSettingStore } from '@/store/setting'
 import { palettes, paletteSeedMap } from '@/utils/paletteConfig'
 import type { PaletteId } from '@/utils/paletteConfig'
-import AppTitle from '@/components/Title.vue'
 import { useI18n } from '@/utils/i18n'
 
 const { t } = useI18n()
