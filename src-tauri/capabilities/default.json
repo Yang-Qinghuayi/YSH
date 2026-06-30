@@ -98,6 +98,7 @@
     "oauth:allow-cancel",
     "sign-in-with-apple:default",
     "opener:default",
+    "opener:allow-open-path",
     "haptics:allow-vibrate",
     "haptics:allow-impact-feedback",
     "haptics:allow-notification-feedback",
