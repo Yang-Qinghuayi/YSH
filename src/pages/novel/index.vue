@@ -10,10 +10,6 @@
       <NovelOverviewBar
         v-if="currentNovel"
         :novel="currentNovel"
-        :collapsed="sidebarCollapsed"
-        @toggle-sidebar="sidebarCollapsed = !sidebarCollapsed"
-        @open-characters="onOpenCharacters"
-        @open-search="currentNovel && (showGlobalSearch = true)"
       />
 
       <!-- 未选择章节时的占位 -->
@@ -93,12 +89,10 @@
     <!-- ===== 右侧栏（可折叠为图标 rail） ===== -->
     <aside
       class="novel-sidebar"
-      :class="{ 'novel-sidebar--rail': effectiveCollapsed }"
-      @mouseenter="sidebarHover = sidebarCollapsed ? true : sidebarHover"
-      @mouseleave="sidebarHover = false"
+      :class="{ 'novel-sidebar--rail': sidebarCollapsed }"
     >
       <!-- 折叠态：图标 rail -->
-      <div v-if="effectiveCollapsed" class="rail">
+      <div v-if="sidebarCollapsed" class="rail">
         <button class="lg-icon-btn rail-toggle" title="展开侧栏" @click="sidebarCollapsed = false">
           <v-icon :icon="mdiMenuClose" size="18" />
         </button>
@@ -329,8 +323,6 @@ const chapterListRef = ref<InstanceType<typeof ChapterList> | null>(null)
 
 // ===== 侧栏折叠 =====
 const sidebarCollapsed = ref(false)
-const sidebarHover = ref(false)
-const effectiveCollapsed = computed(() => sidebarCollapsed.value && !sidebarHover.value)
 
 function onOpenCharacters() {
   sidebarCollapsed.value = false
@@ -424,9 +416,9 @@ async function loadMissingWordCounts(novel: Novel) {
   }
 }
 
-async function handleCreateNovel(title: string, synopsis: string) {
+async function handleCreateNovel(title: string) {
   try {
-    const novel = await createNovel(title, synopsis)
+    const novel = await createNovel(title, '')
     novelStore.setNovels([...novels.value, novel])
     novelStore.openNovel(novel)
   } catch (e) {
@@ -464,7 +456,7 @@ async function handleCreateChapter(title: string) {
   try {
     const { novel, chapter } = await createChapter(currentNovel.value, title)
     novelStore.updateCurrentNovel(novel)
-    novelStore.openChapter(chapter, `# ${title}\n\n`)
+    novelStore.openChapter(chapter, '')
   } catch (e) {
     showErrorMsg('创建章节失败：' + (e instanceof Error ? e.message : String(e)))
   }

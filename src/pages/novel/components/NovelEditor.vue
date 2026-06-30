@@ -5,7 +5,7 @@
 
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, watch, shallowRef } from "vue";
-import { EditorView, keymap, ViewUpdate } from "@codemirror/view";
+import { EditorView, keymap, ViewUpdate, placeholder } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 import { markdown } from "@codemirror/lang-markdown";
 import {
@@ -124,6 +124,7 @@ function createEditor(content: string) {
       }
     }),
     EditorView.lineWrapping,
+    placeholder('写下来吧……'),
     lightTheme,
     ...(isDark.value ? [oneDark] : []),
   ];
@@ -227,5 +228,9 @@ onBeforeUnmount(() => {
 }
 .editor-area :deep(.cm-focused) {
   outline: none;
+}
+.editor-area :deep(.cm-placeholder) {
+  color: rgba(var(--v-theme-on-surface), 0.28);
+  font-style: italic;
 }
 </style>

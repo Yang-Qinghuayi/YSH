@@ -3,39 +3,10 @@
     <app-title path="common.theme_color" />
 
     <!-- 调色板选择 -->
-    <v-list-item class="pa-0 mt-2">
-      <v-list-item-title class="text-caption mr-4">{{ t('common.palette') }}</v-list-item-title>
-      <template #append>
-        <div class="d-flex align-center gap-3">
-          <!-- 预设调色板下拉 -->
-          <v-select
-            v-model="palette"
-            :items="paletteItems"
-            item-title="label"
-            item-value="id"
-            density="compact"
-            variant="outlined"
-            hide-details
-            rounded="pill"
-            style="min-width: 130px"
-            @update:model-value="onPaletteChange"
-          />
+    <div class="mt-3 d-flex align-center gap-2">
+      <span class="text-caption text-medium-emphasis mr-1">{{ t('common.palette') }}</span>
 
-          <!-- Material You 种子色选择器 -->
-          <input
-            type="color"
-            :value="materialSeed"
-            :title="t('common.material_you_seed')"
-            :aria-label="t('common.material_you_seed')"
-            class="color-picker"
-            @input="onSeedChange"
-          />
-        </div>
-      </template>
-    </v-list-item>
-
-    <!-- 当前调色板预览 -->
-    <div class="mt-4 d-flex gap-2 flex-wrap">
+      <!-- 预设色点 -->
       <div
         v-for="item in paletteItems"
         :key="item.id"
@@ -45,6 +16,24 @@
         :title="item.label"
         @click="onPaletteChange(item.id)"
       />
+
+      <!-- 分隔线 -->
+      <div class="palette-divider" />
+
+      <!-- 自定义种子色，用 wrapper 承载 active 状态和虚线样式 -->
+      <div
+        class="seed-dot"
+        :class="{ active: seedEnabled }"
+        :title="t('common.material_you_seed')"
+      >
+        <input
+          type="color"
+          :value="materialSeed"
+          :aria-label="t('common.material_you_seed')"
+          class="color-picker"
+          @input="onSeedChange"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -77,9 +66,65 @@ function onSeedChange(e: Event) {
 </script>
 
 <style scoped>
+/* ── 预设色点 ── */
+.palette-dot {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.palette-dot:hover {
+  transform: scale(1.15);
+}
+
+.palette-dot.active {
+  box-shadow: 0 0 0 2.5px white, 0 0 0 4px currentColor;
+  transform: scale(1.1);
+}
+
+/* ── 分隔线 ── */
+.palette-divider {
+  width: 1px;
+  height: 1.1rem;
+  background: currentColor;
+  opacity: 0.2;
+  flex-shrink: 0;
+  margin: 0 2px;
+}
+
+/* ── 自定义种子色 ── */
+.seed-dot {
+  position: relative;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  /* 虚线描边：暗示"可自定义" */
+  outline: 1.5px dashed rgba(128, 128, 128, 0.5);
+  outline-offset: 2px;
+}
+
+.seed-dot:hover {
+  transform: scale(1.15);
+}
+
+.seed-dot.active {
+  outline: none;
+  box-shadow: 0 0 0 2.5px white, 0 0 0 4px currentColor;
+  transform: scale(1.1);
+}
+
+/* input[type=color] 填满 seed-dot */
 .color-picker {
-  width: 2.25rem;
-  height: 2.25rem;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   cursor: pointer;
   appearance: none;
   background: transparent;
@@ -100,22 +145,5 @@ function onSeedChange(e: Event) {
 .color-picker::-moz-color-swatch {
   border-radius: 50%;
   border: none;
-}
-
-.palette-dot {
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.palette-dot:hover {
-  transform: scale(1.15);
-}
-
-.palette-dot.active {
-  box-shadow: 0 0 0 2.5px white, 0 0 0 4px currentColor;
-  transform: scale(1.1);
 }
 </style>

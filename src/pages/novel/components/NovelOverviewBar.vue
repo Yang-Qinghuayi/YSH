@@ -1,10 +1,6 @@
 <template>
   <div class="overview-bar lg-card">
-    <!-- 左：折叠 + 标题简介 -->
-    <button class="lg-icon-btn collapse-btn" :title="collapsed ? '展开侧栏' : '折叠侧栏'" @click="$emit('toggle-sidebar')">
-      <v-icon :icon="collapsed ? mdiMenuOpen : mdiMenuClose" size="18" />
-    </button>
-
+    <!-- 标题简介 -->
     <div class="overview-title-wrap" v-if="novel">
       <div class="overview-title text-truncate">{{ novel.title }}</div>
       <div class="overview-synopsis text-truncate" v-if="novel.synopsis">{{ novel.synopsis }}</div>
@@ -28,40 +24,20 @@
         <span class="stat-num">{{ characterCount }}</span>
       </div>
     </div>
-
-    <!-- 右：操作入口 -->
-    <div class="action-group" v-if="novel">
-      <button class="lg-icon-btn" title="角色管理" @click="$emit('open-characters')">
-        <v-icon :icon="mdiAccountGroupOutline" size="18" />
-      </button>
-      <button class="lg-icon-btn" title="全局搜索 (⌘⇧F)" @click="$emit('open-search')">
-        <v-icon :icon="mdiMagnify" size="18" />
-      </button>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import {
-  mdiMenuClose,
-  mdiMenuOpen,
   mdiBookOpenVariant,
   mdiCounter,
   mdiAccountGroupOutline,
-  mdiMagnify,
 } from '@mdi/js'
 import { formatTotalWordCount } from '@/services/novelService'
 import type { Novel } from '@/types/novel'
 
 const props = defineProps<{
   novel: Novel | null
-  collapsed: boolean
-}>()
-
-defineEmits<{
-  'toggle-sidebar': []
-  'open-characters': []
-  'open-search': []
 }>()
 
 const chapterCount = computed(() => props.novel?.chapters.length ?? 0)
@@ -81,10 +57,6 @@ const totalWordCount = computed(() => {
   margin: 10px 14px 0;
   flex-shrink: 0;
   border-radius: 18px;
-}
-
-.collapse-btn {
-  flex-shrink: 0;
 }
 
 .overview-title-wrap {
@@ -133,17 +105,6 @@ const totalWordCount = computed(() => {
 .stat-unit {
   font-size: 10.5px;
   opacity: 0.7;
-}
-
-/* 操作入口 */
-.action-group {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  flex-shrink: 0;
-  padding-left: 4px;
-  margin-left: 2px;
-  border-left: 1px solid rgba(var(--v-theme-on-surface), 0.08);
 }
 
 /* 窄屏：隐藏简介与单位，统计精简 */

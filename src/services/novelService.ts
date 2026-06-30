@@ -196,7 +196,7 @@ export async function createChapter(novel: Novel, title: string): Promise<{ nove
   await appService.fs.writeFile(
     P + chapterPath(novel.id, filename),
     base,
-    `# ${title}\n\n`,
+    '',
   )
 
   const updatedNovel: Novel = {

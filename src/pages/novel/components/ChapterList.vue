@@ -35,28 +35,16 @@
         <v-text-field
           ref="newChapterInput"
           v-model="newChapterTitle"
-          label="章节标题"
+          placeholder="章节标题"
           density="compact"
           variant="outlined"
           hide-details
           autofocus
           rounded="xl"
+          class="create-input"
           @keyup.enter="confirmNewChapter"
           @keyup.esc="cancelNewChapter"
         />
-        <div class="d-flex gap-1 mt-2">
-          <v-btn size="x-small" variant="text" rounded="pill" @click="cancelNewChapter">取消</v-btn>
-          <v-btn
-            size="x-small"
-            color="primary"
-            variant="tonal"
-            rounded="pill"
-            :disabled="!newChapterTitle.trim()"
-            @click="confirmNewChapter"
-          >
-            确定
-          </v-btn>
-        </div>
       </div>
     </v-expand-transition>
   </div>
@@ -225,5 +213,20 @@ function cancelNewChapter() {
 /* 新建表单 */
 .create-form {
   padding: 4px 2px 2px;
+}
+
+/* 输入框颜色与主题一致 */
+.create-input :deep(.v-field__outline__start),
+.create-input :deep(.v-field__outline__end),
+.create-input :deep(.v-field__outline__notch) {
+  border-color: rgba(var(--v-theme-on-surface), 0.18) !important;
+}
+.create-input :deep(.v-field--focused .v-field__outline__start),
+.create-input :deep(.v-field--focused .v-field__outline__end),
+.create-input :deep(.v-field--focused .v-field__outline__notch) {
+  border-color: rgb(var(--v-theme-primary)) !important;
+}
+.create-input :deep(input::placeholder) {
+  color: rgba(var(--v-theme-on-surface), 0.38);
 }
 </style>
