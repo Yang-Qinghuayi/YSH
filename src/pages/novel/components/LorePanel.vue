@@ -1,7 +1,8 @@
 <template>
   <v-dialog
     :model-value="visible"
-    max-width="90vw"
+    width="90vw"
+    max-width="1200px"
     height="85vh"
     scrollable
     @update:model-value="(v) => emit('update:visible', v)"
