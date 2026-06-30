@@ -2,3 +2,7 @@
 # will have compiled files and executables
 /target/
 /gen/schemas
+
+# Android/iOS 工程由 tauri android/ios init 生成，不提交进仓库
+/gen/android
+/gen/apple
