@@ -416,16 +416,19 @@ onMounted(async () => {
 
 /**
  * 加载当前小说文件夹的数据。
- * 若文件夹里没有 novel.json（空文件夹），以文件夹名作为标题创建一本新小说。
+ * 若文件夹里没有 novel.json（空文件夹），创建一本新小说：
+ *   标题优先用传入的 title（Web 兜底「使用默认存储位置」时由用户输入），
+ *   其次用文件夹名，最后兜底「未命名小说」。
  */
-async function loadCurrentNovelData() {
+async function loadCurrentNovelData(title?: string) {
   try {
     let novel = await loadCurrentNovel()
     if (!novel) {
-      // 空文件夹：以文件夹名作为小说标题创建
       const dir = getWorkspaceDir()
-      const title = dir ? await getDirName(dir).catch(() => '未命名小说') : '未命名小说'
-      novel = await createNovel(title, '')
+      const fallbackTitle =
+        title ||
+        (dir ? await getDirName(dir).catch(() => '未命名小说') : '未命名小说')
+      novel = await createNovel(fallbackTitle, '')
     }
     novelStore.openNovel(novel)
     // 加载故事状态到缓存（供角色面板展示）
@@ -440,9 +443,9 @@ async function loadCurrentNovelData() {
 }
 
 /** WorkspaceInit 完成（选/建好小说文件夹）后加载该小说 */
-async function handleWorkspaceReady() {
+async function handleWorkspaceReady(title?: string) {
   workspaceReady.value = true
-  await loadCurrentNovelData()
+  await loadCurrentNovelData(title)
 }
 
 /** 切换小说：保存当前章节后回到选择界面 */

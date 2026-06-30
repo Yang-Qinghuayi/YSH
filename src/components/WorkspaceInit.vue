@@ -83,10 +83,38 @@
           <span class="divider-text">或</span>
           <div class="divider-line" />
         </div>
-        <button class="secondary-btn" @click="handleUseDefault">
+        <button class="secondary-btn" @click="showDefaultInput = !showDefaultInput">
+          <v-icon :icon="mdiPlus" size="16" class="mr-1" />
           使用默认存储位置
         </button>
         <p class="secondary-desc">存储在系统 AppData 目录</p>
+
+        <v-expand-transition>
+          <div v-if="showDefaultInput" class="create-wrap">
+            <v-text-field
+              v-model="defaultTitle"
+              placeholder="小说标题"
+              density="compact"
+              variant="outlined"
+              hide-details
+              autofocus
+              rounded="xl"
+              class="create-input"
+              @keyup.enter="handleUseDefault"
+            />
+            <v-btn
+              color="primary"
+              block
+              rounded="pill"
+              elevation="0"
+              :disabled="!defaultTitle.trim()"
+              class="mt-3"
+              @click="handleUseDefault"
+            >
+              创建
+            </v-btn>
+          </div>
+        </v-expand-transition>
       </template>
 
       <!-- 已选路径预览 -->
@@ -120,8 +148,10 @@ const creating = ref(false)
 const selectedPath = ref<string | null>(null)
 const showCreateInput = ref(false)
 const newTitle = ref('')
+const showDefaultInput = ref(false)
+const defaultTitle = ref('')
 
-const emit = defineEmits<{ done: [] }>()
+const emit = defineEmits<{ done: [title?: string] }>()
 
 /** 打开已有小说文件夹 */
 async function handlePickFolder() {
@@ -158,9 +188,12 @@ async function handleCreate() {
   }
 }
 
+/** Web 兜底：使用默认存储位置（AppData），需输入小说标题 */
 function handleUseDefault() {
+  const title = defaultTitle.value.trim()
+  if (!title) return
   settingStore.workspaceDir = ''
-  emit('done')
+  emit('done', title)
 }
 </script>
 
