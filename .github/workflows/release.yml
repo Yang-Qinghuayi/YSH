@@ -1,0 +1,138 @@
+name: 发布正式版
+
+# 推送 v* 格式的 tag 时触发，如 git tag v1.0.2 && git push origin v1.0.2
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  # ── macOS Apple Silicon ────────────────────────────────────────────────────
+  macos-arm:
+    name: macOS (Apple Silicon)
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: 安装前端依赖
+        run: pnpm install
+
+      - name: 构建并发布
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 更新签名密钥（在 GitHub → Settings → Secrets 中配置）
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'YSH ${{ github.ref_name }}'
+          releaseBody: |
+            ## YSH ${{ github.ref_name }}
+
+            ### 安装说明
+            - **macOS Apple Silicon**：下载 `YSH_*_aarch64.dmg`
+
+            ### 自动更新
+            已安装旧版本的用户会收到自动更新提示。
+          releaseDraft: false
+          prerelease: false
+          args: --target aarch64-apple-darwin
+
+  # ── Linux ──────────────────────────────────────────────────────────────────
+  linux:
+    name: Linux
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: 安装系统依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: 安装前端依赖
+        run: pnpm install
+
+      - name: 构建并发布
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'YSH ${{ github.ref_name }}'
+          releaseBody: |
+            ## YSH ${{ github.ref_name }}
+          releaseDraft: false
+          prerelease: false
+
+  # ── Windows ────────────────────────────────────────────────────────────────
+  windows:
+    name: Windows
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: 安装前端依赖
+        run: pnpm install
+
+      - name: 构建并发布
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'YSH ${{ github.ref_name }}'
+          releaseBody: |
+            ## YSH ${{ github.ref_name }}
+          releaseDraft: false
+          prerelease: false

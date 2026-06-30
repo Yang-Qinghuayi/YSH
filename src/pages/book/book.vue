@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div :class="[lgAndUp ? 'mt-[4vh] h-[90vh]' : 'h-[94vh]']" class="flex justify-center items-center w-full">
+    <div :class="[lgAndUp ? 'h-[94vh]' : 'h-[94vh]']" class="flex justify-center items-center w-full">
       <!-- 桌面端目录按钮 -->
       <v-btn v-if="lgAndUp" class="fixed right-5 top-5" icon color="secondary" variant="tonal"
         @click="showBigCatalog = !showBigCatalog">
