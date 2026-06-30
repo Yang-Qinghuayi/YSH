@@ -33,9 +33,9 @@
             <div class="text-body-2 text-medium-emphasis">{{ agentStore.currentPlan.approach }}</div>
           </div>
 
-          <!-- 所选技能 -->
+          <!-- 所选角色 -->
           <div v-if="agentStore.currentPlan.selectedSkills?.length" class="plan-block lg-card--inset pa-3">
-            <div class="lg-section-label mb-2">所选技能</div>
+            <div class="lg-section-label mb-2">所选角色</div>
             <div class="d-flex flex-wrap gap-2">
               <v-chip
                 v-for="s in agentStore.currentPlan.selectedSkills"

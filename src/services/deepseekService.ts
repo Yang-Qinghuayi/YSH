@@ -3,7 +3,7 @@
  * DeepSeek API 封装（兼容 OpenAI 格式）
  *
  * 重构后职责：
- * - parseMentions：解析 @提及（角色档案 / 剧情技能）
+ * - parseMentions：解析 @提及（角色档案）
  * - sliceContextBeforeCursor：取光标前 N 字前文（供 read_context 工具与 prompt 复用）
  * - buildAgentSystemPrompt：按 Agent 阶段构建 system prompt
  * - createOpenAIClient / streamChatWithTools：无状态流式 tool-use 调用
@@ -38,24 +38,17 @@ export type StreamEvent =
 /** 解析编辑器文本中的 @提及 */
 export function parseMentions(text: string, novel: Novel): Mention[] {
   const mentions: Mention[] = []
-  // 角色档案合并后，仅支持 @角色名 与 @剧情技能名（文风 voice 随角色整体激活）
+  // 角色档案合并后，仅支持 @角色名（文风 voice 随角色整体激活）
   const pattern = /@([一-龥\w]+)/g
   let match: RegExpExecArray | null
 
   while ((match = pattern.exec(text)) !== null) {
     const [raw, name] = match
 
-    // 先找角色
+    // 找角色
     const character = novel.characters.find((c) => c.name === name)
     if (character) {
       mentions.push({ type: 'character', raw, characterName: name, character })
-      continue
-    }
-
-    // 再找剧情技能
-    const plotSkill = novel.plotSkills.find((s) => s.name === name)
-    if (plotSkill) {
-      mentions.push({ type: 'plot-skill', raw, plotSkill })
     }
   }
 
@@ -101,16 +94,6 @@ export function buildAgentSystemPrompt(
     lines.push('')
   }
 
-  // 可用剧情技能清单（含触发说明）
-  if (novel.plotSkills.length > 0) {
-    lines.push('【可用剧情技能】')
-    for (const s of novel.plotSkills) {
-      const desc = s.description || s.prompt.slice(0, 40) || '（无触发说明）'
-      lines.push(`- @${s.name}：${desc}`)
-    }
-    lines.push('')
-  }
-
   // 故事状态摘要
   if (storyStateText && storyStateText.trim()) {
     lines.push('【当前故事状态】')
@@ -122,7 +105,7 @@ export function buildAgentSystemPrompt(
   if (phase === 'planning') {
     lines.push('【当前任务：规划】')
     lines.push('1. 调用只读工具（query_lore / search_chapters / read_story_state / read_context / select_skill）调研本章所需上下文。')
-    lines.push('2. 选定本章要调用的角色档案与剧情技能（select_skill），并引用相关 Lore 条目。')
+    lines.push('2. 选定本章要调用的角色档案（select_skill），并引用相关 Lore 条目。')
     lines.push('3. 调研完成后，输出章节大纲。输出格式必须严格为：')
     lines.push('<<<PLAN>>>')
     lines.push('{"outline":"章节大纲（分场景/分段的写作要点）","selectedSkills":[{"id":"技能id","name":"名称","reason":"为何选用"}],"referencedLoreEntries":[{"id":"条目id","name":"名称"}],"approach":"整体写法思路"}')

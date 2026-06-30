@@ -35,11 +35,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: nightly
-          releaseName: 'YSH Nightly Build'
-          releaseBody: '🤖 自动构建 — ${{ github.sha }}'
+          tagName: build-${{ github.run_number }}
+          releaseName: 'Build #${{ github.run_number }}'
+          releaseBody: |
+            自动构建
+            - Commit: ${{ github.sha }}
+            - 提交说明: ${{ github.event.head_commit.message }}
           releaseDraft: false
-          prerelease: true
+          prerelease: false
           args: --target aarch64-apple-darwin
 
   # ── Linux ──────────────────────────────────────────────────────────────────
@@ -79,11 +82,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: nightly
-          releaseName: 'YSH Nightly Build'
-          releaseBody: '🤖 自动构建 — ${{ github.sha }}'
+          tagName: build-${{ github.run_number }}
+          releaseName: 'Build #${{ github.run_number }}'
+          releaseBody: |
+            自动构建
+            - Commit: ${{ github.sha }}
+            - 提交说明: ${{ github.event.head_commit.message }}
           releaseDraft: false
-          prerelease: true
+          prerelease: false
 
   # ── Windows ────────────────────────────────────────────────────────────────
   windows:
@@ -113,11 +119,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: nightly
-          releaseName: 'YSH Nightly Build'
-          releaseBody: '🤖 自动构建 — ${{ github.sha }}'
+          tagName: build-${{ github.run_number }}
+          releaseName: 'Build #${{ github.run_number }}'
+          releaseBody: |
+            自动构建
+            - Commit: ${{ github.sha }}
+            - 提交说明: ${{ github.event.head_commit.message }}
           releaseDraft: false
-          prerelease: true
+          prerelease: false
 
   # ── Android ────────────────────────────────────────────────────────────────
   android:
@@ -173,75 +182,11 @@ jobs:
       - name: 上传 APK 到 Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: nightly
-          name: 'YSH Nightly Build'
-          prerelease: true
+          tag_name: build-${{ github.run_number }}
+          name: 'Build #${{ github.run_number }}'
           files: |
             src-tauri/gen/android/app/build/outputs/apk/universal/release/*.apk
             src-tauri/gen/android/app/build/outputs/bundle/universalRelease/*.aab
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # ── iOS ────────────────────────────────────────────────────────────────────
-  ios:
-    name: iOS
-    runs-on: macos-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: pnpm
-
-      - uses: dtolnay/rust-toolchain@stable
-
-      - name: 安装 iOS Rust 目标
-        run: |
-          rustup target add \
-            aarch64-apple-ios \
-            aarch64-apple-ios-sim
-
-      - name: 安装前端依赖
-        run: pnpm install
-
-      - name: 导入 Apple 证书
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
-          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-        run: |
-          # 创建临时 keychain
-          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          # 导入证书
-          echo "$APPLE_CERTIFICATE" | base64 --decode > certificate.p12
-          security import certificate.p12 -k build.keychain \
-            -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple: \
-            -s -k "$KEYCHAIN_PASSWORD" build.keychain
-          # 安装 Provisioning Profile
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo "$APPLE_PROVISIONING_PROFILE" | base64 --decode \
-            > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
-
-      - name: 构建 iOS
-        run: pnpm tauri ios build --export-method app-store-connect
-
-      - name: 上传 IPA 到 Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: nightly
-          name: 'YSH Nightly Build'
-          prerelease: true
-          files: src-tauri/gen/apple/build/arm64/*.ipa
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

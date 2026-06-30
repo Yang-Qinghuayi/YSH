@@ -13,7 +13,6 @@
         :collapsed="sidebarCollapsed"
         @toggle-sidebar="sidebarCollapsed = !sidebarCollapsed"
         @open-characters="onOpenCharacters"
-        @open-skills="onOpenSkills"
         @open-search="currentNovel && (showGlobalSearch = true)"
       />
 
@@ -80,9 +79,7 @@
           :chapter="currentChapter"
           :content="currentChapterContent"
           :is-generating="isGenerating"
-          :is-dirty="isDirty"
           @update:content="handleContentChange"
-          @save="handleSave"
           @generate="handleGenerate"
           @stop-generate="handleStopGenerate"
           @open-search="showGlobalSearch = true"
@@ -113,9 +110,6 @@
         </button>
         <button class="lg-icon-btn" title="角色" :disabled="!currentNovel" @click="onOpenCharacters">
           <v-icon :icon="mdiAccountGroupOutline" size="18" />
-        </button>
-        <button class="lg-icon-btn" title="剧情技能" :disabled="!currentNovel" @click="onOpenSkills">
-          <v-icon :icon="mdiLightningBoltOutline" size="18" />
         </button>
         <button class="lg-icon-btn" title="设定" :disabled="!currentNovel" @click="onOpenLore">
           <v-icon :icon="mdiBookshelf" size="18" />
@@ -160,13 +154,10 @@
         </div>
 
         <!-- 角色区 -->
-        <div v-if="currentNovel" class="sidebar-card lg-card">
+        <div v-if="currentNovel" class="sidebar-card lg-card sidebar-card--clickable" @click="showCharacterDialog = true">
           <div class="sidebar-card__head">
             <v-icon :icon="mdiAccountGroupOutline" size="14" class="lg-section-label" />
             <span class="lg-section-label">角色</span>
-            <button class="lg-icon-btn head-action" @click="showCharacterDialog = true">
-              <v-icon :icon="mdiCog" size="14" />
-            </button>
           </div>
           <div class="chip-wrap">
             <v-chip
@@ -176,7 +167,7 @@
               variant="tonal"
               color="primary"
               class="chip-item chip-clickable"
-              @click="agentStore.openCharacterPanel(char.name)"
+              @click.stop="agentStore.openCharacterPanel(char.name)"
             >
               {{ char.name }}
             </v-chip>
@@ -184,38 +175,11 @@
           </div>
         </div>
 
-        <!-- 剧情技能区 -->
-        <div v-if="currentNovel" class="sidebar-card lg-card">
-          <div class="sidebar-card__head">
-            <v-icon :icon="mdiLightningBoltOutline" size="14" class="lg-section-label" />
-            <span class="lg-section-label">剧情技能</span>
-            <button class="lg-icon-btn head-action" @click="showPlotSkillDialog = true">
-              <v-icon :icon="mdiCog" size="14" />
-            </button>
-          </div>
-          <div class="chip-wrap">
-            <v-chip
-              v-for="skill in currentNovel.plotSkills"
-              :key="skill.id"
-              size="x-small"
-              color="secondary"
-              variant="tonal"
-              class="chip-item"
-            >
-              {{ skill.name }}
-            </v-chip>
-            <span v-if="!currentNovel.plotSkills.length" class="empty-hint">暂无技能</span>
-          </div>
-        </div>
-
         <!-- 设定资料库区 -->
-        <div v-if="currentNovel" class="sidebar-card lg-card">
+        <div v-if="currentNovel" class="sidebar-card lg-card sidebar-card--clickable" @click="showLorePanel = true">
           <div class="sidebar-card__head">
             <v-icon :icon="mdiBookshelf" size="14" class="lg-section-label" />
             <span class="lg-section-label">设定</span>
-            <button class="lg-icon-btn head-action" @click="showLorePanel = true">
-              <v-icon :icon="mdiCog" size="14" />
-            </button>
           </div>
           <div class="chip-wrap">
             <v-chip
@@ -225,7 +189,7 @@
               color="info"
               variant="tonal"
               class="chip-item chip-clickable"
-              @click="openLoreAt(entry.id)"
+              @click.stop="openLoreAt(entry.id)"
             >
               {{ entry.name }}
             </v-chip>
@@ -241,13 +205,6 @@
       v-model="showCharacterDialog"
       :characters="currentNovel.characters"
       @update:characters="handleUpdateCharacters"
-    />
-
-    <PlotSkillDialog
-      v-if="currentNovel"
-      v-model="showPlotSkillDialog"
-      :plot-skills="currentNovel.plotSkills"
-      @update:plot-skills="handleUpdatePlotSkills"
     />
 
     <!-- 全局搜索浮窗 -->
@@ -291,7 +248,6 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import {
-  mdiCog,
   mdiPenPlus,
   mdiBookPlus,
   mdiPlus,
@@ -301,7 +257,6 @@ import {
   mdiBookOpenVariant,
   mdiFormatListBulleted,
   mdiAccountGroupOutline,
-  mdiLightningBoltOutline,
   mdiBookshelf,
 } from '@mdi/js'
 import { useNovelStore } from '@/store/novelStore'
@@ -333,7 +288,7 @@ import {
 import { loadStoryState, saveStoryState } from '@/services/storyStateService'
 import { loadOrCreateLore } from '@/services/loreService'
 import { isWorkspaceInitialized } from '@/services/workspaceService'
-import type { Novel, ChapterMeta, Character, PlotSkill, SearchResult } from '@/types/novel'
+import type { Novel, ChapterMeta, Character, SearchResult } from '@/types/novel'
 import type { CharacterState } from '@/types/storyState'
 import type { EntryMeta } from '@/types/lore'
 import WorkspaceInit from '@/components/WorkspaceInit.vue'
@@ -342,7 +297,6 @@ import ChapterList from './components/ChapterList.vue'
 import NovelEditor from './components/NovelEditor.vue'
 import NovelOverviewBar from './components/NovelOverviewBar.vue'
 import CharacterDialog from './components/CharacterDialog.vue'
-import PlotSkillDialog from './components/PlotSkillDialog.vue'
 import AgentPlanPanel from './components/AgentPlanPanel.vue'
 import AgentStatusBar from './components/AgentStatusBar.vue'
 import CharacterPanel from './components/CharacterPanel.vue'
@@ -362,7 +316,6 @@ const workspaceReady = ref(isWorkspaceInitialized())
 
 // ===== 本地状态 =====
 const showCharacterDialog = ref(false)
-const showPlotSkillDialog = ref(false)
 const showError = ref(false)
 const errorMessage = ref('')
 const showGlobalSearch = ref(false)
@@ -382,10 +335,6 @@ const effectiveCollapsed = computed(() => sidebarCollapsed.value && !sidebarHove
 function onOpenCharacters() {
   sidebarCollapsed.value = false
   showCharacterDialog.value = true
-}
-function onOpenSkills() {
-  sidebarCollapsed.value = false
-  showPlotSkillDialog.value = true
 }
 function onOpenLore() {
   sidebarCollapsed.value = false
@@ -416,7 +365,7 @@ function reloadLoreEntries() {
 // ===== Agent 状态 =====
 const chapterBrief = ref('')
 const agentSession = ref<AgentSession | null>(null)
-const briefPlaceholder = '写本章概要，Agent 会自动检索资料、选定技能并规划大纲（可用 @角色名 / @剧情技能 强制指定）'
+const briefPlaceholder = '写本章概要，Agent 会自动检索资料、选定角色并规划大纲（可用 @角色名 强制指定）'
 
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -572,19 +521,12 @@ async function trySaveCurrentChapter() {
   }
 }
 
-// ===== 角色/技能管理 =====
+// ===== 角色管理 =====
 async function handleUpdateCharacters(characters: Character[]) {
   if (!currentNovel.value) return
   const updated = { ...currentNovel.value, characters }
   novelStore.updateCurrentNovel(updated)
   await saveNovelMeta(updated).catch((e) => showErrorMsg('保存角色失败：' + e.message))
-}
-
-async function handleUpdatePlotSkills(plotSkills: PlotSkill[]) {
-  if (!currentNovel.value) return
-  const updated = { ...currentNovel.value, plotSkills }
-  novelStore.updateCurrentNovel(updated)
-  await saveNovelMeta(updated).catch((e) => showErrorMsg('保存剧情技能失败：' + e.message))
 }
 
 // ===== 全局搜索 =====
@@ -867,7 +809,6 @@ onBeforeUnmount(() => {
   background: rgba(var(--v-theme-surface), 0.6);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border-left: 1px solid rgba(var(--v-theme-on-surface), 0.06);
   transition: width 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -918,6 +859,13 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+.sidebar-card--clickable {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.sidebar-card--clickable:hover {
+  background: rgba(var(--v-theme-on-surface), 0.04);
 }
 .sidebar-card__head {
   display: flex;

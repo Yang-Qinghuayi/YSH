@@ -46,14 +46,6 @@ export interface Character {
   description?: string // 整体触发说明，供 Agent 按需激活
 }
 
-// 剧情技能（可复用写作模板）
-export interface PlotSkill {
-  id: string
-  name: string // 用于 @提及，如 @矛盾激化
-  prompt: string // 这个剧情模板的写作指导
-  description?: string // 触发说明，供 Agent 按需激活
-}
-
 // 章节元数据（存于 novel.json 中）
 export interface ChapterMeta {
   id: string
@@ -83,18 +75,16 @@ export interface Novel {
   createdAt: number
   updatedAt: number
   characters: Character[]
-  plotSkills: PlotSkill[]
   chapters: ChapterMeta[]
 }
 
 // @ 提及解析结果
-// 角色档案合并后，仅支持 @角色名（激活该角色档案含文风）与 @剧情技能名。
+// 角色档案合并后，仅支持 @角色名（激活该角色档案含文风）。
 export interface Mention {
-  type: 'character' | 'plot-skill'
+  type: 'character'
   raw: string // 原始文本，如 "@李明"
   characterName?: string
   character?: Character
-  plotSkill?: PlotSkill
 }
 
 // AI 生成请求参数

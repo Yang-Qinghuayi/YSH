@@ -2,7 +2,7 @@
  * novelService.ts
  * 小说数据的文件读写服务
  * 数据存储路径（Data 基目录下）：
- *   novels/<novel-id>/novel.json      ← 小说元数据 + 角色 + 技能 + 章节列表
+ *   novels/<novel-id>/novel.json      ← 小说元数据 + 角色 + 章节列表
  *   novels/<novel-id>/chapters/<filename>.md  ← 每章节的 Markdown 内容
  */
 
@@ -117,7 +117,7 @@ export async function loadAllNovels(): Promise<Novel[]> {
   return novels.sort((a, b) => b.updatedAt - a.updatedAt)
 }
 
-/** 保存小说元数据（含角色、技能、章节列表） */
+/** 保存小说元数据（含角色、章节列表） */
 export async function saveNovelMeta(novel: Novel): Promise<void> {
   const appService = await useAppService()
   const fs = appService.fs
@@ -140,7 +140,6 @@ export async function createNovel(title: string, synopsis = ''): Promise<Novel> 
     createdAt: Date.now(),
     updatedAt: Date.now(),
     characters: [],
-    plotSkills: [],
     chapters: [],
   }
   await saveNovelMeta(novel)

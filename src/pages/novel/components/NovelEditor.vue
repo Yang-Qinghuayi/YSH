@@ -1,229 +1,201 @@
 <template>
-  <div class="novel-editor d-flex flex-column">
-
-    <!-- 章节标题栏 -->
-    <div class="editor-header d-flex align-center px-5 gap-3">
-      <span class="editor-title text-truncate">{{ chapter?.title ?? '请选择章节' }}</span>
-      <v-spacer />
-      <transition name="fade">
-        <span v-if="isDirty" class="save-hint">未保存</span>
-      </transition>
-      <transition name="fade">
-        <v-btn
-          v-if="isDirty"
-          size="small"
-          variant="tonal"
-          color="primary"
-          rounded="pill"
-          :loading="isSaving"
-          @click="emit('save')"
-        >
-          保存
-        </v-btn>
-      </transition>
-    </div>
-
-    <!-- CodeMirror 编辑区 -->
-    <div ref="editorContainer" class="editor-area" />
-
-  </div>
+  <!-- CodeMirror 编辑区 -->
+  <div ref="editorContainer" class="editor-area" />
 </template>
 
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, watch, shallowRef } from 'vue'
-import { EditorView, keymap, ViewUpdate } from '@codemirror/view'
-import { EditorState } from '@codemirror/state'
-import { markdown } from '@codemirror/lang-markdown'
-import { autocompletion, CompletionContext, CompletionResult } from '@codemirror/autocomplete'
-import { oneDark } from '@codemirror/theme-one-dark'
-import { useTheme } from 'vuetify'
-import type { ChapterMeta, Novel } from '@/types/novel'
+import { onMounted, onBeforeUnmount, watch, shallowRef } from "vue";
+import { EditorView, keymap, ViewUpdate } from "@codemirror/view";
+import { EditorState } from "@codemirror/state";
+import { markdown } from "@codemirror/lang-markdown";
+import {
+  autocompletion,
+  CompletionContext,
+  CompletionResult,
+} from "@codemirror/autocomplete";
+import { oneDark } from "@codemirror/theme-one-dark";
+import { useTheme } from "vuetify";
+import type { ChapterMeta, Novel } from "@/types/novel";
 
 const props = defineProps<{
-  novel: Novel | null
-  chapter: ChapterMeta | null
-  content: string
-  isGenerating: boolean
-  isDirty: boolean
-}>()
+  novel: Novel | null;
+  chapter: ChapterMeta | null;
+  content: string;
+  isGenerating: boolean;
+}>();
 
 const emit = defineEmits<{
-  'update:content': [content: string]
-  save: []
-  generate: [cursorPos: number, lineText: string]
-  stopGenerate: []
-  'open-search': []
-}>()
+  "update:content": [content: string];
+  generate: [cursorPos: number, lineText: string];
+  stopGenerate: [];
+  "open-search": [];
+}>();
 
-const editorContainer = ref<HTMLElement | null>(null)
-const editorView = shallowRef<EditorView | null>(null)
-const isSaving = ref(false)
+const editorContainer = ref<HTMLElement | null>(null);
+const editorView = shallowRef<EditorView | null>(null);
 
-const vuetifyTheme = useTheme()
-const isDark = computed(() => vuetifyTheme.global.current.value.dark)
+const vuetifyTheme = useTheme();
+const isDark = computed(() => vuetifyTheme.global.current.value.dark);
 
 // @提及 自动补全
 function buildCompletions(context: CompletionContext): CompletionResult | null {
-  if (!props.novel) return null
-  const word = context.matchBefore(/@[一-龥\w]*/)
-  if (!word) return null
-  const options: { label: string; type: string; detail?: string }[] = []
+  if (!props.novel) return null;
+  const word = context.matchBefore(/@[一-龥\w]*/);
+  if (!word) return null;
+  const options: { label: string; type: string; detail?: string }[] = [];
 
   for (const char of props.novel.characters) {
-    options.push({ label: `@${char.name}`, type: 'variable', detail: '角色' })
-  }
-  for (const skill of props.novel.plotSkills) {
-    options.push({ label: `@${skill.name}`, type: 'function', detail: '剧情技能' })
+    options.push({ label: `@${char.name}`, type: "variable", detail: "角色" });
   }
 
-  if (!options.length) return null
-  return { from: word.from, options, validFor: /@[一-龥\w]*/ }
+  if (!options.length) return null;
+  return { from: word.from, options, validFor: /@[一-龥\w]*/ };
 }
 
 function handleTab(view: EditorView): boolean {
-  const { state } = view
-  const pos = state.selection.main.head
-  const line = state.doc.lineAt(pos)
-  const lineText = line.text.trim()
-  if (lineText.includes('@')) {
-    emit('generate', pos, lineText)
-    return true
+  const { state } = view;
+  const pos = state.selection.main.head;
+  const line = state.doc.lineAt(pos);
+  const lineText = line.text.trim();
+  if (lineText.includes("@")) {
+    emit("generate", pos, lineText);
+    return true;
   }
   view.dispatch({
-    changes: { from: pos, insert: '　' },
+    changes: { from: pos, insert: "　" },
     selection: { anchor: pos + 1 },
-  })
-  return true
+  });
+  return true;
 }
 
 function createEditor(content: string) {
-  if (!editorContainer.value) return
+  if (!editorContainer.value) return;
 
   const lightTheme = EditorView.theme({
-    '&': {
-      height: '100%',
-      fontSize: '15px',
+    "&": {
+      height: "100%",
+      fontSize: "15px",
       fontFamily: '"Noto Serif SC", "Source Han Serif", "Georgia", serif',
-      background: 'transparent',
+      background: "transparent",
     },
-    '.cm-scroller': { overflow: 'auto', lineHeight: '1.85' },
-    '.cm-content': {
-      padding: '24px 28px 100px',
-      maxWidth: '740px',
-      margin: '0 auto',
-      caretColor: 'rgb(var(--v-theme-primary))',
+    ".cm-scroller": { overflow: "auto", lineHeight: "1.85" },
+    ".cm-content": {
+      padding: "24px 28px 100px",
+      maxWidth: "740px",
+      margin: "0 auto",
+      caretColor: "rgb(var(--v-theme-primary))",
     },
-    '.cm-line': { paddingLeft: '0', paddingRight: '0' },
-    '.cm-focused': { outline: 'none' },
-    '.cm-cursor': { borderLeftColor: 'rgb(var(--v-theme-primary))' },
-    '.cm-completionLabel': { fontFamily: 'inherit' },
-    '.cm-selectionBackground': {
-      background: 'rgba(var(--v-theme-primary), 0.15) !important',
+    ".cm-line": { paddingLeft: "0", paddingRight: "0" },
+    ".cm-focused": { outline: "none" },
+    ".cm-cursor": { borderLeftColor: "rgb(var(--v-theme-primary))" },
+    ".cm-completionLabel": { fontFamily: "inherit" },
+    ".cm-selectionBackground": {
+      background: "rgba(var(--v-theme-primary), 0.15) !important",
     },
-  })
+  });
 
   const extensions = [
     markdown(),
     autocompletion({ override: [buildCompletions] }),
     keymap.of([
-      { key: 'Tab', run: handleTab },
+      { key: "Tab", run: handleTab },
       {
-        key: 'Escape',
+        key: "Escape",
         run: () => {
           if (props.isGenerating) {
-            emit('stopGenerate')
-            return true
+            emit("stopGenerate");
+            return true;
           }
-          return false
+          return false;
         },
       },
       {
         // Cmd+Shift+F（Mac）或 Ctrl+Shift+F（Win/Linux）唤起全局搜索
-        key: 'Mod-Shift-f',
+        key: "Mod-Shift-f",
         run: () => {
-          emit('open-search')
-          return true
+          emit("open-search");
+          return true;
         },
       },
     ]),
     EditorView.updateListener.of((update: ViewUpdate) => {
       if (update.docChanged) {
-        emit('update:content', update.state.doc.toString())
+        emit("update:content", update.state.doc.toString());
       }
     }),
     EditorView.lineWrapping,
     lightTheme,
     ...(isDark.value ? [oneDark] : []),
-  ]
+  ];
 
-  const state = EditorState.create({ doc: content, extensions })
-  editorView.value = new EditorView({ state, parent: editorContainer.value })
+  const state = EditorState.create({ doc: content, extensions });
+  editorView.value = new EditorView({ state, parent: editorContainer.value });
 }
 
 function appendContent(text: string) {
-  const view = editorView.value
-  if (!view) return
-  const pos = view.state.selection.main.head
+  const view = editorView.value;
+  if (!view) return;
+  const pos = view.state.selection.main.head;
   view.dispatch({
     changes: { from: pos, insert: text },
     selection: { anchor: pos + text.length },
-    effects: EditorView.scrollIntoView(pos + text.length, { y: 'center' }),
-  })
+    effects: EditorView.scrollIntoView(pos + text.length, { y: "center" }),
+  });
 }
 
 function moveCursorToNextLine() {
-  const view = editorView.value
-  if (!view) return
-  const pos = view.state.selection.main.head
-  const line = view.state.doc.lineAt(pos)
-  const endOfLine = line.to
+  const view = editorView.value;
+  if (!view) return;
+  const pos = view.state.selection.main.head;
+  const line = view.state.doc.lineAt(pos);
+  const endOfLine = line.to;
   view.dispatch({
-    changes: { from: endOfLine, insert: '\n' },
+    changes: { from: endOfLine, insert: "\n" },
     selection: { anchor: endOfLine + 1 },
-  })
+  });
 }
 
 /** 跳转到指定行（0-indexed），滚动到视口中央并聚焦 */
 function jumpToLine(lineIndex: number) {
-  const view = editorView.value
-  if (!view) return
-  const doc = view.state.doc
-  const lineNo = Math.max(1, Math.min(lineIndex + 1, doc.lines))
-  const line = doc.line(lineNo)
+  const view = editorView.value;
+  if (!view) return;
+  const doc = view.state.doc;
+  const lineNo = Math.max(1, Math.min(lineIndex + 1, doc.lines));
+  const line = doc.line(lineNo);
   view.dispatch({
     selection: { anchor: line.from },
-    effects: EditorView.scrollIntoView(line.from, { y: 'center' }),
-  })
-  view.focus()
+    effects: EditorView.scrollIntoView(line.from, { y: "center" }),
+  });
+  view.focus();
 }
 
-defineExpose({ appendContent, moveCursorToNextLine, jumpToLine })
+defineExpose({ appendContent, moveCursorToNextLine, jumpToLine });
 
 watch(
   () => [props.chapter?.id, props.content],
   ([newChapterId], [oldChapterId]) => {
     if (newChapterId !== oldChapterId) {
-      editorView.value?.destroy()
-      editorView.value = null
-      nextTick(() => createEditor(props.content))
+      editorView.value?.destroy();
+      editorView.value = null;
+      nextTick(() => createEditor(props.content));
     }
   },
-)
+);
 
 watch(isDark, () => {
-  const content = editorView.value?.state.doc.toString() ?? props.content
-  editorView.value?.destroy()
-  editorView.value = null
-  nextTick(() => createEditor(content))
-})
+  const content = editorView.value?.state.doc.toString() ?? props.content;
+  editorView.value?.destroy();
+  editorView.value = null;
+  nextTick(() => createEditor(content));
+});
 
 onMounted(() => {
-  if (props.chapter) createEditor(props.content)
-})
+  if (props.chapter) createEditor(props.content);
+});
 
 onBeforeUnmount(() => {
-  editorView.value?.destroy()
-})
+  editorView.value?.destroy();
+});
 </script>
 
 <style scoped>
@@ -244,12 +216,6 @@ onBeforeUnmount(() => {
   max-width: 300px;
 }
 
-.save-hint {
-  font-size: 11.5px;
-  color: rgba(var(--v-theme-on-surface), 0.35);
-  letter-spacing: 0.01em;
-}
-
 /* ====== 编辑区 ====== */
 .editor-area {
   flex: 1;
@@ -261,15 +227,5 @@ onBeforeUnmount(() => {
 }
 .editor-area :deep(.cm-focused) {
   outline: none;
-}
-
-/* ====== 过渡动画 ====== */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.22s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
 }
 </style>

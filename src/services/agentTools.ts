@@ -241,20 +241,20 @@ const readContextTool: AgentTool = {
   },
 }
 
-/** select_skill：选定要调用的角色档案/剧情技能，返回合并写作指导 */
+/** select_skill：选定要调用的角色档案，返回合并写作指导 */
 const selectSkillTool: AgentTool = {
   def: {
     type: 'function',
     function: {
       name: 'select_skill',
-      description: '选定本章要调用的角色档案与剧情技能（按 id），返回合并后的写作指导文本。角色档案会携带文风 voice 与静态档案摘要。',
+      description: '选定本章要调用的角色档案（按 id），返回合并后的写作指导文本。角色档案会携带文风 voice 与静态档案摘要。',
       parameters: {
         type: 'object',
         properties: {
           skillIds: {
             type: 'array',
             items: { type: 'string' },
-            description: '要选用的角色 id 或剧情技能 id 列表',
+            description: '要选用的角色 id 列表',
           },
         },
         required: ['skillIds'],
@@ -277,17 +277,12 @@ const selectSkillTool: AgentTool = {
           if (char.voice?.prompt) lines.push(`文风：${char.voice.prompt}`)
           continue
         }
-        const plot = ctx.novel.plotSkills.find((s) => s.id === id)
-        if (plot) {
-          lines.push(`【剧情技能 ${plot.name}】${plot.prompt}`)
-          continue
-        }
-        lines.push(`（未找到 id=${id} 的技能）`)
+        lines.push(`（未找到 id=${id} 的角色）`)
       }
 
-      return { ok: true, data: { ids }, text: lines.join('\n') || '未选用任何技能。' }
+      return { ok: true, data: { ids }, text: lines.join('\n') || '未选用任何角色。' }
     } catch (e) {
-      return { ok: false, error: String(e), text: `选用技能失败：${e}` }
+      return { ok: false, error: String(e), text: `选用角色失败：${e}` }
     }
   },
 }

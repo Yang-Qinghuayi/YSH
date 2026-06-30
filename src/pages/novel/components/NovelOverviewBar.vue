@@ -27,19 +27,12 @@
         <v-icon :icon="mdiAccountGroupOutline" size="14" />
         <span class="stat-num">{{ characterCount }}</span>
       </div>
-      <div class="stat-pill" :title="`剧情技能 ${skillCount}`">
-        <v-icon :icon="mdiLightningBoltOutline" size="14" />
-        <span class="stat-num">{{ skillCount }}</span>
-      </div>
     </div>
 
     <!-- 右：操作入口 -->
     <div class="action-group" v-if="novel">
       <button class="lg-icon-btn" title="角色管理" @click="$emit('open-characters')">
         <v-icon :icon="mdiAccountGroupOutline" size="18" />
-      </button>
-      <button class="lg-icon-btn" title="剧情技能管理" @click="$emit('open-skills')">
-        <v-icon :icon="mdiLightningBoltOutline" size="18" />
       </button>
       <button class="lg-icon-btn" title="全局搜索 (⌘⇧F)" @click="$emit('open-search')">
         <v-icon :icon="mdiMagnify" size="18" />
@@ -55,7 +48,6 @@ import {
   mdiBookOpenVariant,
   mdiCounter,
   mdiAccountGroupOutline,
-  mdiLightningBoltOutline,
   mdiMagnify,
 } from '@mdi/js'
 import { formatTotalWordCount } from '@/services/novelService'
@@ -69,13 +61,11 @@ const props = defineProps<{
 defineEmits<{
   'toggle-sidebar': []
   'open-characters': []
-  'open-skills': []
   'open-search': []
 }>()
 
 const chapterCount = computed(() => props.novel?.chapters.length ?? 0)
 const characterCount = computed(() => props.novel?.characters.length ?? 0)
-const skillCount = computed(() => props.novel?.plotSkills.length ?? 0)
 const totalWordCount = computed(() => {
   const n = props.novel?.chapters.reduce((sum, c) => sum + (c.wordCount ?? 0), 0) ?? 0
   return formatTotalWordCount(n)
