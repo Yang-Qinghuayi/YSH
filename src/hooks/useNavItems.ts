@@ -3,7 +3,6 @@ import {
   mdiBookshelf,
   mdiBookOpenVariantOutline,
   mdiFeather,
-  mdiBookmarkMultipleOutline,
 } from "@mdi/js";
 import { useI18n } from "@/utils/i18n";
 
@@ -34,12 +33,6 @@ export function useNavItems() {
       val: "novel",
       title: "写作",
       to: "/novel",
-    },
-    {
-      icon: mdiBookmarkMultipleOutline,
-      val: "lore",
-      title: "资料库",
-      to: "/lore",
     },
   ]);
 

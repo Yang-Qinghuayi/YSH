@@ -122,7 +122,7 @@ const emit = defineEmits<{
 
 const showCreateInput = ref(false)
 const newEntryName = ref('')
-const newEntryType = ref<EntryType>('character')
+const newEntryType = ref<EntryType>('world')
 
 const typeOptions = Object.entries(ENTRY_TYPE_LABELS).map(([value, label]) => ({ value, label }))
 
@@ -136,7 +136,7 @@ function confirmCreate() {
 function cancelCreate() {
   showCreateInput.value = false
   newEntryName.value = ''
-  newEntryType.value = 'character'
+  newEntryType.value = 'world'
 }
 </script>
 

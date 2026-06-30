@@ -1,18 +1,20 @@
 <template>
   <v-dialog v-model="isOpen" max-width="560" scrollable>
-    <v-card>
-      <v-card-title class="d-flex align-center gap-2 pt-4">
-        <v-icon :icon="mdiLightningBolt" />
-        剧情技能管理
+    <v-card rounded="xl" class="lg-dialog">
+      <v-card-title class="d-flex align-center gap-3 pt-5 px-5">
+        <span class="title-badge">
+          <v-icon :icon="mdiLightningBolt" size="18" />
+        </span>
+        <span class="text-h6">剧情技能管理</span>
       </v-card-title>
 
-      <v-card-text class="pa-4">
+      <v-card-text class="pa-5">
         <!-- 技能列表 -->
         <div v-if="!editingSkill" class="d-flex flex-column gap-3">
           <div
             v-for="skill in plotSkills"
             :key="skill.id"
-            class="skill-item pa-3 rounded-lg"
+            class="skill-item lg-card--inset pa-3"
           >
             <div class="d-flex align-center justify-space-between">
               <div class="flex-1 mr-2">
@@ -36,6 +38,7 @@
             variant="tonal"
             color="primary"
             prepend-icon="mdi-plus"
+            rounded="pill"
             @click="startCreate"
           >
             新增剧情技能
@@ -48,6 +51,7 @@
             variant="text"
             size="small"
             prepend-icon="mdi-arrow-left"
+            rounded="pill"
             @click="cancelEdit"
           >
             返回
@@ -84,10 +88,11 @@
       <v-card-actions>
         <v-spacer />
         <template v-if="editingSkill">
-          <v-btn @click="cancelEdit">取消</v-btn>
+          <v-btn variant="text" rounded="pill" @click="cancelEdit">取消</v-btn>
           <v-btn
             color="primary"
             variant="tonal"
+            rounded="pill"
             :disabled="!editingSkill.name.trim()"
             @click="saveSkill"
           >
@@ -95,7 +100,7 @@
           </v-btn>
         </template>
         <template v-else>
-          <v-btn @click="isOpen = false">关闭</v-btn>
+          <v-btn variant="text" rounded="pill" @click="isOpen = false">关闭</v-btn>
         </template>
       </v-card-actions>
     </v-card>
@@ -165,13 +170,32 @@ function confirmDelete(skillId: string) {
 </script>
 
 <style scoped>
+.lg-dialog {
+  background: rgba(var(--v-theme-surface), 0.92);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
+}
+.title-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: rgba(var(--v-theme-primary), 0.14);
+  color: rgb(var(--v-theme-primary));
+}
 .skill-item {
-  background: rgb(var(--v-theme-surface-variant), 0.5);
+  padding: 12px;
 }
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+.lg-dialog :deep(.v-field--variant-outlined) {
+  border-radius: 14px;
 }
 </style>

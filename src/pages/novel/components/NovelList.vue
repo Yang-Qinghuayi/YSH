@@ -31,8 +31,8 @@
     </div>
 
     <!-- 新建按钮 -->
-    <button class="add-btn" @click="showCreateInput = true">
-      <v-icon :icon="mdiPlus" size="15" class="mr-1" />
+    <button class="add-btn lg-pill" @click="showCreateInput = true">
+      <v-icon :icon="mdiPlus" size="15" />
       新建小说
     </button>
 
@@ -46,7 +46,7 @@
           variant="outlined"
           hide-details
           autofocus
-          rounded="lg"
+          rounded="xl"
           @keyup.enter="confirmCreate"
           @keyup.esc="cancelCreate"
         />
@@ -57,7 +57,7 @@
           variant="outlined"
           hide-details
           rows="2"
-          rounded="lg"
+          rounded="xl"
           class="mt-2"
         />
         <div class="d-flex gap-1 mt-2">
@@ -97,6 +97,11 @@ const showCreateInput = ref(false)
 const newNovelTitle = ref('')
 const newNovelSynopsis = ref('')
 
+function openCreate() {
+  showCreateInput.value = true
+}
+defineExpose({ openCreate })
+
 function confirmCreate() {
   const title = newNovelTitle.value.trim()
   if (!title) return
@@ -122,11 +127,11 @@ function cancelCreate() {
 .list-item {
   display: flex;
   align-items: center;
-  border-radius: 10px;
-  padding: 6px 8px 6px 6px;
+  border-radius: 14px;
+  padding: 7px 10px 7px 8px;
   cursor: pointer;
   user-select: none;
-  transition: background 0.18s ease;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
   position: relative;
   gap: 6px;
 }
@@ -137,6 +142,7 @@ function cancelCreate() {
 
 .list-item--active {
   background: rgba(var(--v-theme-primary), 0.1);
+  box-shadow: inset 0 0 0 1px rgba(var(--v-theme-primary), 0.2);
 }
 
 /* 选中左侧小亮条 */
@@ -212,22 +218,10 @@ function cancelCreate() {
 
 /* 新建按钮 */
 .add-btn {
-  display: flex;
-  align-items: center;
   width: 100%;
-  padding: 5px 8px;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 12.5px;
-  color: rgba(var(--v-theme-on-surface), 0.5);
-  transition: background 0.18s ease, color 0.18s ease;
-  margin-top: 2px;
-}
-.add-btn:hover {
-  background: rgba(var(--v-theme-on-surface), 0.055);
-  color: rgba(var(--v-theme-on-surface), 0.78);
+  justify-content: flex-start;
+  padding: 7px 12px;
+  margin-top: 4px;
 }
 
 /* 新建表单 */

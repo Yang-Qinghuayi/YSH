@@ -24,9 +24,10 @@ onMounted(() => {
 
 const { pause, resume } = useLenis(mainEl);
 
-// 阅读页有自己的滚动逻辑，Lenis 会干扰 → 进入时暂停，离开时恢复
+// 阅读页 / 编辑器页有自己的滚动逻辑，Lenis 会干扰 → 进入时暂停，离开时恢复
+const pausedPaths = ['/book', '/novel'];
 const route = useRoute();
 watch(() => route.path, (path) => {
-  path === '/book' ? pause() : resume();
+  pausedPaths.includes(path) ? pause() : resume();
 }, { immediate: true });
 </script>

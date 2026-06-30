@@ -10,6 +10,7 @@ import { useAppService } from '@/hooks/useEnv'
 import { getDataBase } from '@/services/workspaceService'
 import type { Novel } from '@/types/novel'
 import type { Lore, EntryMeta, EntryType, EntryImportance } from '@/types/lore'
+import { ENTRY_TYPE_LABELS } from '@/types/lore'
 
 const NOVELS_DIR = 'novels'
 
@@ -26,6 +27,23 @@ function entryPath(novelId: string, filename: string) {
   return `${loreDir(novelId)}/entries/${filename}`
 }
 
+/**
+ * 迁移旧 character 类型条目为 other（角色已由 Character 档案管理，Lore 不再保留 character 类型）。
+ * 幂等：无 character 条目时返回 { changed: false }。
+ */
+function migrateLoreCharacterEntries(lore: Lore): { lore: Lore; changed: boolean } {
+  let changed = false
+  const entries = lore.entries.map((e) => {
+    if ((e as { type?: string }).type === 'character') {
+      changed = true
+      return { ...e, type: 'other' as EntryType }
+    }
+    return e
+  })
+  if (!changed) return { lore, changed: false }
+  return { lore: { ...lore, entries }, changed: true }
+}
+
 /** 加载或创建指定小说的资料库 */
 export async function loadOrCreateLore(novel: Novel): Promise<Lore> {
   const appService = await useAppService()
@@ -39,7 +57,13 @@ export async function loadOrCreateLore(novel: Novel): Promise<Lore> {
     const raw = await fs.readFile(metaPath, base, 'text').catch(() => null)
     if (raw && typeof raw === 'string') {
       try {
-        return JSON.parse(raw) as Lore
+        const lore = JSON.parse(raw) as Lore
+        // 迁移：旧 character 类型条目归一为 other（角色已由 Character 档案管理）
+        const migrated = migrateLoreCharacterEntries(lore)
+        if (migrated.changed) {
+          await saveLoreMeta(migrated.lore).catch(() => {})
+        }
+        return migrated.lore
       } catch {
         // 格式错误时重建
       }
@@ -190,7 +214,7 @@ export function buildLoreContext(
     lines.push('## 重要设定')
     for (const entry of majorEntries) {
       const content = entryContents.get(entry.id) ?? ''
-      lines.push(`### ${entry.name}（${entry.type === 'character' ? '角色' : entry.type} · 主要）`)
+      lines.push(`### ${entry.name}（${ENTRY_TYPE_LABELS[entry.type]} · 主要）`)
       if (entry.keywords.length > 0) {
         lines.push(`别名：${entry.keywords.join('、')}`)
       }
@@ -209,8 +233,7 @@ export function buildLoreContext(
   if (indexEntries.length > 0) {
     lines.push('## 资料索引')
     for (const entry of indexEntries) {
-      const typeLabel =
-        { character: '角色', world: '世界观', location: '地点', faction: '势力', rule: '规则', item: '物品', other: '其他' }[entry.type] ?? entry.type
+      const typeLabel = ENTRY_TYPE_LABELS[entry.type] ?? entry.type
       let line = `- ${entry.name}（${typeLabel}）`
       if (entry.briefDescription) {
         line += `：${entry.briefDescription}`

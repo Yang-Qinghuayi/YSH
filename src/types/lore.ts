@@ -4,9 +4,12 @@
  * 参考 Nova 项目设计，结构化管理小说的角色/世界观/地点等创作资料
  */
 
-/** 条目类型 */
+/**
+ * 条目类型
+ * 注：角色不再作为 Lore 条目——角色档案统一由 Character（novel.json）管理，
+ * Lore 只承载 Character 装不下的世界观维度设定。
+ */
 export type EntryType =
-  | 'character'  // 角色
   | 'world'      // 世界观
   | 'location'   // 地点
   | 'faction'    // 势力
@@ -44,7 +47,6 @@ export interface Lore {
 
 /** 条目类型的中文标签映射 */
 export const ENTRY_TYPE_LABELS: Record<EntryType, string> = {
-  character: '角色',
   world: '世界观',
   location: '地点',
   faction: '势力',
@@ -62,7 +64,6 @@ export const ENTRY_IMPORTANCE_LABELS: Record<EntryImportance, string> = {
 
 /** 条目类型对应的颜色（Vuetify color） */
 export const ENTRY_TYPE_COLORS: Record<EntryType, string> = {
-  character: 'blue',
   world: 'purple',
   location: 'teal',
   faction: 'orange',

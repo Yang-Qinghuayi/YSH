@@ -44,20 +44,24 @@ const label = computed(() => {
 <style scoped>
 .agent-status-pill {
   position: absolute;
-  bottom: 48px;
+  bottom: 36px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 14px;
+  padding: 7px 16px 7px 13px;
   border-radius: 999px;
-  background: rgba(var(--v-theme-surface), 0.92);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  background: rgba(var(--v-theme-surface), 0.85);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid rgba(var(--v-theme-primary), 0.2);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.5) inset,
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    0 2px 8px rgba(0, 0, 0, 0.05);
   font-size: 12.5px;
+  color: rgba(var(--v-theme-on-surface), 0.78);
   z-index: 20;
 }
 .agent-status-label {
@@ -69,7 +73,12 @@ const label = computed(() => {
   color: rgb(var(--v-theme-error));
   cursor: pointer;
   font-size: 12px;
+  font-weight: 500;
   padding: 0 2px;
+  transition: opacity 0.15s ease;
+}
+.stop-btn:hover {
+  opacity: 0.7;
 }
 .slide-up-enter-active,
 .slide-up-leave-active {

@@ -1,19 +1,21 @@
 <template>
   <v-dialog :model-value="agentStore.planDialogVisible" max-width="620" scrollable persistent>
-    <v-card>
-      <v-card-title class="d-flex align-center gap-2 pt-4">
-        <v-icon :icon="mdiClipboardCheckOutline" />
-        章节规划确认
+    <v-card rounded="xl" class="lg-dialog">
+      <v-card-title class="d-flex align-center gap-3 pt-5 px-5">
+        <span class="title-badge">
+          <v-icon :icon="mdiClipboardCheckOutline" size="18" />
+        </span>
+        <span class="text-h6">章节规划确认</span>
       </v-card-title>
 
-      <v-card-text class="pa-4">
+      <v-card-text class="pa-5">
         <div v-if="!agentStore.currentPlan" class="text-body-2 text-medium-emphasis">
           正在生成规划…
         </div>
         <div v-else class="d-flex flex-column gap-4">
           <!-- 大纲（可编辑） -->
-          <div>
-            <div class="text-subtitle-2 mb-2">章节大纲（可编辑）</div>
+          <div class="plan-block lg-card--inset pa-3">
+            <div class="lg-section-label mb-2">章节大纲（可编辑）</div>
             <v-textarea
               v-model="editableOutline"
               variant="outlined"
@@ -21,18 +23,19 @@
               rows="6"
               auto-grow
               hide-details
+              rounded="xl"
             />
           </div>
 
           <!-- 写法思路 -->
-          <div v-if="agentStore.currentPlan.approach">
-            <div class="text-subtitle-2 mb-1">写法思路</div>
+          <div v-if="agentStore.currentPlan.approach" class="plan-block lg-card--inset pa-3">
+            <div class="lg-section-label mb-1">写法思路</div>
             <div class="text-body-2 text-medium-emphasis">{{ agentStore.currentPlan.approach }}</div>
           </div>
 
           <!-- 所选技能 -->
-          <div v-if="agentStore.currentPlan.selectedSkills?.length">
-            <div class="text-subtitle-2 mb-1">所选技能</div>
+          <div v-if="agentStore.currentPlan.selectedSkills?.length" class="plan-block lg-card--inset pa-3">
+            <div class="lg-section-label mb-2">所选技能</div>
             <div class="d-flex flex-wrap gap-2">
               <v-chip
                 v-for="s in agentStore.currentPlan.selectedSkills"
@@ -48,8 +51,8 @@
           </div>
 
           <!-- 引用 Lore -->
-          <div v-if="agentStore.currentPlan.referencedLoreEntries?.length">
-            <div class="text-subtitle-2 mb-1">引用资料</div>
+          <div v-if="agentStore.currentPlan.referencedLoreEntries?.length" class="plan-block lg-card--inset pa-3">
+            <div class="lg-section-label mb-2">引用资料</div>
             <div class="d-flex flex-wrap gap-2">
               <v-chip
                 v-for="e in agentStore.currentPlan.referencedLoreEntries"
@@ -63,8 +66,8 @@
           </div>
 
           <!-- 工具调用日志 -->
-          <div v-if="agentStore.toolCallLog.length">
-            <div class="text-subtitle-2 mb-1">调研过程</div>
+          <div v-if="agentStore.toolCallLog.length" class="plan-block lg-card--inset pa-3">
+            <div class="lg-section-label mb-2">调研过程</div>
             <div class="tool-log">
               <div v-for="(log, i) in agentStore.toolCallLog" :key="i" class="tool-log-item">
                 <v-icon
@@ -81,10 +84,11 @@
 
       <v-card-actions>
         <v-spacer />
-        <v-btn variant="text" @click="$emit('cancel')">取消</v-btn>
+        <v-btn variant="text" rounded="pill" @click="$emit('cancel')">取消</v-btn>
         <v-btn
           color="primary"
           variant="tonal"
+          rounded="pill"
           :disabled="!agentStore.currentPlan"
           @click="onConfirm"
         >
@@ -125,6 +129,25 @@ function onConfirm() {
 </script>
 
 <style scoped>
+.lg-dialog {
+  background: rgba(var(--v-theme-surface), 0.92);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
+}
+.title-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: rgba(var(--v-theme-primary), 0.14);
+  color: rgb(var(--v-theme-primary));
+}
+.plan-block :deep(.v-field--variant-outlined) {
+  border-radius: 14px;
+}
 .tool-log {
   display: flex;
   flex-wrap: wrap;

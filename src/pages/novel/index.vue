@@ -4,97 +4,48 @@
   <WorkspaceInit v-if="!workspaceReady" @done="workspaceReady = true" class="h-100" />
 
   <div v-else class="novel-page d-flex h-100">
-    <!-- ===== 左侧栏 ===== -->
-    <div class="novel-sidebar d-flex flex-column">
-
-      <!-- 小说区 -->
-      <div class="sidebar-section">
-        <div class="sidebar-section-label">我的小说</div>
-        <NovelList
-          :novels="novels"
-          :current-novel-id="currentNovel?.id"
-          @select="handleSelectNovel"
-          @delete="handleDeleteNovel"
-          @create="handleCreateNovel"
-        />
-      </div>
-
-      <!-- 章节区 -->
-      <div v-if="currentNovel" class="sidebar-section">
-        <div class="sidebar-section-label">章节</div>
-        <ChapterList
-          :chapters="currentNovel.chapters"
-          :current-chapter-id="currentChapter?.id"
-          @select="handleSelectChapter"
-          @delete="handleDeleteChapter"
-          @create="handleCreateChapter"
-        />
-      </div>
-
-      <!-- 角色区 -->
-      <div v-if="currentNovel" class="sidebar-section">
-        <div class="sidebar-section-label-row">
-          <span class="sidebar-section-label">角色</span>
-          <button class="icon-btn" @click="showCharacterDialog = true">
-            <v-icon :icon="mdiCog" size="13" />
-          </button>
-        </div>
-        <div class="chip-wrap">
-          <v-chip
-            v-for="char in currentNovel.characters"
-            :key="char.id"
-            size="x-small"
-            variant="tonal"
-            color="primary"
-            class="chip-item chip-clickable"
-            @click="agentStore.openCharacterPanel(char.name)"
-          >
-            {{ char.name }}
-          </v-chip>
-          <span v-if="!currentNovel.characters.length" class="text-caption text-medium-emphasis">暂无角色</span>
-        </div>
-      </div>
-
-      <!-- 剧情技能区 -->
-      <div v-if="currentNovel" class="sidebar-section">
-        <div class="sidebar-section-label-row">
-          <span class="sidebar-section-label">剧情技能</span>
-          <button class="icon-btn" @click="showPlotSkillDialog = true">
-            <v-icon :icon="mdiCog" size="13" />
-          </button>
-        </div>
-        <div class="chip-wrap">
-          <v-chip
-            v-for="skill in currentNovel.plotSkills"
-            :key="skill.id"
-            size="x-small"
-            color="secondary"
-            variant="tonal"
-            class="chip-item"
-          >
-            {{ skill.name }}
-          </v-chip>
-          <span v-if="!currentNovel.plotSkills.length" class="text-caption text-medium-emphasis">暂无技能</span>
-        </div>
-      </div>
-    </div>
-
     <!-- ===== 主编辑区 ===== -->
     <div class="editor-main flex-1 d-flex flex-column overflow-hidden">
+      <!-- 顶部小说概览栏 -->
+      <NovelOverviewBar
+        v-if="currentNovel"
+        :novel="currentNovel"
+        :collapsed="sidebarCollapsed"
+        @toggle-sidebar="sidebarCollapsed = !sidebarCollapsed"
+        @open-characters="onOpenCharacters"
+        @open-skills="onOpenSkills"
+        @open-search="currentNovel && (showGlobalSearch = true)"
+      />
+
       <!-- 未选择章节时的占位 -->
       <div
         v-if="!currentChapter"
-        class="d-flex flex-column align-center justify-center h-100 gap-3"
-        style="opacity: 0.35;"
+        class="empty-stage"
       >
-        <v-icon :icon="mdiPenPlus" size="52" />
-        <div class="text-body-2" v-if="!currentNovel">选择或新建一部小说</div>
-        <div class="text-body-2" v-else>选择或新建章节开始写作</div>
+        <div class="empty-card lg-card">
+          <div class="empty-icon">
+            <v-icon :icon="currentNovel ? mdiPenPlus : mdiBookPlus" size="44" />
+          </div>
+          <div class="empty-title">
+            {{ currentNovel ? '开始创作新章节' : '开启你的第一部小说' }}
+          </div>
+          <div class="empty-sub">
+            {{ currentNovel ? '在左侧选择章节，或新建一章开始写作' : '在左侧新建一部小说，开启 AI 辅助写作之旅' }}
+          </div>
+          <button v-if="!currentNovel" class="lg-pill empty-btn" @click="novelListRef?.openCreate()">
+            <v-icon :icon="mdiPlus" size="16" />
+            新建小说
+          </button>
+          <button v-else class="lg-pill empty-btn" @click="chapterListRef?.openCreate()">
+            <v-icon :icon="mdiPlus" size="16" />
+            新建章节
+          </button>
+        </div>
       </div>
 
       <template v-else>
         <!-- 章节概要输入条 -->
-        <div class="brief-bar">
+        <div class="brief-bar lg-card--inset">
           <v-textarea
             v-model="chapterBrief"
             :placeholder="briefPlaceholder"
@@ -112,8 +63,10 @@
             size="small"
             rounded="pill"
             :disabled="isGenerating"
+            class="brief-btn"
             @click="startChapterAgent"
           >
+            <v-icon :icon="mdiAutoFix" size="15" start />
             生成整章
           </v-btn>
         </div>
@@ -121,6 +74,8 @@
         <!-- 编辑器 -->
         <NovelEditor
           ref="editorRef"
+          class="flex-1"
+          style="min-height: 0;"
           :novel="currentNovel"
           :chapter="currentChapter"
           :content="currentChapterContent"
@@ -137,6 +92,148 @@
         <AgentStatusBar @stop="handleStopGenerate" />
       </template>
     </div>
+
+    <!-- ===== 右侧栏（可折叠为图标 rail） ===== -->
+    <aside
+      class="novel-sidebar"
+      :class="{ 'novel-sidebar--rail': effectiveCollapsed }"
+      @mouseenter="sidebarHover = sidebarCollapsed ? true : sidebarHover"
+      @mouseleave="sidebarHover = false"
+    >
+      <!-- 折叠态：图标 rail -->
+      <div v-if="effectiveCollapsed" class="rail">
+        <button class="lg-icon-btn rail-toggle" title="展开侧栏" @click="sidebarCollapsed = false">
+          <v-icon :icon="mdiMenuClose" size="18" />
+        </button>
+        <button class="rail-avatar" :class="{ 'rail-avatar--active': currentNovel }" title="我的小说" @click="sidebarCollapsed = false">
+          {{ currentNovel ? currentNovel.title.slice(0, 1) : '书' }}
+        </button>
+        <button class="lg-icon-btn" title="章节" :disabled="!currentNovel" @click="sidebarCollapsed = false">
+          <v-icon :icon="mdiFormatListBulleted" size="18" />
+        </button>
+        <button class="lg-icon-btn" title="角色" :disabled="!currentNovel" @click="onOpenCharacters">
+          <v-icon :icon="mdiAccountGroupOutline" size="18" />
+        </button>
+        <button class="lg-icon-btn" title="剧情技能" :disabled="!currentNovel" @click="onOpenSkills">
+          <v-icon :icon="mdiLightningBoltOutline" size="18" />
+        </button>
+        <button class="lg-icon-btn" title="设定" :disabled="!currentNovel" @click="onOpenLore">
+          <v-icon :icon="mdiBookshelf" size="18" />
+        </button>
+      </div>
+
+      <!-- 展开态：分组玻璃卡片 -->
+      <template v-else>
+        <!-- 小说区 -->
+        <div class="sidebar-card lg-card">
+          <div class="sidebar-card__head">
+            <v-icon :icon="mdiBookOpenVariant" size="14" class="lg-section-label" />
+            <span class="lg-section-label">我的小说</span>
+            <button v-if="sidebarCollapsed === false" class="lg-icon-btn collapse-inline" title="折叠侧栏" @click="sidebarCollapsed = true">
+              <v-icon :icon="mdiMenuOpen" size="16" />
+            </button>
+          </div>
+          <NovelList
+            ref="novelListRef"
+            :novels="novels"
+            :current-novel-id="currentNovel?.id"
+            @select="handleSelectNovel"
+            @delete="handleDeleteNovel"
+            @create="handleCreateNovel"
+          />
+        </div>
+
+        <!-- 章节区 -->
+        <div v-if="currentNovel" class="sidebar-card lg-card">
+          <div class="sidebar-card__head">
+            <v-icon :icon="mdiFormatListBulleted" size="14" class="lg-section-label" />
+            <span class="lg-section-label">章节</span>
+          </div>
+          <ChapterList
+            ref="chapterListRef"
+            :chapters="currentNovel.chapters"
+            :current-chapter-id="currentChapter?.id"
+            @select="handleSelectChapter"
+            @delete="handleDeleteChapter"
+            @create="handleCreateChapter"
+          />
+        </div>
+
+        <!-- 角色区 -->
+        <div v-if="currentNovel" class="sidebar-card lg-card">
+          <div class="sidebar-card__head">
+            <v-icon :icon="mdiAccountGroupOutline" size="14" class="lg-section-label" />
+            <span class="lg-section-label">角色</span>
+            <button class="lg-icon-btn head-action" @click="showCharacterDialog = true">
+              <v-icon :icon="mdiCog" size="14" />
+            </button>
+          </div>
+          <div class="chip-wrap">
+            <v-chip
+              v-for="char in currentNovel.characters"
+              :key="char.id"
+              size="x-small"
+              variant="tonal"
+              color="primary"
+              class="chip-item chip-clickable"
+              @click="agentStore.openCharacterPanel(char.name)"
+            >
+              {{ char.name }}
+            </v-chip>
+            <span v-if="!currentNovel.characters.length" class="empty-hint">暂无角色</span>
+          </div>
+        </div>
+
+        <!-- 剧情技能区 -->
+        <div v-if="currentNovel" class="sidebar-card lg-card">
+          <div class="sidebar-card__head">
+            <v-icon :icon="mdiLightningBoltOutline" size="14" class="lg-section-label" />
+            <span class="lg-section-label">剧情技能</span>
+            <button class="lg-icon-btn head-action" @click="showPlotSkillDialog = true">
+              <v-icon :icon="mdiCog" size="14" />
+            </button>
+          </div>
+          <div class="chip-wrap">
+            <v-chip
+              v-for="skill in currentNovel.plotSkills"
+              :key="skill.id"
+              size="x-small"
+              color="secondary"
+              variant="tonal"
+              class="chip-item"
+            >
+              {{ skill.name }}
+            </v-chip>
+            <span v-if="!currentNovel.plotSkills.length" class="empty-hint">暂无技能</span>
+          </div>
+        </div>
+
+        <!-- 设定资料库区 -->
+        <div v-if="currentNovel" class="sidebar-card lg-card">
+          <div class="sidebar-card__head">
+            <v-icon :icon="mdiBookshelf" size="14" class="lg-section-label" />
+            <span class="lg-section-label">设定</span>
+            <button class="lg-icon-btn head-action" @click="showLorePanel = true">
+              <v-icon :icon="mdiCog" size="14" />
+            </button>
+          </div>
+          <div class="chip-wrap">
+            <v-chip
+              v-for="entry in loreEntries"
+              :key="entry.id"
+              size="x-small"
+              color="info"
+              variant="tonal"
+              class="chip-item chip-clickable"
+              @click="openLoreAt(entry.id)"
+            >
+              {{ entry.name }}
+            </v-chip>
+            <span v-if="!loreEntries.length" class="empty-hint">暂无设定</span>
+          </div>
+        </div>
+      </template>
+    </aside>
 
     <!-- ===== 弹窗 ===== -->
     <CharacterDialog
@@ -174,6 +271,15 @@
       @update:state="handleUpdateCharacterState"
     />
 
+    <!-- 设定资料库面板 -->
+    <LorePanel
+      v-if="currentNovel"
+      v-model:visible="showLorePanel"
+      :novel="currentNovel"
+      :focus-entry-id="pendingLoreEntryId"
+      @saved="reloadLoreEntries"
+    />
+
     <!-- 错误提示 -->
     <v-snackbar v-model="showError" color="error" timeout="4000" location="top">
       {{ errorMessage }}
@@ -184,7 +290,20 @@
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { mdiCog, mdiPenPlus } from '@mdi/js'
+import {
+  mdiCog,
+  mdiPenPlus,
+  mdiBookPlus,
+  mdiPlus,
+  mdiAutoFix,
+  mdiMenuOpen,
+  mdiMenuClose,
+  mdiBookOpenVariant,
+  mdiFormatListBulleted,
+  mdiAccountGroupOutline,
+  mdiLightningBoltOutline,
+  mdiBookshelf,
+} from '@mdi/js'
 import { useNovelStore } from '@/store/novelStore'
 import { useSettingStore } from '@/store/setting'
 import { useAgentStore } from '@/store/agentStore'
@@ -212,18 +331,22 @@ import {
   type AgentConfig,
 } from '@/services/agentService'
 import { loadStoryState, saveStoryState } from '@/services/storyStateService'
+import { loadOrCreateLore } from '@/services/loreService'
 import { isWorkspaceInitialized } from '@/services/workspaceService'
 import type { Novel, ChapterMeta, Character, PlotSkill, SearchResult } from '@/types/novel'
 import type { CharacterState } from '@/types/storyState'
+import type { EntryMeta } from '@/types/lore'
 import WorkspaceInit from '@/components/WorkspaceInit.vue'
 import NovelList from './components/NovelList.vue'
 import ChapterList from './components/ChapterList.vue'
 import NovelEditor from './components/NovelEditor.vue'
+import NovelOverviewBar from './components/NovelOverviewBar.vue'
 import CharacterDialog from './components/CharacterDialog.vue'
 import PlotSkillDialog from './components/PlotSkillDialog.vue'
 import AgentPlanPanel from './components/AgentPlanPanel.vue'
 import AgentStatusBar from './components/AgentStatusBar.vue'
 import CharacterPanel from './components/CharacterPanel.vue'
+import LorePanel from './components/LorePanel.vue'
 import GlobalSearch from '@/components/GlobalSearch.vue'
 
 // ===== Store =====
@@ -243,8 +366,52 @@ const showPlotSkillDialog = ref(false)
 const showError = ref(false)
 const errorMessage = ref('')
 const showGlobalSearch = ref(false)
+const showLorePanel = ref(false)
+const loreEntries = ref<EntryMeta[]>([])
+const pendingLoreEntryId = ref<string | null>(null)
 
 const editorRef = ref<InstanceType<typeof NovelEditor> | null>(null)
+const novelListRef = ref<InstanceType<typeof NovelList> | null>(null)
+const chapterListRef = ref<InstanceType<typeof ChapterList> | null>(null)
+
+// ===== 侧栏折叠 =====
+const sidebarCollapsed = ref(false)
+const sidebarHover = ref(false)
+const effectiveCollapsed = computed(() => sidebarCollapsed.value && !sidebarHover.value)
+
+function onOpenCharacters() {
+  sidebarCollapsed.value = false
+  showCharacterDialog.value = true
+}
+function onOpenSkills() {
+  sidebarCollapsed.value = false
+  showPlotSkillDialog.value = true
+}
+function onOpenLore() {
+  sidebarCollapsed.value = false
+  showLorePanel.value = true
+}
+
+/** 点击侧栏设定 chip：打开面板并定位到该条目 */
+function openLoreAt(entryId: string) {
+  pendingLoreEntryId.value = entryId
+  showLorePanel.value = true
+}
+
+/** 加载当前小说的 lore 条目列表缓存（供侧栏 chip 展示） */
+async function loadLoreEntries(novel: Novel) {
+  try {
+    const lore = await loadOrCreateLore(novel)
+    loreEntries.value = lore.entries
+  } catch {
+    loreEntries.value = []
+  }
+}
+
+/** LorePanel 保存后刷新侧栏 chip */
+function reloadLoreEntries() {
+  if (currentNovel.value) loadLoreEntries(currentNovel.value)
+}
 
 // ===== Agent 状态 =====
 const chapterBrief = ref('')
@@ -280,6 +447,8 @@ async function handleSelectNovel(novel: Novel) {
   novelStore.openNovel(novel)
   // 加载故事状态到缓存（供角色面板展示）
   loadStoryState(novel.id).then((s) => agentStore.setStoryState(s)).catch(() => {})
+  // 加载设定资料库条目缓存（供侧栏 chip 展示）
+  loadLoreEntries(novel)
   // 后台异步加载尚未计算字数的章节
   loadMissingWordCounts(novel)
 }
@@ -687,63 +856,89 @@ onBeforeUnmount(() => {
 
 /* ====== 侧边栏 — Liquid Glass ====== */
 .novel-sidebar {
-  width: 220px;
+  width: 248px;
   flex-shrink: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 12px 8px 20px;
-  gap: 4px;
-
-  /* 磨砂玻璃背景 */
-  background: rgba(var(--v-theme-surface), 0.88);
+  padding: 12px 10px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(var(--v-theme-surface), 0.6);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border-right: 1px solid rgba(var(--v-theme-on-surface), 0.06);
+  border-left: 1px solid rgba(var(--v-theme-on-surface), 0.06);
+  transition: width 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* 侧栏区块 */
-.sidebar-section {
-  padding: 8px 4px 4px;
+/* 折叠态 rail */
+.novel-sidebar--rail {
+  width: 60px;
+  padding: 12px 6px;
+  align-items: center;
+  gap: 4px;
+}
+.novel-sidebar--rail .rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
 }
 
-/* iOS-style 章节标签：全大写、间距、淡色 */
-.sidebar-section-label {
-  font-size: 10.5px;
+.rail-toggle {
+  margin-bottom: 2px;
+}
+.rail-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+  background: rgba(var(--v-theme-on-surface), 0.05);
+  color: rgba(var(--v-theme-on-surface), 0.55);
+  font-size: 16px;
   font-weight: 600;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: rgba(var(--v-theme-on-surface), 0.38);
-  padding: 0 8px;
-  margin-bottom: 4px;
-  display: block;
-}
-
-.sidebar-section-label-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 8px;
-  margin-bottom: 4px;
-}
-
-/* 小齿轮按钮 */
-.icon-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 5px;
-  border: none;
-  background: transparent;
   cursor: pointer;
-  color: rgba(var(--v-theme-on-surface), 0.38);
   transition: background 0.18s ease, color 0.18s ease;
-  padding: 0;
 }
-.icon-btn:hover {
-  background: rgba(var(--v-theme-on-surface), 0.08);
-  color: rgba(var(--v-theme-on-surface), 0.65);
+.rail-avatar--active {
+  background: rgba(var(--v-theme-primary), 0.14);
+  color: rgb(var(--v-theme-primary));
+  border-color: rgba(var(--v-theme-primary), 0.22);
+}
+.rail-avatar:hover {
+  filter: brightness(1.05);
+}
+
+/* 展开态隐藏 rail（默认不渲染，无需额外样式） */
+
+/* 侧栏分组卡片 */
+.sidebar-card {
+  padding: 10px 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sidebar-card__head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 6px 4px;
+}
+.sidebar-card__head .lg-section-label {
+  flex-shrink: 0;
+}
+.sidebar-card__head .lg-icon-btn {
+  margin-left: auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+}
+.collapse-inline {
+  margin-left: auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
 }
 
 /* 芯片区 */
@@ -751,11 +946,15 @@ onBeforeUnmount(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  padding: 2px 6px;
+  padding: 2px 4px 2px;
 }
-
 .chip-item {
   font-size: 11px !important;
+}
+.empty-hint {
+  font-size: 11.5px;
+  color: rgba(var(--v-theme-on-surface), 0.35);
+  padding: 2px 4px;
 }
 
 /* ====== 主编辑区 ====== */
@@ -764,14 +963,65 @@ onBeforeUnmount(() => {
   position: relative;
 }
 
+/* 空状态 */
+.empty-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.empty-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 48px;
+  text-align: center;
+}
+.empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 24px;
+  background: rgba(var(--v-theme-primary), 0.1);
+  color: rgb(var(--v-theme-primary));
+  margin-bottom: 6px;
+}
+.empty-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: rgba(var(--v-theme-on-surface), 0.85);
+}
+.empty-sub {
+  font-size: 13px;
+  color: rgba(var(--v-theme-on-surface), 0.45);
+  max-width: 320px;
+  line-height: 1.6;
+}
+.empty-btn {
+  margin-top: 10px;
+  padding: 9px 18px;
+  background: rgba(var(--v-theme-primary), 0.12);
+  color: rgb(var(--v-theme-primary));
+  border-color: rgba(var(--v-theme-primary), 0.2);
+}
+.empty-btn:hover {
+  background: rgba(var(--v-theme-primary), 0.18);
+  color: rgb(var(--v-theme-primary));
+}
+
 /* 章节概要输入条 */
 .brief-bar {
   display: flex;
   align-items: flex-end;
-  gap: 8px;
-  padding: 8px 16px;
-  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.06);
-  background: rgba(var(--v-theme-surface), 0.6);
+  gap: 10px;
+  padding: 8px 12px;
+  margin: 10px 14px 0;
+  border-radius: 16px;
+  flex-shrink: 0;
 }
 .brief-input {
   flex: 1;
@@ -780,6 +1030,9 @@ onBeforeUnmount(() => {
 .brief-input :deep(.v-field__input) {
   padding-top: 6px;
   padding-bottom: 6px;
+}
+.brief-btn {
+  flex-shrink: 0;
 }
 
 /* 可点击的角色 chip */

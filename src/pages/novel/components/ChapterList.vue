@@ -23,14 +23,9 @@
     <!-- 空状态 -->
     <div v-if="sortedChapters.length === 0" class="list-empty">暂无章节</div>
 
-    <!-- 全书总字数 -->
-    <div v-if="sortedChapters.length > 0" class="wc-total">
-      全书 {{ formatWCTotal(totalWordCount) }}
-    </div>
-
     <!-- 新增按钮 -->
-    <button class="add-btn" @click="showNewChapterInput = true">
-      <v-icon :icon="mdiPlus" size="15" class="mr-1" />
+    <button class="add-btn lg-pill" @click="showNewChapterInput = true">
+      <v-icon :icon="mdiPlus" size="15" />
       新增章节
     </button>
 
@@ -45,7 +40,7 @@
           variant="outlined"
           hide-details
           autofocus
-          rounded="lg"
+          rounded="xl"
           @keyup.enter="confirmNewChapter"
           @keyup.esc="cancelNewChapter"
         />
@@ -69,6 +64,7 @@
 
 <script setup lang="ts">
 import { mdiClose, mdiPlus } from '@mdi/js'
+import { formatWordCount as formatWC } from '@/services/novelService'
 import type { ChapterMeta } from '@/types/novel'
 
 const props = defineProps<{
@@ -86,27 +82,13 @@ const sortedChapters = computed(() =>
   [...props.chapters].sort((a, b) => a.order - b.order),
 )
 
-// 全书总字数（只统计已计算的章节）
-const totalWordCount = computed(() =>
-  props.chapters.reduce((sum, c) => sum + (c.wordCount ?? 0), 0),
-)
-
-// 格式化单章字数：undefined 显示 —，否则显示数字
-function formatWC(n: number | undefined): string {
-  if (n === undefined) return '—'
-  if (n >= 10000) return `${(n / 10000).toFixed(1)}万`
-  return n.toLocaleString('zh-CN')
-}
-
-// 格式化总字数，带单位
-function formatWCTotal(n: number): string {
-  if (n === 0) return '0 字'
-  if (n >= 10000) return `${(n / 10000).toFixed(1)} 万字`
-  return `${n.toLocaleString('zh-CN')} 字`
-}
-
 const showNewChapterInput = ref(false)
 const newChapterTitle = ref('')
+
+function openCreate() {
+  showNewChapterInput.value = true
+}
+defineExpose({ openCreate })
 
 function confirmNewChapter() {
   const title = newChapterTitle.value.trim()
@@ -132,11 +114,11 @@ function cancelNewChapter() {
 .list-item {
   display: flex;
   align-items: center;
-  border-radius: 10px;
-  padding: 5px 8px 5px 8px;
+  border-radius: 14px;
+  padding: 6px 10px 6px 8px;
   cursor: pointer;
   user-select: none;
-  transition: background 0.18s ease;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
   gap: 7px;
 }
 
@@ -146,6 +128,7 @@ function cancelNewChapter() {
 
 .list-item--active {
   background: rgba(var(--v-theme-primary), 0.1);
+  box-shadow: inset 0 0 0 1px rgba(var(--v-theme-primary), 0.2);
 }
 
 /* 章节序号 */
@@ -153,14 +136,18 @@ function cancelNewChapter() {
   font-size: 10px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: rgba(var(--v-theme-on-surface), 0.3);
+  color: rgba(var(--v-theme-on-surface), 0.32);
   width: 18px;
   flex-shrink: 0;
   letter-spacing: 0.02em;
-  transition: color 0.18s ease;
+  text-align: center;
+  border-radius: 6px;
+  padding: 2px 0;
+  transition: color 0.18s ease, background 0.18s ease;
 }
 .list-item--active .list-item__order {
-  color: rgba(var(--v-theme-primary), 0.6);
+  color: rgb(var(--v-theme-primary));
+  background: rgba(var(--v-theme-primary), 0.16);
 }
 
 .list-item__title {
@@ -192,15 +179,7 @@ function cancelNewChapter() {
   opacity: 0;
 }
 
-/* 全书总字数 */
-.wc-total {
-  font-size: 10.5px;
-  color: rgba(var(--v-theme-on-surface), 0.3);
-  padding: 6px 8px 2px;
-  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.06);
-  margin-top: 4px;
-  font-variant-numeric: tabular-nums;
-}
+/* 全书总字数已上移到顶部概览栏，此处移除 */
 
 /* 删除按钮 */
 .list-item__del {
@@ -237,22 +216,10 @@ function cancelNewChapter() {
 
 /* 新增按钮 */
 .add-btn {
-  display: flex;
-  align-items: center;
   width: 100%;
-  padding: 5px 8px;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 12.5px;
-  color: rgba(var(--v-theme-on-surface), 0.5);
-  transition: background 0.18s ease, color 0.18s ease;
-  margin-top: 2px;
-}
-.add-btn:hover {
-  background: rgba(var(--v-theme-on-surface), 0.055);
-  color: rgba(var(--v-theme-on-surface), 0.78);
+  justify-content: flex-start;
+  padding: 7px 12px;
+  margin-top: 4px;
 }
 
 /* 新建表单 */

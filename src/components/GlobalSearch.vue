@@ -55,9 +55,9 @@
 
           <!-- 底部提示 -->
           <div class="search-footer">
-            <span><kbd>↑</kbd><kbd>↓</kbd> 导航</span>
-            <span><kbd>Enter</kbd> 跳转</span>
-            <span><kbd>Esc</kbd> 关闭</span>
+            <span><kbd class="lg-kbd">↑</kbd><kbd class="lg-kbd">↓</kbd> 导航</span>
+            <span><kbd class="lg-kbd">Enter</kbd> 跳转</span>
+            <span><kbd class="lg-kbd">Esc</kbd> 关闭</span>
           </div>
 
         </div>
@@ -200,12 +200,15 @@ function escapeHtml(s: string): string {
   width: 640px;
   max-width: calc(100vw - 48px);
   max-height: 480px;
-  border-radius: 14px;
+  border-radius: 20px;
   background: rgba(var(--v-theme-surface), 0.94);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
   border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.15);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.5) inset,
+    0 24px 64px rgba(0, 0, 0, 0.28),
+    0 4px 16px rgba(0, 0, 0, 0.12);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -259,22 +262,24 @@ function escapeHtml(s: string): string {
   overflow-y: auto;
   min-height: 120px;
   max-height: 340px;
+  padding: 6px 8px;
 }
 
 /* 结果项 */
 .result-item {
-  padding: 8px 16px;
+  padding: 8px 12px;
   cursor: pointer;
-  border-radius: 0;
-  transition: background 0.1s ease;
+  border-radius: 12px;
+  transition: background 0.15s ease;
 }
 
 .result-item:hover {
-  background: rgba(var(--v-theme-on-surface), 0.04);
+  background: rgba(var(--v-theme-on-surface), 0.05);
 }
 
 .result-item--active {
   background: rgba(var(--v-theme-primary), 0.1);
+  box-shadow: inset 0 0 0 1px rgba(var(--v-theme-primary), 0.18);
 }
 
 .result-meta {

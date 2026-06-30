@@ -1,5 +1,5 @@
 <template>
-  <div class="novel-editor d-flex flex-column h-100">
+  <div class="novel-editor d-flex flex-column">
 
     <!-- 章节标题栏 -->
     <div class="editor-header d-flex align-center px-5 gap-3">
@@ -24,21 +24,7 @@
     </div>
 
     <!-- CodeMirror 编辑区 -->
-    <div ref="editorContainer" class="editor-area flex-1 overflow-hidden" />
-
-    <!-- AI 生成状态提示 — 悬浮胶囊 -->
-    <transition name="slide-up">
-      <div v-if="isGenerating" class="generating-pill">
-        <v-progress-circular indeterminate size="14" width="2" color="primary" />
-        <span class="generating-label">AI 正在生成…</span>
-        <button class="stop-btn" @click="emit('stopGenerate')">停止</button>
-      </div>
-    </transition>
-
-    <!-- 底部提示 -->
-    <div class="editor-footer">
-      输入 <kbd>@</kbd> 引用角色或技能，在 @提及 行按 <kbd>Tab</kbd> 触发 AI 续写
-    </div>
+    <div ref="editorContainer" class="editor-area" />
 
   </div>
 </template>
@@ -181,6 +167,7 @@ function appendContent(text: string) {
   view.dispatch({
     changes: { from: pos, insert: text },
     selection: { anchor: pos + text.length },
+    effects: EditorView.scrollIntoView(pos + text.length, { y: 'center' }),
   })
 }
 
@@ -201,7 +188,6 @@ function jumpToLine(lineIndex: number) {
   const view = editorView.value
   if (!view) return
   const doc = view.state.doc
-  // doc.line 是 1-indexed，clamp 到合法范围
   const lineNo = Math.max(1, Math.min(lineIndex + 1, doc.lines))
   const line = doc.line(lineNo)
   view.dispatch({
@@ -241,11 +227,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* ====== 整体容器 ====== */
-.novel-editor {
-  overflow: hidden;
-}
-
 /* ====== 标题栏 — 磨砂玻璃 ====== */
 .editor-header {
   height: 48px;
@@ -271,6 +252,8 @@ onBeforeUnmount(() => {
 
 /* ====== 编辑区 ====== */
 .editor-area {
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 .editor-area :deep(.cm-editor) {
@@ -278,70 +261,6 @@ onBeforeUnmount(() => {
 }
 .editor-area :deep(.cm-focused) {
   outline: none;
-}
-
-/* ====== AI 生成胶囊 — 悬浮 ====== */
-.generating-pill {
-  position: absolute;
-  bottom: 36px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 14px 7px 12px;
-  border-radius: 999px;
-  background: rgba(var(--v-theme-surface), 0.92);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12), 0 1px 4px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(var(--v-theme-primary), 0.18);
-  z-index: 10;
-  white-space: nowrap;
-}
-
-.generating-label {
-  font-size: 12.5px;
-  color: rgba(var(--v-theme-on-surface), 0.75);
-}
-
-.stop-btn {
-  font-size: 12px;
-  color: rgba(var(--v-theme-primary), 0.9);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 0 2px;
-  font-weight: 500;
-  transition: opacity 0.15s ease;
-}
-.stop-btn:hover {
-  opacity: 0.7;
-}
-
-/* ====== 底部提示栏 ====== */
-.editor-footer {
-  flex-shrink: 0;
-  padding: 6px 24px;
-  font-size: 11.5px;
-  color: rgba(var(--v-theme-on-surface), 0.3);
-  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.05);
-  background: rgba(var(--v-theme-surface), 0.5);
-  letter-spacing: 0.01em;
-}
-
-/* ====== 键盘快捷键 ====== */
-kbd {
-  display: inline-block;
-  background: rgba(var(--v-theme-on-surface), 0.07);
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
-  border-bottom-width: 2px;
-  border-radius: 5px;
-  padding: 0px 5px;
-  font-size: 10.5px;
-  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
-  color: rgba(var(--v-theme-on-surface), 0.55);
-  line-height: 1.6;
 }
 
 /* ====== 过渡动画 ====== */
@@ -352,15 +271,5 @@ kbd {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
-}
-
-.slide-up-enter-active,
-.slide-up-leave-active {
-  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.slide-up-enter-from,
-.slide-up-leave-to {
-  opacity: 0;
-  transform: translateX(-50%) translateY(10px);
 }
 </style>

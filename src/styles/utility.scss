@@ -4,3 +4,118 @@
 .no-drag-area {
   -webkit-app-region: no-drag;
 }
+
+/* ============================================================
+ * Liquid Glass 共享工具类（iOS27 风格）
+ * 非 scoped，供 novel 各组件复用，保证全页玻璃质感一致。
+ * 颜色全部走 Material You 的 --v-theme-* 变量，多主题/深色自适应。
+ * ============================================================ */
+
+/* —— 玻璃卡片基底 —— */
+.lg-card {
+  position: relative;
+  background: rgba(var(--v-theme-surface), 0.72);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.5) inset,
+    0 8px 32px rgba(0, 0, 0, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.04);
+  border-radius: 20px;
+}
+
+/* —— 嵌入式子卡片（更弱投影、更小圆角） —— */
+.lg-card--inset {
+  background: rgba(var(--v-theme-on-surface), 0.035);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.06);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  border-radius: 14px;
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+.lg-card--inset:hover {
+  background: rgba(var(--v-theme-on-surface), 0.055);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+}
+
+/* —— 玻璃胶囊按钮 —— */
+.lg-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+  background: rgba(var(--v-theme-surface), 0.7);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  color: rgba(var(--v-theme-on-surface), 0.78);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.lg-pill:hover {
+  background: rgba(var(--v-theme-on-surface), 0.06);
+  color: rgba(var(--v-theme-on-surface), 0.92);
+}
+.lg-pill:active {
+  transform: scale(0.97);
+}
+
+/* —— 玻璃图标按钮 —— */
+.lg-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: rgba(var(--v-theme-on-surface), 0.55);
+  transition: background 0.18s ease, color 0.18s ease;
+  padding: 0;
+}
+.lg-icon-btn:hover {
+  background: rgba(var(--v-theme-on-surface), 0.07);
+  color: rgba(var(--v-theme-on-surface), 0.85);
+}
+
+/* —— 统一区块标题 —— */
+.lg-section-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(var(--v-theme-on-surface), 0.4);
+}
+
+/* —— 统一键盘按键样式 —— */
+.lg-kbd {
+  display: inline-block;
+  background: rgba(var(--v-theme-on-surface), 0.07);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  padding: 0 5px;
+  font-size: 10.5px;
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
+  color: rgba(var(--v-theme-on-surface), 0.6);
+  line-height: 1.6;
+}
+
+/* —— 角色面板抽屉玻璃化（Vuetify 内部根元素，需全局覆盖） —— */
+.char-panel.v-navigation-drawer {
+  background: rgba(var(--v-theme-surface), 0.88);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border-left: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  border-top-left-radius: 20px;
+  border-bottom-left-radius: 20px;
+}

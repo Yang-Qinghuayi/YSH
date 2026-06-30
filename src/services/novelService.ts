@@ -222,6 +222,20 @@ export function countWords(content: string): number {
     .length
 }
 
+/** 格式化单章字数：undefined 显示 —，过万显示 x.x 万，否则本地化数字 */
+export function formatWordCount(n: number | undefined): string {
+  if (n === undefined) return '—'
+  if (n >= 10000) return `${(n / 10000).toFixed(1)}万`
+  return n.toLocaleString('zh-CN')
+}
+
+/** 格式化总字数，带单位 */
+export function formatTotalWordCount(n: number): string {
+  if (n === 0) return '0 字'
+  if (n >= 10000) return `${(n / 10000).toFixed(1)} 万字`
+  return `${n.toLocaleString('zh-CN')} 字`
+}
+
 /** 批量读取章节文件，返回 chapterId → wordCount 的 Map */
 export async function loadAllChapterWordCounts(
   novelId: string,
