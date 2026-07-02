@@ -136,6 +136,14 @@
       "path": "./node_modules/cz-conventional-changelog"
     }
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "core-js",
+      "es5-ext",
+      "vue-demi"
+    ]
+  },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
       "eslint --fix",
