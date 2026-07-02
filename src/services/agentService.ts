@@ -77,7 +77,7 @@ export interface AgentSession {
   skipConfirmation: boolean
 }
 
-const PLAN_MAX_TOOL_ROUNDS = 8
+const PLAN_MAX_TOOL_ROUNDS = 12
 const FINALIZE_MAX_TOOL_ROUNDS = 3
 
 /** 创建一个 Agent 会话 */
@@ -213,17 +213,121 @@ export async function runPlanPhase(
     setPhase(session, 'planning', cb)
     cb.onStatus?.('正在调研上下文…')
 
+    // 最近3轮工具调用签名（按轮聚合）
+    const recentRoundKeys: string[] = []
+
+    // 稳定序列化工具参数（键名排序，递归）
+    function stableStringify(value: unknown): string {
+      const seen = new WeakSet()
+      const normalize = (v: any): any => {
+        if (v === null || typeof v !== 'object') return v
+        if (seen.has(v)) return '[Circular]'
+        seen.add(v)
+        if (Array.isArray(v)) return v.map(normalize)
+        const obj: Record<string, unknown> = {}
+        for (const key of Object.keys(v).sort()) {
+          obj[key] = normalize(v[key])
+        }
+        return obj
+      }
+      try {
+        return JSON.stringify(normalize(value))
+      } catch {
+        return String(value ?? '')
+      }
+    }
+
+    // 将一轮内的多次调用组合为稳定签名
+    function buildRoundKey(
+      tcs: ChatCompletionMessageFunctionToolCall[],
+    ): string {
+      const items = tcs.map((tc) => {
+        let parsed: unknown
+        try {
+          parsed = JSON.parse(tc.function.arguments || '{}')
+        } catch {
+          parsed = {}
+        }
+        return {
+          name: tc.function.name,
+          argsKey: stableStringify(parsed),
+        }
+      })
+      items.sort((a, b) => {
+        const na = a.name.localeCompare(b.name)
+        if (na !== 0) return na
+        return a.argsKey.localeCompare(b.argsKey)
+      })
+      return stableStringify(items)
+    }
+
+    // 基于上限的动态催促阈值（50% / 75% / 最后一轮）
+    const halfRound = Math.max(1, Math.floor(PLAN_MAX_TOOL_ROUNDS * 0.5))
+    const threeQuarterRound = Math.max(
+      1,
+      Math.floor(PLAN_MAX_TOOL_ROUNDS * 0.75),
+    )
+    const finalRound = PLAN_MAX_TOOL_ROUNDS
+
     for (let i = 0; i < PLAN_MAX_TOOL_ROUNDS; i++) {
+      const roundIndex = i + 1 // 1-based
+
+      // 渐进式催促：在关键轮次注入用户提示，帮助模型收束为 plan
+      if (roundIndex === halfRound) {
+        session.messages.push({
+          role: 'user',
+          content:
+            '你已经完成了多轮调研，请整合已知信息，现在用 <<<PLAN>>>...<<<END>>> 格式输出章节规划。',
+        })
+      } else if (roundIndex === threeQuarterRound) {
+        session.messages.push({
+          role: 'user',
+          content: '调研已很充分，请立即输出规划，不要再调用工具。',
+        })
+      } else if (roundIndex === finalRound) {
+        session.messages.push({
+          role: 'user',
+          content:
+            '这是最后一轮。必须现在输出 <<<PLAN>>>...<<<END>>>，不要再调用任何工具。',
+        })
+      }
+
+      // 最后一轮：关闭工具，强制文本输出，避免继续调研
+      const toolsForThisTurn =
+        roundIndex === finalRound ? [] : READONLY_TOOLS
+
       const { text, toolCalls } = await runOneTurn(
         session,
         config,
-        READONLY_TOOLS,
+        toolsForThisTurn,
         1500,
       )
 
       if (toolCalls && toolCalls.length > 0) {
         await executeToolCalls(session, toolCalls, READONLY_TOOLS, cb)
         cb.onStatus?.('继续调研…')
+
+        // 记录当轮调用签名并做三连相同检测 → 立即催促收束
+        try {
+          const key = buildRoundKey(toolCalls)
+          recentRoundKeys.push(key)
+          if (recentRoundKeys.length > 3) recentRoundKeys.shift()
+          if (
+            recentRoundKeys.length === 3 &&
+            recentRoundKeys[0] === recentRoundKeys[1] &&
+            recentRoundKeys[1] === recentRoundKeys[2]
+          ) {
+            session.messages.push({
+              role: 'user',
+              content:
+                '你已经完成了多轮调研，请整合已知信息，现在用 <<<PLAN>>>...<<<END>>> 格式输出章节规划。',
+            })
+            // 命中后重置窗口，避免反复触发
+            recentRoundKeys.length = 0
+          }
+        } catch {
+          // 忽略签名构建中的异常，不影响主流程
+        }
         continue
       }
 
@@ -238,6 +342,29 @@ export async function runPlanPhase(
       }
       return
     }
+
+    // 优雅降级保底：从最近的 assistant 消息回溯解析 plan
+    try {
+      for (let j = session.messages.length - 1; j >= 0; j--) {
+        const m = session.messages[j]
+        if (m.role === 'assistant' && typeof m.content === 'string') {
+          const txt = m.content
+          if (/<<<PLAN>>>\s*([\s\S]*?)\s*<<<END>>>/.test(txt)) {
+            const plan = parsePlan(txt)
+            session.plan = plan
+            setPhase(session, 'awaiting_confirmation', cb)
+            cb.onPlanReady?.(plan)
+            if (session.skipConfirmation) {
+              await runGeneratePhase(session, config, cb)
+            }
+            return
+          }
+        }
+      }
+    } catch {
+      // ignore and fallthrough to error
+    }
+
     cb.onError?.(new Error('规划阶段超出最大工具调用轮数'))
   } catch (e) {
     if (isAbort(e)) {
