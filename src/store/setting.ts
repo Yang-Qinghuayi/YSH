@@ -37,7 +37,7 @@ export const useSettingStore = defineStore('setting', {
         locale: 'zhCN',
         palette: 'material-terracotta-muse',
         materialSeed: paletteSeedMap['material-terracotta-muse'],
-        seedEnabled: false,
+        seedEnabled: true,
         rail: true,
         showBigCatalog: true,
         miniPlayer: false,
