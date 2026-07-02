@@ -3,5 +3,14 @@
   "identifier": "desktop-capability",
   "windows": ["main", "updater"],
   "platforms": ["linux", "macOS", "windows"],
-  "permissions": ["cli:default"]
+  "permissions": [
+    "cli:default",
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        { "path": "**" },
+        { "path": "**/*" }
+      ]
+    }
+  ]
 }
