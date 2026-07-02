@@ -153,8 +153,6 @@ pub fn run() {
 
     let builder = builder.plugin(tauri_plugin_deep_link::init());
 
-    #[cfg(desktop)]
-    let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
 
     #[cfg(desktop)]
     let builder = builder.plugin(tauri_plugin_window_state::Builder::default().build());
