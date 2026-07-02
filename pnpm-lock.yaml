@@ -65,9 +65,6 @@ importers:
       '@tauri-apps/plugin-shell':
         specifier: ~2.3.5
         version: 2.3.5
-      '@tauri-apps/plugin-updater':
-        specifier: ^2.10.1
-        version: 2.10.1
       '@tauri-apps/plugin-websocket':
         specifier: ~2.4.2
         version: 2.4.2
@@ -1726,9 +1723,6 @@ packages:
   '@tauri-apps/plugin-shell@2.3.5':
     resolution: {integrity: sha512-jewtULhiQ7lI7+owCKAjc8tYLJr92U16bPOeAa472LHJdgaibLP83NcfAF2e+wkEcA53FxKQAZ7byDzs2eeizg==}
 
-  '@tauri-apps/plugin-updater@2.10.1':
-    resolution: {integrity: sha512-NFYMg+tWOZPJdzE/PpFj2qfqwAWwNS3kXrb1tm1gnBJ9mYzZ4WDRrwy8udzWoAnfGCHLuePNLY1WVCNHnh3eRA==}
-
   '@tauri-apps/plugin-websocket@2.4.2':
     resolution: {integrity: sha512-B1/csKPwJH9kLduNoqWFUdCsTgCvLM84T5ZZYK35jeBc9m2cm2m2G/hbSr28ZpVOZrl0x24fCWFe/9rpp7WETw==}
 
@@ -2078,6 +2072,7 @@ packages:
   '@xmldom/xmldom@0.7.13':
     resolution: {integrity: sha512-lm2GW5PkosIzccsaZIz7tp8cPADSIlIHWDFTR1N0SzfinhhYgeIQjFMz4rYzanCScr3DqQLeomUDArp6MWKm+g==}
     engines: {node: '>=10.0.0'}
+    deprecated: this version has critical issues, please update to the latest version
 
   '@xmldom/xmldom@0.8.13':
     resolution: {integrity: sha512-KRYzxepc14G/CEpEGc3Yn+JKaAeT63smlDr+vjB8jRfgTBBI9wRj/nkQEO+ucV8p8I9bfKLWp37uHgFrbntPvw==}
@@ -5095,7 +5090,7 @@ packages:
         optional: true
 
   vuetify-ctx-menu@https://codeload.github.com/GuMengYu/vue3-context-menu/tar.gz/7e056863e91813c884171e043a553d2dd5bedc61:
-    resolution: {tarball: https://codeload.github.com/GuMengYu/vue3-context-menu/tar.gz/7e056863e91813c884171e043a553d2dd5bedc61}
+    resolution: {gitHosted: true, tarball: https://codeload.github.com/GuMengYu/vue3-context-menu/tar.gz/7e056863e91813c884171e043a553d2dd5bedc61}
     version: 0.0.2
     peerDependencies:
       vuetify: ^3.2.4
@@ -7041,10 +7036,6 @@ snapshots:
       '@tauri-apps/api': 2.11.0
 
   '@tauri-apps/plugin-shell@2.3.5':
-    dependencies:
-      '@tauri-apps/api': 2.11.0
-
-  '@tauri-apps/plugin-updater@2.10.1':
     dependencies:
       '@tauri-apps/api': 2.11.0
 

@@ -9,6 +9,7 @@ lerna-debug.log*
 
 release
 node_modules
+pnpm-workspace.yaml
 dist
 dist-ssr
 dev-dist
