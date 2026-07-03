@@ -27,17 +27,10 @@
 
 /* —— 嵌入式子卡片（更弱投影、更小圆角） —— */
 .lg-card--inset {
-  background: rgba(var(--v-theme-on-surface), 0.035);
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.06);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   border-radius: 14px;
-  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  border: 2px solid rgba(var(--v-theme-primary), 0.08);
 }
-.lg-card--inset:hover {
-  background: rgba(var(--v-theme-on-surface), 0.055);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
-}
+
 
 /* —— 玻璃胶囊按钮 —— */
 .lg-pill {

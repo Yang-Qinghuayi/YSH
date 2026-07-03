@@ -27,16 +27,12 @@
             粘贴小说全文，或上传 .txt / .md 文件。会先按章节标题自动切分，再由 AI 提取人物、情节与设定。
           </div>
 
-          <v-textarea
+          <textarea
             v-model="rawText"
+            class="native-input native-textarea-lg"
             placeholder="在此粘贴小说全文（含「第一章」等章节标题效果最佳）…"
-            variant="outlined"
-            density="compact"
             rows="14"
-            auto-grow
-            hide-details
-            class="import-textarea"
-          />
+          ></textarea>
 
           <div class="d-flex align-center gap-2 mt-3 flex-wrap">
             <label class="lg-pill import-file-btn">
@@ -72,23 +68,14 @@
         <template v-else-if="step === 'preview'">
           <div class="preview-section lg-card--inset pa-3 mb-3">
             <div class="lg-section-label mb-2">小说信息</div>
-            <v-text-field
-              v-model="form.title"
-              label="小说标题"
-              density="compact"
-              variant="outlined"
-              hide-details
-              class="mb-2"
-            />
-            <v-textarea
-              v-model="form.synopsis"
-              label="故事简介（精简）"
-              density="compact"
-              variant="outlined"
-              rows="2"
-              auto-grow
-              hide-details
-            />
+            <label class="native-label mb-2">
+              <span class="native-label-text">小说标题</span>
+              <input v-model="form.title" type="text" class="native-input" />
+            </label>
+            <label class="native-label">
+              <span class="native-label-text">故事简介（精简）</span>
+              <textarea v-model="form.synopsis" class="native-input native-textarea-sm" rows="2"></textarea>
+            </label>
           </div>
 
           <!-- 章节 -->
@@ -116,15 +103,10 @@
 
           <!-- 情节梗概 -->
           <div class="preview-section lg-card--inset pa-3 mb-3">
-            <div class="lg-section-label mb-2">情节梗概（详细，将作为设定条目）</div>
-            <v-textarea
-              v-model="form.plotProgress"
-              density="compact"
-              variant="outlined"
-              rows="3"
-              auto-grow
-              hide-details
-            />
+            <label class="native-label">
+              <span class="native-label-text">情节梗概（详细，将作为设定条目）</span>
+              <textarea v-model="form.plotProgress" class="native-input native-textarea-sm" rows="3"></textarea>
+            </label>
           </div>
 
           <!-- 人物 -->
@@ -144,10 +126,10 @@
             >
               <input v-model="c.selected" type="checkbox" class="chapter-check-box mt-2" />
               <div class="char-row__fields">
-                <v-text-field v-model="c.name" label="姓名" density="compact" variant="outlined" hide-details class="mb-1" />
-                <v-text-field v-model="c.aliasesText" label="别名（逗号分隔）" density="compact" variant="outlined" hide-details class="mb-1" />
-                <v-textarea v-model="c.profile" label="角色描述" density="compact" variant="outlined" rows="2" auto-grow hide-details class="mb-1" />
-                <v-text-field v-model="c.literaryReference" label="文学形象参考" density="compact" variant="outlined" hide-details />
+                <input v-model="c.name" type="text" class="native-input native-input-sm mb-1" placeholder="姓名" />
+                <input v-model="c.aliasesText" type="text" class="native-input native-input-sm mb-1" placeholder="别名（逗号分隔）" />
+                <textarea v-model="c.profile" class="native-input native-input-sm native-textarea-xs mb-1" rows="2" placeholder="角色描述"></textarea>
+                <input v-model="c.literaryReference" type="text" class="native-input native-input-sm" placeholder="文学形象参考" />
               </div>
               <button class="lg-icon-btn char-row__del" title="删除" @click="form.characters.splice(i, 1)">
                 <v-icon :icon="mdiClose" size="15" />
@@ -174,19 +156,14 @@
               <input v-model="e.selected" type="checkbox" class="chapter-check-box mt-2" />
               <div class="char-row__fields">
                 <div class="d-flex gap-2 mb-1">
-                  <v-text-field v-model="e.name" label="名称" density="compact" variant="outlined" hide-details />
-                  <v-select
-                    v-model="e.importance"
-                    :items="importanceItems"
-                    density="compact"
-                    variant="outlined"
-                    hide-details
-                    style="max-width: 130px;"
-                  />
+                  <input v-model="e.name" type="text" class="native-input native-input-sm flex-1" placeholder="名称" />
+                  <select v-model="e.importance" class="native-input native-input-sm native-select">
+                    <option v-for="it in importanceItems" :key="it.value" :value="it.value">{{ it.title }}</option>
+                  </select>
                 </div>
-                <v-text-field v-model="e.keywordsText" label="别名/触发词（逗号分隔）" density="compact" variant="outlined" hide-details class="mb-1" />
-                <v-text-field v-model="e.briefDescription" label="索引简介" density="compact" variant="outlined" hide-details class="mb-1" />
-                <v-textarea v-model="e.content" label="详细正文" density="compact" variant="outlined" rows="2" auto-grow hide-details />
+                <input v-model="e.keywordsText" type="text" class="native-input native-input-sm mb-1" placeholder="别名/触发词（逗号分隔）" />
+                <input v-model="e.briefDescription" type="text" class="native-input native-input-sm mb-1" placeholder="索引简介" />
+                <textarea v-model="e.content" class="native-input native-input-sm native-textarea-xs" rows="2" placeholder="详细正文"></textarea>
               </div>
               <button class="lg-icon-btn char-row__del" title="删除" @click="form.loreEntries.splice(i, 1)">
                 <v-icon :icon="mdiClose" size="15" />
@@ -608,9 +585,59 @@ watch(step, (s) => {
   min-height: 0;
 }
 
-.import-textarea :deep(.v-field__input) {
+/* ===== 原生输入框 ===== */
+.native-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.native-label-text {
   font-size: 13px;
-  line-height: 1.6;
+  font-weight: 500;
+  color: rgba(var(--v-theme-on-surface), 0.7);
+  padding-left: 4px;
+}
+.native-input {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.5;
+  color: rgb(var(--v-theme-on-surface));
+  background: rgba(var(--v-theme-on-surface), 0.04);
+  border: none;
+  border-radius: 14px;
+  outline: none;
+  transition: box-shadow 0.2s;
+  box-sizing: border-box;
+}
+.native-input::placeholder {
+  color: rgba(var(--v-theme-on-surface), 0.4);
+}
+.native-input:focus {
+  box-shadow: 0 0 0 2px rgba(var(--v-theme-primary), 0.45);
+}
+.native-input-sm {
+  padding: 7px 10px;
+  font-size: 13px;
+  border-radius: 10px;
+}
+.native-textarea-lg {
+  resize: vertical;
+  min-height: 200px;
+}
+.native-textarea-sm {
+  resize: vertical;
+  min-height: 56px;
+}
+.native-textarea-xs {
+  resize: vertical;
+  min-height: 44px;
+}
+.native-select {
+  max-width: 110px;
+  cursor: pointer;
+  appearance: auto;
 }
 
 .import-file-btn {

@@ -54,11 +54,6 @@
       </button>
     </div>
 
-    <!-- 空状态 -->
-    <div v-if="entries.length === 0 && !showCreateInput" class="entry-empty">
-      还没有条目，添加一个吧
-    </div>
-
     <!-- 新增条目按钮（输入中时隐藏） -->
     <button v-if="!showCreateInput" class="add-btn lg-pill" @click="openCreate">
       <v-icon :icon="mdiPlus" size="15" />
