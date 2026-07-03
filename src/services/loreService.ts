@@ -122,27 +122,31 @@ export async function createEntry(
   },
 ): Promise<{ lore: Lore; entry: EntryMeta }> {
   const id = `entry-${Date.now()}`
-  const filename = `${id}.md`
+  const name = meta.name.trim() || '未命名条目'
+  const order = lore.entries.length + 1
+  const paddedOrder = String(order).padStart(3, '0')
+  const safeName = name.replace(/[/\\?*:|"<>]/g, '_')
+  const filename = `${paddedOrder}_${safeName}.md`
 
   const entry: EntryMeta = {
     id,
     filename,
-    name: meta.name.trim() || '未命名条目',
+    name,
     importance: meta.importance ?? 'important',
     briefDescription: '',
     keywords: [],
     enabled: true,
-    order: lore.entries.length + 1,
+    order,
   }
 
-  // 创建空正文文件
+  // 创建空的正文文件
   const appService = await useAppService()
   const { base, pathPrefix: P } = getDataBase()
   await appService.fs.createDir(P + `${loreDir()}/entries`, base, true).catch(() => {})
   await appService.fs.writeFile(
     P + entryPath(filename),
     base,
-    `# ${entry.name}\n\n`,
+    '',
   )
 
   const updatedLore: Lore = {

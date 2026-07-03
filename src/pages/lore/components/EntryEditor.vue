@@ -4,20 +4,13 @@
     <div class="entry-meta-form flex-shrink-0">
       <!-- 重要度 + 启用 -->
       <div class="d-flex align-center flex-wrap gap-2 mb-2">
-        <v-select
-          :model-value="entry.importance"
-          :items="importanceOptions"
-          item-title="label"
-          item-value="value"
-          label="重要度"
-          density="compact"
-          variant="outlined"
-          rounded="xl"
-          color="primary"
-          hide-details
-          style="max-width: 120px"
-          @update:model-value="handleMetaChange('importance', $event)"
-        />
+        <select
+          :value="entry.importance"
+          class="native-input native-input-sm native-select"
+          @change="handleMetaChange('importance', ($event.target as HTMLSelectElement).value)"
+        >
+          <option v-for="opt in importanceOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+        </select>
         <!-- 自定义启用切换，确保 off 状态清晰可见 -->
         <button
           class="enabled-toggle"
@@ -30,55 +23,54 @@
       </div>
 
       <!-- 简介 -->
-      <v-textarea
-        :model-value="entry.briefDescription"
-        label="索引简介（3-5 句，供 AI 快速参考）"
-        density="compact"
-        variant="outlined"
-        rounded="xl"
-        color="primary"
-        hide-details
-        rows="2"
-        auto-grow
-        class="mb-2"
-        @update:model-value="handleMetaChange('briefDescription', $event)"
-      />
+      <label class="native-label mb-2">
+        <span class="native-label-text">索引简介（3-5 句，供 AI 快速参考）</span>
+        <textarea
+          :value="entry.briefDescription"
+          class="native-input native-input-sm native-textarea-xs"
+          rows="2"
+          placeholder="简短描述这个条目…"
+          @input="handleMetaChange('briefDescription', ($event.target as HTMLTextAreaElement).value)"
+        ></textarea>
+      </label>
 
       <!-- 关键词 -->
-      <v-combobox
-        :model-value="entry.keywords"
-        label="别名 / 触发词"
-        density="compact"
-        variant="outlined"
-        rounded="xl"
-        color="primary"
-        hide-details
-        multiple
-        chips
-        closable-chips
-        @update:model-value="handleMetaChange('keywords', $event)"
-      />
+      <label class="native-label">
+        <span class="native-label-text">别名 / 触发词</span>
+        <div class="native-tags-wrapper native-tags-sm" @click="focusKeywordInput">
+          <span v-for="(kw, i) in entry.keywords" :key="i" class="native-tag">
+            {{ kw }}
+            <button type="button" class="native-tag-remove" @click.stop="removeKeyword(i)">&times;</button>
+          </span>
+          <input
+            ref="keywordInputRef"
+            v-model="keywordInput"
+            type="text"
+            class="native-tags-input"
+            placeholder="输入后按回车添加"
+            @keydown.enter.prevent="addKeyword"
+            @keydown.backspace="removeLastKeyword"
+          />
+        </div>
+      </label>
     </div>
 
-    <!-- CodeMirror 正文编辑区 -->
-    <div ref="editorContainer" class="editor-area flex-1 overflow-hidden" />
-
-    <!-- 底部提示 -->
-    <div class="editor-footer">
-      <span class="lg-section-label">在此编写条目正文（支持 Markdown），内容会注入到 AI 写作上下文中</span>
-    </div>
+    <!-- 正文 -->
+    <label class="native-label">
+      <span class="native-label-text">条目正文（支持 Markdown，内容会注入到 AI 写作上下文中）</span>
+      <textarea
+        :value="content"
+        class="native-input native-textarea-lg"
+        rows="12"
+        placeholder="在此编写条目正文…"
+        @input="emit('update:content', ($event.target as HTMLTextAreaElement).value)"
+      ></textarea>
+    </label>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, watch, shallowRef } from 'vue'
-import { EditorView, ViewUpdate, placeholder } from '@codemirror/view'
-import { EditorState } from '@codemirror/state'
-import { markdown } from '@codemirror/lang-markdown'
-import { oneDark } from '@codemirror/theme-one-dark'
-import { useTheme } from 'vuetify'
-import { useSettingStore } from '@/store/setting'
-import type { EntryMeta, EntryImportance } from '@/types/lore'
+import type { EntryMeta } from '@/types/lore'
 import { ENTRY_IMPORTANCE_LABELS } from '@/types/lore'
 
 const props = defineProps<{
@@ -91,13 +83,6 @@ const emit = defineEmits<{
   'update:meta': [patch: Partial<EntryMeta>]
 }>()
 
-const editorContainer = ref<HTMLElement | null>(null)
-const editorView = shallowRef<EditorView | null>(null)
-
-const vuetifyTheme = useTheme()
-const settingStore = useSettingStore()
-const isDark = computed(() => vuetifyTheme.global.current.value.dark)
-
 const importanceOptions = Object.entries(ENTRY_IMPORTANCE_LABELS).map(([value, label]) => ({ value, label }))
 
 // 元数据变更（表单字段）
@@ -105,65 +90,40 @@ function handleMetaChange(field: keyof EntryMeta, value: unknown) {
   emit('update:meta', { [field]: value } as Partial<EntryMeta>)
 }
 
-// 初始化 CodeMirror
-function createEditor(content: string) {
-  if (!editorContainer.value) return
+// 关键词标签输入
+const keywordInput = ref('')
+const keywordInputRef = ref<HTMLInputElement | null>(null)
 
-  const extensions = [
-    markdown(),
-    EditorView.lineWrapping,
-    placeholder('在此编写条目正文…'),
-    EditorView.theme({
-      '&': { height: '100%', fontSize: `${settingStore.editorFontSize}px` },
-      '.cm-scroller': { overflow: 'auto', fontFamily: 'var(--font-sans)', lineHeight: '1.8' },
-      '.cm-content': { maxWidth: '720px', margin: '0 auto', padding: '16px 24px 80px' },
-      '.cm-line': { padding: '0' },
-      '.cm-focused': { outline: 'none' },
-      '.cm-placeholder': { color: 'rgba(var(--v-theme-on-surface), 0.3)', fontStyle: 'italic' },
-    }),
-    EditorView.updateListener.of((update: ViewUpdate) => {
-      if (update.docChanged) {
-        emit('update:content', update.state.doc.toString())
-      }
-    }),
-  ]
-
-  if (isDark.value) {
-    extensions.push(oneDark)
-  }
-
-  const state = EditorState.create({ doc: content, extensions })
-  editorView.value = new EditorView({ state, parent: editorContainer.value })
+function focusKeywordInput() {
+  keywordInputRef.value?.focus()
 }
 
-// 切换条目时重建编辑器
-watch(
-  () => props.entry.id,
-  () => {
-    editorView.value?.destroy()
-    editorView.value = null
-    nextTick(() => createEditor(props.content))
-  },
-)
+function addKeyword() {
+  const val = keywordInput.value.trim()
+  if (!val) return
+  const keywords = [...(props.entry.keywords ?? [])]
+  if (!keywords.includes(val)) {
+    keywords.push(val)
+    emit('update:meta', { keywords } as Partial<EntryMeta>)
+  }
+  keywordInput.value = ''
+}
 
-// 主题切换时重建
-watch(isDark, () => {
-  const doc = editorView.value?.state.doc.toString() ?? props.content
-  editorView.value?.destroy()
-  editorView.value = null
-  nextTick(() => createEditor(doc))
-})
+function removeKeyword(index: number) {
+  const keywords = [...(props.entry.keywords ?? [])]
+  keywords.splice(index, 1)
+  emit('update:meta', { keywords } as Partial<EntryMeta>)
+}
 
-// 字号变更时重建
-watch(() => settingStore.editorFontSize, () => {
-  const doc = editorView.value?.state.doc.toString() ?? props.content
-  editorView.value?.destroy()
-  editorView.value = null
-  nextTick(() => createEditor(doc))
-})
+function removeLastKeyword(e: KeyboardEvent) {
+  if (keywordInput.value === '' && props.entry.keywords?.length) {
+    const keywords = [...props.entry.keywords]
+    keywords.pop()
+    emit('update:meta', { keywords } as Partial<EntryMeta>)
+    e.preventDefault()
+  }
+}
 
-onMounted(() => createEditor(props.content))
-onBeforeUnmount(() => editorView.value?.destroy())
 </script>
 
 <style scoped>
@@ -176,6 +136,123 @@ onBeforeUnmount(() => editorView.value?.destroy())
 
 .entry-meta-form {
   padding: 8px 4px 0;
+}
+
+/* ===== 原生输入框 ===== */
+.native-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.native-label-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(var(--v-theme-on-surface), 0.7);
+  padding-left: 4px;
+}
+.native-input {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.5;
+  color: rgb(var(--v-theme-on-surface));
+  background: rgba(var(--v-theme-on-surface), 0.04);
+  border: none;
+  border-radius: 14px;
+  outline: none;
+  transition: box-shadow 0.2s;
+  box-sizing: border-box;
+}
+.native-input::placeholder {
+  color: rgba(var(--v-theme-on-surface), 0.4);
+}
+.native-input:focus {
+  box-shadow: 0 0 0 2px rgba(var(--v-theme-primary), 0.45);
+}
+.native-input-sm {
+  padding: 7px 10px;
+  font-size: 13px;
+  border-radius: 10px;
+}
+.native-textarea-xs {
+  resize: vertical;
+  min-height: 44px;
+}
+.native-select {
+  max-width: 120px;
+  cursor: pointer;
+  appearance: auto;
+}
+
+/* ===== 原生标签输入 ===== */
+.native-tags-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  min-height: 42px;
+  background: rgba(var(--v-theme-on-surface), 0.04);
+  border: none;
+  border-radius: 14px;
+  cursor: text;
+  transition: box-shadow 0.2s;
+}
+.native-tags-wrapper:focus-within {
+  box-shadow: 0 0 0 2px rgba(var(--v-theme-primary), 0.45);
+}
+.native-tags-sm {
+  padding: 4px 8px;
+  min-height: 34px;
+  border-radius: 10px;
+}
+.native-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: rgb(var(--v-theme-primary));
+  background: rgba(var(--v-theme-primary), 0.12);
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.native-tag-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 50%;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+.native-tag-remove:hover {
+  opacity: 1;
+  background: rgba(var(--v-theme-primary), 0.2);
+}
+.native-tags-input {
+  flex: 1;
+  min-width: 100px;
+  padding: 2px 4px;
+  font-size: 13px;
+  font-family: inherit;
+  color: rgb(var(--v-theme-on-surface));
+  background: transparent;
+  border: none;
+  outline: none;
+}
+.native-tags-input::placeholder {
+  color: rgba(var(--v-theme-on-surface), 0.4);
 }
 
 /* ---- 自定义启用切换 ---- */
@@ -230,13 +307,4 @@ onBeforeUnmount(() => editorView.value?.destroy())
   color: rgb(var(--v-theme-primary));
 }
 
-.editor-area {
-  height: 0; /* flex-1 需要固定高度基准 */
-  border-radius: 14px;
-}
-
-.editor-footer {
-  padding: 4px 4px 0;
-  text-align: center;
-}
 </style>

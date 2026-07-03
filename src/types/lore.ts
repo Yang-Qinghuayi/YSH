@@ -13,7 +13,7 @@ export type EntryImportance =
 /** 条目元数据（全部存于 lore.json） */
 export interface EntryMeta {
   id: string               // 格式：entry-{timestamp}
-  filename: string         // 格式：entry-{timestamp}.md，对应 entries/ 目录下的文件
+  filename: string         // 格式：{序号}_{名称}.md，如 001_世界观.md
   name: string             // 条目名称
   importance: EntryImportance
   briefDescription: string // 3-5 句轻量索引简介，供 AI 快速参考
