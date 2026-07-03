@@ -49,13 +49,7 @@
       >
         <v-icon :icon="mdiCog" size="16" />
       </button>
-      <button
-        class="action-btn"
-        title="切换小说"
-        @click="emit('switch-novel')"
-      >
-        <v-icon :icon="mdiSwapHorizontal" size="16" />
-      </button>
+
     </div>
   </div>
 </template>

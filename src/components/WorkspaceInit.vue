@@ -10,7 +10,6 @@
       <!-- 标题 -->
       <h2 class="card-title">打开你的小说</h2>
       <p class="card-desc">
-        打开一个小说文件夹，或新建一部。<br />
         一个文件夹就是一部小说。
       </p>
 
@@ -37,11 +36,7 @@
 
       <!-- 新建小说（仅 Tauri，需选父目录） -->
       <template v-if="isTauri">
-        <div class="divider-row">
-          <div class="divider-line" />
-          <span class="divider-text">或</span>
-          <div class="divider-line" />
-        </div>
+
         <button class="secondary-btn" @click="showCreateInput = !showCreateInput">
           <v-icon :icon="mdiPlus" size="16" class="mr-1" />
           新建小说
@@ -78,11 +73,7 @@
 
       <!-- Web 兜底：使用默认存储位置 -->
       <template v-else>
-        <div class="divider-row">
-          <div class="divider-line" />
-          <span class="divider-text">或</span>
-          <div class="divider-line" />
-        </div>
+
         <button class="secondary-btn" @click="showDefaultInput = !showDefaultInput">
           <v-icon :icon="mdiPlus" size="16" class="mr-1" />
           使用默认存储位置
