@@ -1,15 +1,5 @@
 /**
- * 角色文风（写作指导）
- * 角色档案内的一节：这个角色出场时怎么写。
- * 由旧 CharacterSkill 演化而来，但不再独立成"技能"列表——文风随角色整体激活。
- */
-export interface CharacterVoice {
-  description?: string // 触发说明，如"用于李明战斗场面"，供 Agent 按需激活
-  prompt: string // 文风指导，如"剑法凌厉、短句、动词密集"
-}
-
-/**
- * @deprecated 旧版角色的"技能"结构，仅用于数据迁移。新代码请使用 CharacterVoice。
+ * @deprecated 旧版角色的"技能"结构，仅用于数据迁移。新代码请使用 Character.profile。
  */
 export interface CharacterSkill {
   id: string
@@ -30,20 +20,16 @@ export interface LegacyCharacter {
 
 // 小说中的角色（静态档案）
 // 角色分为两层：
-//   1. 静态档案（本接口）——性格/出身/爱好/外貌/别名/文风，不变的"是谁"，走 skill 激活机制
+//   1. 静态档案（本接口）——角色描述/别名/文学形象参考，不变的"是谁"，走 skill 激活机制
 //   2. 动态状态——经历/心情/想法/位置/伤势/关系，随情节变，叠在 StoryState 上（见 types/storyState.ts）
 // 状态不进档案、档案不进状态。
 export interface Character {
   id: string
   name: string // @提及键，如 @李明
   // —— 静态档案：不变的"是谁" ——
-  personality?: string // 性格
-  background?: string // 出身背景
-  hobbies?: string // 爱好
-  appearance?: string // 外貌
+  profile?: string // 角色描述（自然语言叙事，综合性格/出身/外貌/爱好）
   aliases?: string[] // 别名/触发词
-  voice?: CharacterVoice // 文风（出场时怎么写）
-  description?: string // 整体触发说明，供 Agent 按需激活
+  literaryReference?: string // 文学形象参考（如 杨过、李寻欢），仅参考气质风骨，不涉及历史背景
 }
 
 // 章节元数据（存于 novel.json 中）

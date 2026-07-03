@@ -11,6 +11,42 @@ import { getDataBase } from '@/services/workspaceService'
 import type { Novel, ChapterMeta, Character, SearchResult, LegacyCharacter } from '@/types/novel'
 
 /**
+ * V2 迁移：将分离的静态档案字段（personality/background/appearance/hobbies）
+ * 合并为 profile（自然语言角色描述），并将旧 voice/description 转为 literaryReference。
+ * 幂等：已迁移（无上述旧字段）的角色直接返回。
+ */
+function migrateCharacterV2(raw: Character): Character {
+  // 访问旧字段（类型定义已移除，需 any 转型用于迁移逻辑）
+  const old = raw as any
+  const hasOldFields =
+    old.personality || old.background || old.appearance || old.hobbies || old.voice || old.description
+  if (!hasOldFields) return raw
+
+  const parts: string[] = []
+  if (old.personality) parts.push(`性格：${old.personality}`)
+  if (old.background) parts.push(`出身背景：${old.background}`)
+  if (old.appearance) parts.push(`外貌：${old.appearance}`)
+  if (old.hobbies) parts.push(`爱好：${old.hobbies}`)
+
+  const literaryRef = old.voice?.prompt || old.voice?.description || old.description || undefined
+
+  const {
+    personality: _p,
+    background: _bg,
+    appearance: _ap,
+    hobbies: _hb,
+    voice: _v,
+    description: _d,
+    ...rest
+  } = old
+
+  const migrated: Character = { ...rest } as Character
+  if (parts.length > 0) migrated.profile = parts.join('\n')
+  if (literaryRef) migrated.literaryReference = literaryRef
+  return migrated
+}
+
+/**
  * 将旧版角色（含 profile / skills）迁移为新的静态档案结构（含 voice）。
  * 幂等：已迁移（无 skills 且无 profile）的角色直接返回。
  * - profile → background（旧 profile 是"基本背景、性格、外貌"的混合，归入 background 最接近）
@@ -37,11 +73,12 @@ export function migrateCharacter(raw: LegacyCharacter): Character {
     ...rest,
   } as Character
 
-  if (profile && !migrated.background) {
-    migrated.background = profile
+  // 中间态字段（将被 V2 迁移处理），需 any 转型
+  if (profile && !(migrated as any).background) {
+    (migrated as any).background = profile
   }
   if (voice && voice.prompt) {
-    migrated.voice = voice
+    (migrated as any).voice = voice
   }
   return migrated
 }
@@ -51,14 +88,26 @@ function migrateNovel(novel: Novel): { novel: Novel; changed: boolean } {
   let changed = false
   const characters = novel.characters.map((c) => {
     const legacy = c as LegacyCharacter
-    if (legacy.profile === undefined && (!Array.isArray(legacy.skills) || legacy.skills.length === 0)) {
-      return c
+    // V1：旧 profile/skills → personality/background/voice
+    if (legacy.profile !== undefined || (Array.isArray(legacy.skills) && legacy.skills.length > 0)) {
+      changed = true
+      return migrateCharacter(legacy)
     }
-    changed = true
-    return migrateCharacter(legacy)
+    return c
+  })
+  // V2：分离静态档案字段 → profile + literaryReference
+  const v2Characters = characters.map((c) => {
+    const hasOldFields =
+      (c as any).personality || (c as any).background || (c as any).appearance ||
+      (c as any).hobbies || (c as any).voice || (c as any).description
+    if (hasOldFields) {
+      changed = true
+      return migrateCharacterV2(c)
+    }
+    return c
   })
   if (!changed) return { novel, changed: false }
-  return { novel: { ...novel, characters }, changed: true }
+  return { novel: { ...novel, characters: v2Characters }, changed: true }
 }
 
 // novel.json 路径（相对于小说文件夹根）

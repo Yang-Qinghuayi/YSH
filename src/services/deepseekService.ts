@@ -84,12 +84,16 @@ export function buildAgentSystemPrompt(
     '',
   ]
 
-  // 可用角色档案清单（含触发说明）
+  // 可用角色档案清单
   if (novel.characters.length > 0) {
     lines.push('【可用角色档案】')
     for (const c of novel.characters) {
-      const desc = c.description || c.voice?.description || '（无触发说明）'
-      lines.push(`- @${c.name}：${desc}`)
+      const brief = c.literaryReference
+        ? `参考形象：${c.literaryReference}`
+        : c.profile
+          ? c.profile.slice(0, 60) + (c.profile.length > 60 ? '...' : '')
+          : '（无描述）'
+      lines.push(`- @${c.name}：${brief}`)
     }
     lines.push('')
   }

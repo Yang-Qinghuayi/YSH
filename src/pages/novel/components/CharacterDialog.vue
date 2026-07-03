@@ -79,45 +79,12 @@
           <div class="text-subtitle-2">静态档案（不变的"是谁"）</div>
 
           <v-textarea
-            v-model="editingCharacter.personality"
-            label="性格"
-            placeholder="如：坚毅、重情、寡言..."
+            v-model="editingCharacter.profile"
+            label="角色描述"
+            placeholder="用自然语言描述角色。例如：寒门出身，师从青城派，性格坚毅重情却寡言。清瘦剑眉，常着青衫，嗜酒好弈..."
             variant="outlined"
             density="compact"
-            rows="2"
-            auto-grow
-            hide-details
-          />
-
-          <v-textarea
-            v-model="editingCharacter.background"
-            label="出身背景"
-            placeholder="如：寒门出身，师从青城派..."
-            variant="outlined"
-            density="compact"
-            rows="2"
-            auto-grow
-            hide-details
-          />
-
-          <v-textarea
-            v-model="editingCharacter.appearance"
-            label="外貌"
-            placeholder="如：清瘦、剑眉、常着青衫..."
-            variant="outlined"
-            density="compact"
-            rows="2"
-            auto-grow
-            hide-details
-          />
-
-          <v-textarea
-            v-model="editingCharacter.hobbies"
-            label="爱好"
-            placeholder="如：嗜酒、好弈..."
-            variant="outlined"
-            density="compact"
-            rows="1"
+            rows="6"
             auto-grow
             hide-details
           />
@@ -134,33 +101,16 @@
             hide-details
           />
 
-          <!-- 文风 voice -->
-          <div class="text-subtitle-2 mt-2">文风（出场时怎么写）</div>
-          <v-text-field
-            v-model="voiceDescription"
-            label="触发说明（供 Agent 按需激活）"
-            placeholder="如：用于李明战斗场面"
-            variant="outlined"
-            density="compact"
-            hide-details
-          />
+          <!-- 文学形象参考 -->
+          <div class="text-subtitle-2 mt-2">文学形象参考</div>
           <v-textarea
-            v-model="voicePrompt"
-            label="文风指导（AI 写作指导）"
-            placeholder="如：剑法描写凌厉、短句、动词密集..."
+            v-model="editingCharacter.literaryReference"
+            label="文学形象参考"
+            placeholder="请填写该角色参考的著名文学/影视形象（例如：杨过、李寻欢）。大模型将自动映射这些经典形象的气质、风骨与行为模式。"
             variant="outlined"
             density="compact"
-            rows="2"
+            rows="3"
             auto-grow
-            hide-details
-          />
-
-          <v-text-field
-            v-model="editingCharacter.description"
-            label="角色整体触发说明（供 Agent 按需激活）"
-            placeholder="如：主角，多用其视角推进剧情"
-            variant="outlined"
-            density="compact"
             hide-details
           />
         </div>
@@ -204,33 +154,8 @@ const isOpen = computed({
 const editingCharacter = ref<Character | null>(null)
 const isCreating = ref(false)
 
-// voice 字段的双向代理（voice 可能为 undefined）
-const voicePrompt = computed({
-  get: () => editingCharacter.value?.voice?.prompt ?? '',
-  set: (v: string) => {
-    if (!editingCharacter.value) return
-    editingCharacter.value.voice = {
-      ...(editingCharacter.value.voice ?? {}),
-      prompt: v,
-    }
-  },
-})
-const voiceDescription = computed({
-  get: () => editingCharacter.value?.voice?.description ?? '',
-  set: (v: string) => {
-    if (!editingCharacter.value) return
-    editingCharacter.value.voice = {
-      ...(editingCharacter.value.voice ?? {}),
-      description: v,
-    }
-  },
-})
-
 function characterBrief(c: Character): string {
-  const parts: string[] = []
-  if (c.personality) parts.push(c.personality)
-  if (c.background) parts.push(c.background)
-  return parts.join('；')
+  return c.profile || ''
 }
 
 function startCreate() {
@@ -255,11 +180,6 @@ function saveCharacter() {
   if (!editingCharacter.value) return
   const char = editingCharacter.value
   if (!char.name.trim()) return
-
-  // 清理空 voice
-  if (char.voice && !char.voice.prompt && !char.voice.description) {
-    delete char.voice
-  }
 
   const updated = [...props.characters]
   if (isCreating.value) {

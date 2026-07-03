@@ -240,7 +240,7 @@ const selectSkillTool: AgentTool = {
     type: 'function',
     function: {
       name: 'select_skill',
-      description: '选定本章要调用的角色档案（按 id），返回合并后的写作指导文本。角色档案会携带文风 voice 与静态档案摘要。',
+      description: '选定本章要调用的角色档案（按 id），返回合并后的写作指导文本。角色档案会携带角色描述与文学形象参考。',
       parameters: {
         type: 'object',
         properties: {
@@ -263,11 +263,9 @@ const selectSkillTool: AgentTool = {
         const char = ctx.novel.characters.find((c) => c.id === id)
         if (char) {
           lines.push(`【角色 ${char.name}】`)
-          if (char.personality) lines.push(`性格：${char.personality}`)
-          if (char.background) lines.push(`背景：${char.background}`)
-          if (char.appearance) lines.push(`外貌：${char.appearance}`)
+          if (char.profile) lines.push(`角色描述：${char.profile}`)
           if (char.aliases?.length) lines.push(`别名：${char.aliases.join('/')}`)
-          if (char.voice?.prompt) lines.push(`文风：${char.voice.prompt}`)
+          if (char.literaryReference) lines.push(`文学形象参考：${char.literaryReference}`)
           continue
         }
         lines.push(`（未找到 id=${id} 的角色）`)

@@ -146,9 +146,8 @@
               <div class="char-row__fields">
                 <v-text-field v-model="c.name" label="姓名" density="compact" variant="outlined" hide-details class="mb-1" />
                 <v-text-field v-model="c.aliasesText" label="别名（逗号分隔）" density="compact" variant="outlined" hide-details class="mb-1" />
-                <v-text-field v-model="c.personality" label="性格" density="compact" variant="outlined" hide-details class="mb-1" />
-                <v-text-field v-model="c.background" label="出身背景" density="compact" variant="outlined" hide-details class="mb-1" />
-                <v-textarea v-model="c.appearance" label="外貌" density="compact" variant="outlined" rows="1" auto-grow hide-details />
+                <v-textarea v-model="c.profile" label="角色描述" density="compact" variant="outlined" rows="2" auto-grow hide-details class="mb-1" />
+                <v-text-field v-model="c.literaryReference" label="文学形象参考" density="compact" variant="outlined" hide-details />
               </div>
               <button class="lg-icon-btn char-row__del" title="删除" @click="form.characters.splice(i, 1)">
                 <v-icon :icon="mdiClose" size="15" />
@@ -454,9 +453,8 @@ function toggleAllChapters() {
 function addCharacter() {
   form.characters.push({
     name: '',
-    personality: '',
-    background: '',
-    appearance: '',
+    profile: '',
+    literaryReference: '',
     aliasesText: '',
     selected: true,
   })
@@ -526,11 +524,9 @@ function toImportCharacter(c: CharacterForm): ImportCharacter {
     .filter(Boolean)
   return {
     name: c.name.trim() || '未命名',
-    personality: c.personality || undefined,
-    background: c.background || undefined,
-    appearance: c.appearance || undefined,
+    profile: c.profile || undefined,
     aliases: aliases.length ? aliases : undefined,
-    description: c.description || undefined,
+    literaryReference: c.literaryReference || undefined,
   }
 }
 

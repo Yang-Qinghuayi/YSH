@@ -27,27 +27,9 @@
           <div class="lg-section-label">档案（不变的"是谁"）</div>
 
           <v-textarea
-            v-model="draft.personality"
-            label="性格"
-            variant="outlined" density="compact" rows="2" auto-grow hide-details rounded="xl"
-            @blur="emitCharacter"
-          />
-          <v-textarea
-            v-model="draft.background"
-            label="出身背景"
-            variant="outlined" density="compact" rows="2" auto-grow hide-details rounded="xl"
-            @blur="emitCharacter"
-          />
-          <v-textarea
-            v-model="draft.appearance"
-            label="外貌"
-            variant="outlined" density="compact" rows="2" auto-grow hide-details rounded="xl"
-            @blur="emitCharacter"
-          />
-          <v-textarea
-            v-model="draft.hobbies"
-            label="爱好"
-            variant="outlined" density="compact" rows="1" auto-grow hide-details rounded="xl"
+            v-model="draft.profile"
+            label="角色描述"
+            variant="outlined" density="compact" rows="6" auto-grow hide-details rounded="xl"
             @blur="emitCharacter"
           />
           <v-combobox
@@ -57,15 +39,9 @@
             @update:model-value="emitCharacter"
           />
           <v-textarea
-            v-model="voicePromptDraft"
-            label="文风指导"
-            variant="outlined" density="compact" rows="2" auto-grow hide-details rounded="xl"
-            @blur="emitCharacter"
-          />
-          <v-text-field
-            v-model="draft.description"
-            label="整体触发说明"
-            variant="outlined" density="compact" hide-details rounded="xl"
+            v-model="draft.literaryReference"
+            label="文学形象参考"
+            variant="outlined" density="compact" rows="3" auto-grow hide-details rounded="xl"
             @blur="emitCharacter"
           />
         </div>
@@ -151,14 +127,12 @@ const selected = computed(() =>
 
 // 档案可编辑副本
 const draft = ref<Character>({ id: '', name: '' })
-const voicePromptDraft = ref('')
 
 watch(
   selected,
   (c) => {
     if (c) {
       draft.value = JSON.parse(JSON.stringify(c))
-      voicePromptDraft.value = c.voice?.prompt ?? ''
     }
   },
   { immediate: true },
@@ -185,13 +159,7 @@ watch(stateEntry, (s) => {
 
 function emitCharacter() {
   if (!selected.value) return
-  const c: Character = {
-    ...draft.value,
-    voice: voicePromptDraft.value.trim()
-      ? { ...(draft.value.voice ?? {}), prompt: voicePromptDraft.value }
-      : undefined,
-  }
-  emit('update:character', c)
+  emit('update:character', { ...draft.value })
 }
 
 function emitState() {
