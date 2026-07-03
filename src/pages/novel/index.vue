@@ -41,10 +41,6 @@
               导入小说
             </button>
           </div>
-          <button v-else class="lg-pill empty-btn" @click="chapterListRef?.openCreate()">
-            <v-icon :icon="mdiPlus" size="16" />
-            新建章节
-          </button>
         </div>
       </div>
 
@@ -924,7 +920,7 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-/* ====== 侧边栏 — Liquid Glass ====== */
+/* ====== 侧边栏 ====== */
 .novel-sidebar {
   width: 248px;
   flex-shrink: 0;
@@ -934,9 +930,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background: rgba(var(--v-theme-surface), 0.6);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  background: rgb(var(--v-theme-surface));
   transition: width 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 

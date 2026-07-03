@@ -199,15 +199,13 @@ function handleUseDefault() {
   background: rgba(var(--v-theme-background), 1);
 }
 
-/* 磨砂玻璃卡片 */
+/* 卡片 */
 .glass-card {
   width: 360px;
   max-width: 92%;
   padding: 36px 32px 28px;
   border-radius: 20px;
-  background: rgba(var(--v-theme-surface), 0.88);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  background: rgb(var(--v-theme-surface));
   box-shadow:
     0 2px 0 1px rgba(var(--v-theme-on-surface), 0.04),
     0 8px 32px rgba(0, 0, 0, 0.08),

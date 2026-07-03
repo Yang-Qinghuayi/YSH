@@ -6,20 +6,17 @@
 }
 
 /* ============================================================
- * Liquid Glass 共享工具类（iOS27 风格）
- * 非 scoped，供 novel 各组件复用，保证全页玻璃质感一致。
+ * 共享工具类
+ * 非 scoped，供 novel 各组件复用。
  * 颜色全部走 Material You 的 --v-theme-* 变量，多主题/深色自适应。
  * ============================================================ */
 
-/* —— 玻璃卡片基底 —— */
+/* —— 卡片基底 —— */
 .lg-card {
   position: relative;
-  background: rgba(var(--v-theme-surface), 0.72);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  background: rgb(var(--v-theme-surface));
   border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.5) inset,
     0 8px 32px rgba(0, 0, 0, 0.06),
     0 2px 8px rgba(0, 0, 0, 0.04);
   border-radius: 20px;
@@ -32,7 +29,7 @@
 }
 
 
-/* —— 玻璃胶囊按钮 —— */
+/* —— 胶囊按钮 —— */
 .lg-pill {
   display: inline-flex;
   align-items: center;
@@ -41,9 +38,7 @@
   padding: 7px 14px;
   border-radius: 999px;
   border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
-  background: rgba(var(--v-theme-surface), 0.7);
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  background: rgb(var(--v-theme-surface));
   color: rgba(var(--v-theme-on-surface), 0.78);
   font-size: 12.5px;
   font-weight: 500;
@@ -103,11 +98,9 @@
   line-height: 1.6;
 }
 
-/* —— 角色面板抽屉玻璃化（Vuetify 内部根元素，需全局覆盖） —— */
+/* —— 角色面板抽屉（Vuetify 内部根元素，需全局覆盖） —— */
 .char-panel.v-navigation-drawer {
-  background: rgba(var(--v-theme-surface), 0.88);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  background: rgb(var(--v-theme-surface));
   border-left: 1px solid rgba(var(--v-theme-on-surface), 0.08);
   border-top-left-radius: 20px;
   border-bottom-left-radius: 20px;

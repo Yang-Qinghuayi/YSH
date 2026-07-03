@@ -260,9 +260,7 @@ function formatTime(ts: number): string {
 
 <style scoped>
 .lg-dialog {
-  background: rgba(var(--v-theme-surface), 0.92);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  background: rgb(var(--v-theme-surface));
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
 }
 .title-badge {

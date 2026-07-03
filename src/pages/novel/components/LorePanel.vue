@@ -268,7 +268,7 @@ function showErrorMsg(msg: string) {
 .lore-dialog-card {
   overflow: hidden;
   border-radius: 20px;
-  background: rgba(var(--v-theme-surface), 0.86);
+  background: rgb(var(--v-theme-surface));
 }
 
 /* 标题栏 */

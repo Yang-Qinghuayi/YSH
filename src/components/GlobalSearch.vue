@@ -200,12 +200,9 @@ function escapeHtml(s: string): string {
   max-width: calc(100vw - 48px);
   max-height: 480px;
   border-radius: 20px;
-  background: rgba(var(--v-theme-surface), 0.94);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  background: rgb(var(--v-theme-surface));
   border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.5) inset,
     0 24px 64px rgba(0, 0, 0, 0.28),
     0 4px 16px rgba(0, 0, 0, 0.12);
   display: flex;

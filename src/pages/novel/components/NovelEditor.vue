@@ -195,14 +195,12 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* ====== 标题栏 — 磨砂玻璃 ====== */
+/* ====== 标题栏 ====== */
 .editor-header {
   height: 48px;
   flex-shrink: 0;
   border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.06);
-  background: rgba(var(--v-theme-surface), 0.85);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  background: rgb(var(--v-theme-surface));
 }
 
 .editor-title {

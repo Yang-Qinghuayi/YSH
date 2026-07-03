@@ -52,12 +52,9 @@ const label = computed(() => {
   gap: 8px;
   padding: 7px 16px 7px 13px;
   border-radius: 999px;
-  background: rgba(var(--v-theme-surface), 0.85);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  background: rgb(var(--v-theme-surface));
   border: 1px solid rgba(var(--v-theme-primary), 0.2);
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.5) inset,
     0 8px 32px rgba(0, 0, 0, 0.1),
     0 2px 8px rgba(0, 0, 0, 0.05);
   font-size: 12.5px;
