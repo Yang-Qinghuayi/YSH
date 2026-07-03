@@ -77,6 +77,7 @@ import { EditorState } from '@codemirror/state'
 import { markdown } from '@codemirror/lang-markdown'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { useTheme } from 'vuetify'
+import { useSettingStore } from '@/store/setting'
 import type { EntryMeta, EntryImportance } from '@/types/lore'
 import { ENTRY_IMPORTANCE_LABELS } from '@/types/lore'
 
@@ -94,6 +95,7 @@ const editorContainer = ref<HTMLElement | null>(null)
 const editorView = shallowRef<EditorView | null>(null)
 
 const vuetifyTheme = useTheme()
+const settingStore = useSettingStore()
 const isDark = computed(() => vuetifyTheme.global.current.value.dark)
 
 const importanceOptions = Object.entries(ENTRY_IMPORTANCE_LABELS).map(([value, label]) => ({ value, label }))
@@ -112,8 +114,8 @@ function createEditor(content: string) {
     EditorView.lineWrapping,
     placeholder('在此编写条目正文…'),
     EditorView.theme({
-      '&': { height: '100%', fontSize: '15px' },
-      '.cm-scroller': { overflow: 'auto', fontFamily: 'inherit', lineHeight: '1.8' },
+      '&': { height: '100%', fontSize: `${settingStore.editorFontSize}px` },
+      '.cm-scroller': { overflow: 'auto', fontFamily: 'var(--font-sans)', lineHeight: '1.8' },
       '.cm-content': { maxWidth: '720px', margin: '0 auto', padding: '16px 24px 80px' },
       '.cm-line': { padding: '0' },
       '.cm-focused': { outline: 'none' },
@@ -146,6 +148,14 @@ watch(
 
 // 主题切换时重建
 watch(isDark, () => {
+  const doc = editorView.value?.state.doc.toString() ?? props.content
+  editorView.value?.destroy()
+  editorView.value = null
+  nextTick(() => createEditor(doc))
+})
+
+// 字号变更时重建
+watch(() => settingStore.editorFontSize, () => {
   const doc = editorView.value?.state.doc.toString() ?? props.content
   editorView.value?.destroy()
   editorView.value = null

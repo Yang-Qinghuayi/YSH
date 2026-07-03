@@ -5,20 +5,20 @@
 
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, watch, shallowRef } from "vue";
-import { EditorView, keymap, ViewUpdate, placeholder } from "@codemirror/view";
+import {
+  EditorView,
+  keymap,
+  ViewUpdate,
+  placeholder,
+} from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 import { markdown } from "@codemirror/lang-markdown";
-import {
-  autocompletion,
-  CompletionContext,
-  CompletionResult,
-} from "@codemirror/autocomplete";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { useTheme } from "vuetify";
-import type { ChapterMeta, Novel } from "@/types/novel";
+import { useSettingStore } from "@/store/setting";
+import type { ChapterMeta } from "@/types/novel";
 
 const props = defineProps<{
-  novel: Novel | null;
   chapter: ChapterMeta | null;
   content: string;
   isGenerating: boolean;
@@ -35,30 +35,16 @@ const editorContainer = ref<HTMLElement | null>(null);
 const editorView = shallowRef<EditorView | null>(null);
 
 const vuetifyTheme = useTheme();
+const settingStore = useSettingStore();
 const isDark = computed(() => vuetifyTheme.global.current.value.dark);
-
-// @提及 自动补全
-function buildCompletions(context: CompletionContext): CompletionResult | null {
-  if (!props.novel) return null;
-  const word = context.matchBefore(/@[一-龥\w]*/);
-  if (!word) return null;
-  const options: { label: string; type: string; detail?: string }[] = [];
-
-  for (const char of props.novel.characters) {
-    options.push({ label: `@${char.name}`, type: "variable", detail: "角色" });
-  }
-
-  if (!options.length) return null;
-  return { from: word.from, options, validFor: /@[一-龥\w]*/ };
-}
 
 function handleTab(view: EditorView): boolean {
   const { state } = view;
   const pos = state.selection.main.head;
   const line = state.doc.lineAt(pos);
   const lineText = line.text.trim();
-  if (lineText.includes("@")) {
-    emit("generate", pos, lineText);
+  if (lineText) {
+    emit("generate", pos, line.text);
     return true;
   }
   view.dispatch({
@@ -74,11 +60,15 @@ function createEditor(content: string) {
   const lightTheme = EditorView.theme({
     "&": {
       height: "100%",
-      fontSize: "15px",
+      fontSize: `${settingStore.editorFontSize}px`,
       fontFamily: 'var(--font-sans)',
       background: "transparent",
     },
-    ".cm-scroller": { overflow: "auto", lineHeight: "1.85" },
+    ".cm-scroller": {
+      overflow: "auto",
+      lineHeight: "1.85",
+      fontFamily: "var(--font-sans)",
+    },
     ".cm-content": {
       padding: "24px 28px 100px",
       maxWidth: "740px",
@@ -88,7 +78,6 @@ function createEditor(content: string) {
     ".cm-line": { paddingLeft: "0", paddingRight: "0" },
     ".cm-focused": { outline: "none" },
     ".cm-cursor": { borderLeftColor: "rgb(var(--v-theme-primary))" },
-    ".cm-completionLabel": { fontFamily: "inherit" },
     ".cm-selectionBackground": {
       background: "rgba(var(--v-theme-primary), 0.15) !important",
     },
@@ -96,7 +85,6 @@ function createEditor(content: string) {
 
   const extensions = [
     markdown(),
-    autocompletion({ override: [buildCompletions] }),
     keymap.of([
       { key: "Tab", run: handleTab },
       {
@@ -184,6 +172,13 @@ watch(
 );
 
 watch(isDark, () => {
+  const content = editorView.value?.state.doc.toString() ?? props.content;
+  editorView.value?.destroy();
+  editorView.value = null;
+  nextTick(() => createEditor(content));
+});
+
+watch(() => settingStore.editorFontSize, () => {
   const content = editorView.value?.state.doc.toString() ?? props.content;
   editorView.value?.destroy();
   editorView.value = null;

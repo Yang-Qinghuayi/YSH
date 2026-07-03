@@ -12,6 +12,7 @@
         :novel="currentNovel"
         @open-folder="handleOpenFolder"
         @view-state="showStoryStateDialog = true"
+        @open-settings="showEditorSettings = true"
         @switch-novel="switchNovel"
       />
 
@@ -50,8 +51,9 @@
       <template v-else>
         <!-- 章节概要输入条 -->
         <div class="brief-bar lg-card--inset">
-          <v-textarea
+          <MentionTextarea
             v-model="chapterBrief"
+            :characters="currentNovel?.characters ?? []"
             :placeholder="briefPlaceholder"
             variant="plain"
             density="compact"
@@ -80,7 +82,6 @@
           ref="editorRef"
           class="flex-1"
           style="min-height: 0;"
-          :novel="currentNovel"
           :chapter="currentChapter"
           :content="currentChapterContent"
           :is-generating="isGenerating"
@@ -257,6 +258,41 @@
       @imported="handleImported"
     />
 
+    <!-- 编辑器设置弹窗 -->
+    <v-dialog v-model="showEditorSettings" max-width="380">
+      <div class="lg-card settings-dialog">
+        <div class="settings-header">
+          <span class="settings-title">编辑器设置</span>
+          <button class="lg-icon-btn" @click="showEditorSettings = false">
+            <v-icon :icon="mdiClose" size="16" />
+          </button>
+        </div>
+        <div class="settings-body">
+          <div class="setting-row">
+            <div class="setting-label">
+              <span class="setting-name">编辑区字号</span>
+              <span class="setting-value">{{ settingStore.editorFontSize }}px</span>
+            </div>
+            <v-slider
+              :model-value="settingStore.editorFontSize"
+              :min="14"
+              :max="24"
+              :step="1"
+              color="primary"
+              track-size="3"
+              thumb-size="16"
+              hide-details
+              @update:model-value="settingStore.editorFontSize = $event"
+            />
+            <div class="setting-range-labels">
+              <span>14px</span>
+              <span>24px</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </v-dialog>
+
     <!-- 错误提示 -->
     <v-snackbar v-model="showError" color="error" timeout="4000" location="top">
       {{ errorMessage }}
@@ -280,6 +316,7 @@ import {
   mdiBookshelf,
   mdiImport,
   mdiSwapHorizontal,
+  mdiClose,
 } from '@mdi/js'
 import { useNovelStore } from '@/store/novelStore'
 import { useSettingStore } from '@/store/setting'
@@ -321,6 +358,7 @@ import type { EntryMeta } from '@/types/lore'
 import WorkspaceInit from '@/components/WorkspaceInit.vue'
 import ChapterList from './components/ChapterList.vue'
 import NovelEditor from './components/NovelEditor.vue'
+import MentionTextarea from './components/MentionTextarea.vue'
 import NovelOverviewBar from './components/NovelOverviewBar.vue'
 import CharacterDialog from './components/CharacterDialog.vue'
 import AgentPlanPanel from './components/AgentPlanPanel.vue'
@@ -330,6 +368,7 @@ import LorePanel from './components/LorePanel.vue'
 import StoryStateDialog from './components/StoryStateDialog.vue'
 import ImportNovelDialog from './components/ImportNovelDialog.vue'
 import GlobalSearch from '@/components/GlobalSearch.vue'
+import { useDialogEsc } from '@/hooks/useDialogEsc'
 
 // ===== Store =====
 const novelStore = useNovelStore()
@@ -351,6 +390,8 @@ const showGlobalSearch = ref(false)
 const showLorePanel = ref(false)
 const showImportDialog = ref(false)
 const showStoryStateDialog = ref(false)
+const showEditorSettings = ref(false)
+useDialogEsc(showEditorSettings)
 const loreEntries = ref<EntryMeta[]>([])
 const pendingLoreEntryId = ref<string | null>(null)
 
@@ -613,7 +654,6 @@ async function handleGenerate(cursorPos: number, lineText: string) {
     return
   }
 
-  const forcedMentions = parseMentions(lineText, currentNovel.value)
   const brief = `续写一小段，自然衔接前文。${lineText.trim() ? `本行提示：${lineText.trim()}` : ''}`
 
   const session = createSession({
@@ -621,7 +661,7 @@ async function handleGenerate(cursorPos: number, lineText: string) {
     chapter: currentChapter.value,
     chapterContent: currentChapterContent.value,
     cursorPosition: cursorPos,
-    forcedMentions,
+    forcedMentions: [],
     skipConfirmation: true,
   })
   agentSession.value = session
@@ -1068,7 +1108,6 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 .brief-input {
-  flex: 1;
   font-size: 13px;
 }
 .brief-input :deep(.v-field__input) {
@@ -1085,5 +1124,53 @@ onBeforeUnmount(() => {
 }
 .chip-clickable:hover {
   filter: brightness(1.08);
+}
+
+/* ====== 编辑器设置弹窗 ====== */
+.settings-dialog {
+  padding: 20px 24px;
+  border-radius: 20px;
+}
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.settings-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(var(--v-theme-on-surface), 0.85);
+}
+.settings-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.setting-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.setting-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.setting-name {
+  font-size: 13px;
+  color: rgba(var(--v-theme-on-surface), 0.7);
+}
+.setting-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgb(var(--v-theme-primary));
+}
+.setting-range-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: rgba(var(--v-theme-on-surface), 0.3);
+  margin-top: -4px;
 }
 </style>

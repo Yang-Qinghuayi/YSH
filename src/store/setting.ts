@@ -22,6 +22,7 @@ export interface SettingState {
   navPosition: NavPosition;
   // 字体
   uiFont: string;
+  editorFontSize: number;
   // AI 写作（DeepSeek）
   deepseekApiKey: string;
   deepseekModel: 'deepseek-chat' | 'deepseek-reasoner';
@@ -43,6 +44,7 @@ export const useSettingStore = defineStore('setting', {
         miniPlayer: false,
         navPosition: NavPosition.left,
         uiFont: 'LXGW WenKai',
+        editorFontSize: 17,
         deepseekApiKey: '',
         deepseekModel: 'deepseek-chat',
         workspaceDir: null,

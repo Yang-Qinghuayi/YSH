@@ -44,6 +44,13 @@
       </button>
       <button
         class="action-btn"
+        title="编辑器设置"
+        @click="emit('open-settings')"
+      >
+        <v-icon :icon="mdiCog" size="16" />
+      </button>
+      <button
+        class="action-btn"
         title="切换小说"
         @click="emit('switch-novel')"
       >
@@ -61,6 +68,7 @@ import {
   mdiFolderOpen,
   mdiStateMachine,
   mdiSwapHorizontal,
+  mdiCog,
 } from '@mdi/js'
 import { formatTotalWordCount } from '@/services/novelService'
 import { isTauriAppPlatform } from '@/services/environment'
@@ -74,6 +82,7 @@ const emit = defineEmits<{
   'open-folder': []
   'view-state': []
   'switch-novel': []
+  'open-settings': []
 }>()
 
 const isTauri = isTauriAppPlatform()
