@@ -259,7 +259,7 @@
     />
 
     <!-- 编辑器设置弹窗 -->
-    <v-dialog v-model="showEditorSettings" max-width="380">
+    <v-dialog v-model="showEditorSettings" max-width="420">
       <div class="lg-card settings-dialog">
         <div class="settings-header">
           <span class="settings-title">编辑器设置</span>
@@ -268,6 +268,7 @@
           </button>
         </div>
         <div class="settings-body">
+          <!-- 字号 -->
           <div class="setting-row">
             <div class="setting-label">
               <span class="setting-name">编辑区字号</span>
@@ -289,6 +290,38 @@
               <span>24px</span>
             </div>
           </div>
+
+          <!-- AI 写作 -->
+          <div class="setting-divider" />
+          <div class="setting-section-title">AI 写作（DeepSeek）</div>
+          <v-text-field
+            v-model="settingStore.deepseekApiKey"
+            label="DeepSeek API Key"
+            placeholder="sk-..."
+            variant="outlined"
+            density="compact"
+            :type="showApiKey ? 'text' : 'password'"
+            :append-inner-icon="showApiKey ? mdiEyeOff : mdiEye"
+            hint="API Key is required for AI writing"
+            persistent-hint
+            @click:append-inner="showApiKey = !showApiKey"
+          />
+          <v-select
+            v-model="settingStore.deepseekModel"
+            label="模型"
+            :items="modelOptions"
+            variant="outlined"
+            density="compact"
+          />
+          <v-switch
+            v-model="agentStore.autoUpdateStoryState"
+            color="primary"
+            density="compact"
+            hide-details
+            label="生成后自动更新角色状态"
+            hint="关闭后，Agent 生成正文不再自动增量更新角色动态状态"
+            persistent-hint
+          />
         </div>
       </div>
     </v-dialog>
@@ -317,6 +350,8 @@ import {
   mdiImport,
   mdiSwapHorizontal,
   mdiClose,
+  mdiEye,
+  mdiEyeOff,
 } from '@mdi/js'
 import { useNovelStore } from '@/store/novelStore'
 import { useSettingStore } from '@/store/setting'
@@ -387,6 +422,7 @@ const showCharacterDialog = ref(false)
 const showError = ref(false)
 const errorMessage = ref('')
 const showGlobalSearch = ref(false)
+const showApiKey = ref(false)
 const showLorePanel = ref(false)
 const showImportDialog = ref(false)
 const showStoryStateDialog = ref(false)
@@ -400,6 +436,11 @@ const chapterListRef = ref<InstanceType<typeof ChapterList> | null>(null)
 
 // ===== 侧栏折叠 =====
 const sidebarCollapsed = ref(false)
+
+const modelOptions = [
+  { title: "deepseek-chat（通用，速度快）", value: "deepseek-chat" },
+  { title: "deepseek-reasoner（深度推理，更慢）", value: "deepseek-reasoner" },
+]
 
 function onOpenCharacters() {
   sidebarCollapsed.value = false
@@ -1172,5 +1213,16 @@ onBeforeUnmount(() => {
   font-size: 11px;
   color: rgba(var(--v-theme-on-surface), 0.3);
   margin-top: -4px;
+}
+.setting-divider {
+  height: 1px;
+  background: rgba(var(--v-theme-on-surface), 0.08);
+  margin: 8px 0;
+}
+.setting-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(var(--v-theme-on-surface), 0.7);
+  margin-bottom: 4px;
 }
 </style>
