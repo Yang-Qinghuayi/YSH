@@ -57,62 +57,55 @@
 
         <!-- 编辑/新增单个角色 -->
         <div v-else class="d-flex flex-column gap-4">
-          <v-btn
-            variant="text"
-            size="small"
-            prepend-icon="mdi-arrow-left"
-            rounded="pill"
-            @click="cancelEdit"
-          >
-            返回
-          </v-btn>
+          <label class="native-label">
+            <span class="native-label-text">角色名（用于 @提及）</span>
+            <input
+              v-model="editingCharacter.name"
+              type="text"
+              class="native-input"
+              placeholder="如：李明"
+            />
+          </label>
 
-          <v-text-field
-            v-model="editingCharacter.name"
-            label="角色名（用于 @提及）"
-            placeholder="如：李明"
-            variant="outlined"
-            density="compact"
-          />
+          <label class="native-label">
+            <span class="native-label-text">角色描述</span>
+            <textarea
+              v-model="editingCharacter.profile"
+              class="native-input native-textarea"
+              placeholder="用自然语言描述角色。例如：寒门出身，师从青城派，性格坚毅重情却寡言。清瘦剑眉，常着青衫，嗜酒好弈..."
+              rows="6"
+            ></textarea>
+          </label>
 
-          <!-- 静态档案 -->
-          <div class="text-subtitle-2">静态档案（不变的"是谁"）</div>
+          <!-- 别名标签输入 -->
+          <label class="native-label">
+            <span class="native-label-text">别名/触发词</span>
+            <div class="native-tags-wrapper" @click="focusAliasInput">
+              <span v-for="(alias, i) in editingCharacter.aliases" :key="i" class="native-tag">
+                {{ alias }}
+                <button type="button" class="native-tag-remove" @click.stop="removeAlias(i)">&times;</button>
+              </span>
+              <input
+                ref="aliasInputRef"
+                v-model="aliasInput"
+                type="text"
+                class="native-tags-input"
+                placeholder="输入后按回车添加"
+                @keydown.enter.prevent="addAlias"
+                @keydown.backspace="removeLastAlias"
+              />
+            </div>
+          </label>
 
-          <v-textarea
-            v-model="editingCharacter.profile"
-            label="角色描述"
-            placeholder="用自然语言描述角色。例如：寒门出身，师从青城派，性格坚毅重情却寡言。清瘦剑眉，常着青衫，嗜酒好弈..."
-            variant="outlined"
-            density="compact"
-            rows="6"
-            auto-grow
-            hide-details
-          />
-
-          <v-combobox
-            v-model="editingCharacter.aliases"
-            label="别名/触发词"
-            placeholder="如：小川、林少侠（回车添加）"
-            variant="outlined"
-            density="compact"
-            multiple
-            chips
-            closable-chips
-            hide-details
-          />
-
-          <!-- 文学形象参考 -->
-          <div class="text-subtitle-2 mt-2">文学形象参考</div>
-          <v-textarea
-            v-model="editingCharacter.literaryReference"
-            label="文学形象参考"
-            placeholder="请填写该角色参考的著名文学/影视形象（例如：杨过、李寻欢）。大模型将自动映射这些经典形象的气质、风骨与行为模式。"
-            variant="outlined"
-            density="compact"
-            rows="3"
-            auto-grow
-            hide-details
-          />
+          <label class="native-label">
+            <span class="native-label-text">文学形象参考</span>
+            <textarea
+              v-model="editingCharacter.literaryReference"
+              class="native-input native-textarea"
+              placeholder="请填写该角色参考的著名文学/影视形象（例如：杨过、李寻欢）。大模型将自动映射这些经典形象的气质、风骨与行为模式。"
+              rows="3"
+            ></textarea>
+          </label>
         </div>
       </v-card-text>
 
@@ -154,6 +147,38 @@ const isOpen = computed({
 const editingCharacter = ref<Character | null>(null)
 const isCreating = ref(false)
 
+// 别名标签输入
+const aliasInput = ref('')
+const aliasInputRef = ref<HTMLInputElement | null>(null)
+
+function focusAliasInput() {
+  aliasInputRef.value?.focus()
+}
+
+function addAlias() {
+  const val = aliasInput.value.trim()
+  if (!val || !editingCharacter.value) return
+  if (!editingCharacter.value.aliases) {
+    editingCharacter.value.aliases = []
+  }
+  if (!editingCharacter.value.aliases.includes(val)) {
+    editingCharacter.value.aliases.push(val)
+  }
+  aliasInput.value = ''
+}
+
+function removeAlias(index: number) {
+  if (!editingCharacter.value?.aliases) return
+  editingCharacter.value.aliases.splice(index, 1)
+}
+
+function removeLastAlias(e: KeyboardEvent) {
+  if (aliasInput.value === '' && editingCharacter.value?.aliases?.length) {
+    editingCharacter.value.aliases.pop()
+    e.preventDefault()
+  }
+}
+
 function characterBrief(c: Character): string {
   return c.profile || ''
 }
@@ -174,6 +199,7 @@ function startEdit(character: Character) {
 function cancelEdit() {
   editingCharacter.value = null
   isCreating.value = false
+  aliasInput.value = ''
 }
 
 function saveCharacter() {
@@ -225,8 +251,105 @@ function confirmDelete(characterId: string) {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-/* 圆角统一输入框 */
-.lg-dialog :deep(.v-field--variant-outlined) {
+
+/* ===== 原生输入框 ===== */
+.native-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.native-label-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(var(--v-theme-on-surface), 0.7);
+  padding-left: 4px;
+}
+.native-input {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.5;
+  color: rgb(var(--v-theme-on-surface));
+  background: rgba(var(--v-theme-on-surface), 0.04);
+  border: none;
   border-radius: 14px;
+  outline: none;
+  transition: box-shadow 0.2s;
+}
+.native-input::placeholder {
+  color: rgba(var(--v-theme-on-surface), 0.4);
+}
+.native-input:focus {
+  box-shadow: 0 0 0 2px rgba(var(--v-theme-primary), 0.45);
+}
+.native-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* ===== 原生标签输入 ===== */
+.native-tags-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  min-height: 42px;
+  background: rgba(var(--v-theme-on-surface), 0.04);
+  border: none;
+  border-radius: 14px;
+  cursor: text;
+  transition: box-shadow 0.2s;
+}
+.native-tags-wrapper:focus-within {
+  box-shadow: 0 0 0 2px rgba(var(--v-theme-primary), 0.45);
+}
+.native-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: rgb(var(--v-theme-primary));
+  background: rgba(var(--v-theme-primary), 0.12);
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.native-tag-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 50%;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+.native-tag-remove:hover {
+  opacity: 1;
+  background: rgba(var(--v-theme-primary), 0.2);
+}
+.native-tags-input {
+  flex: 1;
+  min-width: 120px;
+  padding: 2px 4px;
+  font-size: 14px;
+  font-family: inherit;
+  color: rgb(var(--v-theme-on-surface));
+  background: transparent;
+  border: none;
+  outline: none;
+}
+.native-tags-input::placeholder {
+  color: rgba(var(--v-theme-on-surface), 0.4);
 }
 </style>
