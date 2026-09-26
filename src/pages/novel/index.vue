@@ -1,362 +1,478 @@
 <template>
   <div class="novel-root">
-  <!-- 未选择工作区时：显示选择界面 -->
-  <WorkspaceInit v-if="!workspaceReady" @done="handleWorkspaceReady" class="h-100" />
+    <!-- 未选择工作区时：显示选择界面 -->
+    <WorkspaceInit
+      v-if="!workspaceReady"
+      @done="handleWorkspaceReady"
+      class="h-100"
+    />
 
-  <div v-else class="novel-page d-flex h-100">
-    <!-- ===== 主编辑区 ===== -->
-    <div class="editor-main flex-1 d-flex flex-column overflow-hidden">
-      <!-- 顶部小说概览栏 -->
-      <NovelOverviewBar
-        v-if="currentNovel"
-        :novel="currentNovel"
-        @open-folder="handleOpenFolder"
-        @view-state="showStoryStateDialog = true"
-        @open-settings="showEditorSettings = true"
-        @switch-novel="switchNovel"
-      />
-
-      <!-- 未选择章节时的占位 -->
-      <div
-        v-if="!currentChapter"
-        class="empty-stage"
-      >
-        <div class="empty-card lg-card">
-          <div class="empty-icon">
-            <v-icon :icon="currentNovel ? mdiPenPlus : mdiBookPlus" size="44" />
-          </div>
-          <div class="empty-title">
-            {{ currentNovel ? '开始创作新章节' : '开启你的第一部小说' }}
-          </div>
-          <div class="empty-sub">
-            {{ currentNovel ? '在左侧选择章节，或新建一章开始写作' : '在左侧新建一部小说，开启 AI 辅助写作之旅' }}
-          </div>
-          <div v-if="!currentNovel" class="empty-actions">
-            <button class="lg-pill empty-btn" @click="switchNovel">
-              <v-icon :icon="mdiPlus" size="16" />
-              新建 / 打开小说
-            </button>
-            <button class="lg-pill empty-btn empty-btn--ghost" @click="showImportDialog = true">
-              <v-icon :icon="mdiImport" size="16" />
-              导入小说
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <template v-else>
-        <!-- 章节概要输入条 -->
-        <div class="brief-bar lg-card--inset">
-          <MentionTextarea
-            v-model="chapterBrief"
-            :characters="currentNovel?.characters ?? []"
-            :placeholder="briefPlaceholder"
-            variant="plain"
-            density="compact"
-            rows="1"
-            auto-grow
-            max-rows="4"
-            hide-details
-            class="brief-input"
-          />
-          <v-btn
-            color="primary"
-            variant="tonal"
-            size="small"
-            rounded="pill"
-            :disabled="isGenerating"
-            class="brief-btn"
-            @click="startChapterAgent"
-          >
-            <v-icon :icon="mdiAutoFix" size="15" start />
-            生成整章
-          </v-btn>
-        </div>
-
-        <!-- 编辑器 -->
-        <NovelEditor
-          ref="editorRef"
-          class="flex-1"
-          style="min-height: 0;"
-          :chapter="currentChapter"
-          :content="currentChapterContent"
-          :characters="currentNovel?.characters ?? []"
-          :is-generating="isGenerating"
-          @update:content="handleContentChange"
-          @generate="handleGenerate"
-          @stop-generate="handleStopGenerate"
-          @open-search="showGlobalSearch = true"
+    <div v-else class="novel-page d-flex h-100">
+      <!-- ===== 主编辑区 ===== -->
+      <div class="editor-main flex-1 d-flex flex-column overflow-hidden">
+        <!-- 顶部小说概览栏 -->
+        <NovelOverviewBar
+          v-if="currentNovel"
+          :novel="currentNovel"
+          @open-folder="handleOpenFolder"
+          @view-state="showStoryStateDialog = true"
+          @open-settings="showEditorSettings = true"
+          @switch-novel="switchNovel"
         />
 
-        <!-- Agent 状态条 -->
-        <AgentStatusBar @stop="handleStopGenerate" @dismiss="finishAgent" />
-      </template>
-    </div>
+        <!-- 未选择章节时的占位 -->
+        <div v-if="!currentChapter" class="empty-stage">
+          <div class="empty-card lg-card">
+            <div class="empty-icon">
+              <v-icon
+                :icon="currentNovel ? mdiPenPlus : mdiBookPlus"
+                size="44"
+              />
+            </div>
+            <div class="empty-title">
+              {{ currentNovel ? '开始创作新章节' : '开启你的第一部小说' }}
+            </div>
+            <div class="empty-sub">
+              {{
+                currentNovel
+                  ? '在左侧选择章节，或新建一章开始写作'
+                  : '在左侧新建一部小说，开启 AI 辅助写作之旅'
+              }}
+            </div>
+            <div v-if="!currentNovel" class="empty-actions">
+              <button class="lg-pill empty-btn" @click="switchNovel">
+                <v-icon :icon="mdiPlus" size="16" />
+                新建 / 打开小说
+              </button>
+              <button
+                class="lg-pill empty-btn empty-btn--ghost"
+                @click="showImportDialog = true"
+              >
+                <v-icon :icon="mdiImport" size="16" />
+                导入小说
+              </button>
+            </div>
+          </div>
+        </div>
 
-    <!-- ===== 右侧栏（可折叠为图标 rail） ===== -->
-    <aside
-      class="novel-sidebar"
-      :class="{ 'novel-sidebar--rail': sidebarCollapsed }"
-    >
-      <!-- 折叠态：图标 rail -->
-      <div v-if="sidebarCollapsed" class="rail">
-        <button class="lg-icon-btn rail-toggle" title="展开侧栏" @click="sidebarCollapsed = false">
-          <v-icon :icon="mdiMenuClose" size="18" />
-        </button>
-        <button class="rail-avatar" :class="{ 'rail-avatar--active': currentNovel }" :title="currentNovel ? currentNovel.title : '切换小说'" @click="switchNovel">
-          {{ currentNovel ? currentNovel.title.slice(0, 1) : '书' }}
-        </button>
-        <button class="lg-icon-btn" title="章节" :disabled="!currentNovel" @click="sidebarCollapsed = false">
-          <v-icon :icon="mdiFormatListBulleted" size="18" />
-        </button>
-        <button class="lg-icon-btn" title="角色" :disabled="!currentNovel" @click="onOpenCharacters">
-          <v-icon :icon="mdiAccountGroupOutline" size="18" />
-        </button>
-        <button class="lg-icon-btn" title="设定" :disabled="!currentNovel" @click="onOpenLore">
-          <v-icon :icon="mdiBookshelf" size="18" />
-        </button>
+        <template v-else>
+          <!-- 编辑器 -->
+          <NovelEditor
+            ref="editorRef"
+            class="flex-1"
+            style="min-height: 0"
+            :chapter="currentChapter"
+            :content="currentChapterContent"
+            :characters="currentNovel?.characters ?? []"
+            :is-generating="isGenerating"
+            @update:content="handleContentChange"
+            @stop-generate="handleChatStop"
+            @open-search="showGlobalSearch = true"
+          />
+        </template>
       </div>
 
-      <!-- 展开态：分组玻璃卡片 -->
-      <template v-else>
-        <!-- 当前小说区：标题 + 切换/导入入口 -->
-        <div class="sidebar-card lg-card">
-          <div class="sidebar-card__head">
-            <v-icon :icon="mdiBookOpenVariant" size="14" class="lg-section-label" />
-            <span class="lg-section-label">当前小说</span>
-            <button class="lg-icon-btn collapse-inline" title="折叠侧栏" @click="sidebarCollapsed = true">
+      <!-- ===== 右侧栏（可折叠为图标 rail；目录 / Agent 双视图） ===== -->
+      <aside
+        class="novel-sidebar"
+        :class="{
+          'novel-sidebar--rail': sidebarCollapsed,
+          'novel-sidebar--agent': !sidebarCollapsed && sidebarTab === 'agent',
+        }"
+      >
+        <!-- 折叠态：图标 rail -->
+        <div v-if="sidebarCollapsed" class="rail">
+          <button
+            class="lg-icon-btn rail-toggle"
+            title="展开侧栏"
+            @click="sidebarCollapsed = false"
+          >
+            <v-icon :icon="mdiMenuClose" size="18" />
+          </button>
+          <button
+            class="rail-avatar"
+            :class="{ 'rail-avatar--active': currentNovel }"
+            :title="currentNovel ? currentNovel.title : '切换小说'"
+            @click="switchNovel"
+          >
+            {{ currentNovel ? currentNovel.title.slice(0, 1) : '书' }}
+          </button>
+          <button
+            class="lg-icon-btn"
+            :class="{ 'rail-active': sidebarTab === 'agent' }"
+            title="Agent"
+            :disabled="!currentNovel"
+            @click="openAgentTab"
+          >
+            <v-icon :icon="mdiRobotOutline" size="18" />
+          </button>
+          <button
+            class="lg-icon-btn"
+            title="章节"
+            :disabled="!currentNovel"
+            @click="sidebarCollapsed = false"
+          >
+            <v-icon :icon="mdiFormatListBulleted" size="18" />
+          </button>
+          <button
+            class="lg-icon-btn"
+            title="角色"
+            :disabled="!currentNovel"
+            @click="onOpenCharacters"
+          >
+            <v-icon :icon="mdiAccountGroupOutline" size="18" />
+          </button>
+          <button
+            class="lg-icon-btn"
+            title="设定"
+            :disabled="!currentNovel"
+            @click="onOpenLore"
+          >
+            <v-icon :icon="mdiBookshelf" size="18" />
+          </button>
+        </div>
+
+        <!-- 展开态：目录卡片 / Agent 交互面板 -->
+        <template v-else>
+          <!-- 视图切换 Tab（目录 / Agent） -->
+          <div class="sidebar-tabs lg-card">
+            <button
+              class="sidebar-tab"
+              :class="{ 'sidebar-tab--active': sidebarTab === 'menu' }"
+              @click="sidebarTab = 'menu'"
+            >
+              <v-icon :icon="mdiFormatListBulleted" size="13" /> 目录
+            </button>
+            <button
+              class="sidebar-tab"
+              :class="{ 'sidebar-tab--active': sidebarTab === 'agent' }"
+              @click="sidebarTab = 'agent'"
+            >
+              <v-icon :icon="mdiRobotOutline" size="13" /> Agent
+            </button>
+            <button
+              class="lg-icon-btn collapse-inline"
+              title="折叠侧栏"
+              @click="sidebarCollapsed = true"
+            >
               <v-icon :icon="mdiMenuOpen" size="16" />
             </button>
           </div>
-          <div class="current-novel-box">
-            <div v-if="currentNovel" class="current-novel-title text-truncate">{{ currentNovel.title }}</div>
-            <div v-else class="current-novel-title current-novel-title--empty">未打开小说</div>
-            <div class="current-novel-actions">
-              <button class="lg-pill mini-action" @click="switchNovel">
-                <v-icon :icon="mdiSwapHorizontal" size="13" /> 切换
-              </button>
-              <button class="lg-pill mini-action mini-action--ghost" @click="showImportDialog = true">
-                <v-icon :icon="mdiImport" size="13" /> 导入
-              </button>
-            </div>
-          </div>
-        </div>
 
-        <!-- 章节区 -->
-        <div v-if="currentNovel" class="sidebar-card lg-card">
-          <div class="sidebar-card__head">
-            <v-icon :icon="mdiFormatListBulleted" size="14" class="lg-section-label" />
-            <span class="lg-section-label">章节</span>
-          </div>
-          <ChapterList
-            ref="chapterListRef"
-            :chapters="currentNovel.chapters"
-            :current-chapter-id="currentChapter?.id"
-            @select="handleSelectChapter"
-            @delete="handleDeleteChapter"
-            @create="handleCreateChapter"
+          <!-- ===== Agent 交互面板 ===== -->
+          <AgentChatPanel
+            v-if="sidebarTab === 'agent' && currentNovel"
+            class="agent-sidebar-card lg-card flex-1"
+            :novel="currentNovel"
+            :chapter="currentChapter"
+            :content-length="currentChapterContent.length"
+            @send="handleChatSend"
+            @quick-action="handleChatQuickAction"
+            @stop="handleChatStop"
+            @confirm-plan="handleChatConfirmPlan"
+            @cancel-plan="handleChatCancelPlan"
+            @undo-write="handleChatUndoWrite"
+            @clear-chat="handleChatClear"
           />
-        </div>
-
-        <!-- 角色区 -->
-        <div v-if="currentNovel" class="sidebar-card lg-card sidebar-card--clickable" @click="showCharacterDialog = true">
-          <div class="sidebar-card__head">
-            <v-icon :icon="mdiAccountGroupOutline" size="14" class="lg-section-label" />
-            <span class="lg-section-label">角色</span>
+          <div
+            v-else-if="sidebarTab === 'agent'"
+            class="agent-sidebar-card lg-card d-flex align-center justify-center flex-1"
+          >
+            <span class="empty-hint">未打开小说</span>
           </div>
-          <div class="chip-wrap">
-            <v-chip
-              v-for="char in currentNovel.characters"
-              :key="char.id"
-              size="x-small"
-              variant="tonal"
-              color="primary"
-              class="chip-item chip-clickable"
-              @click.stop="agentStore.openCharacterPanel(char.name)"
-            >
-              {{ char.name }}
-            </v-chip>
-            <span v-if="!currentNovel.characters.length" class="empty-hint">暂无角色</span>
-          </div>
-        </div>
 
-        <!-- 设定资料库区 -->
-        <div v-if="currentNovel" class="sidebar-card lg-card sidebar-card--clickable" @click="showLorePanel = true">
-          <div class="sidebar-card__head">
-            <v-icon :icon="mdiBookshelf" size="14" class="lg-section-label" />
-            <span class="lg-section-label">设定</span>
-          </div>
-          <div class="chip-wrap">
-            <v-chip
-              v-for="entry in loreEntries"
-              :key="entry.id"
-              size="x-small"
-              color="info"
-              variant="tonal"
-              class="chip-item chip-clickable"
-              @click.stop="openLoreAt(entry.id)"
-            >
-              {{ entry.name }}
-            </v-chip>
-            <span v-if="!loreEntries.length" class="empty-hint">暂无设定</span>
-          </div>
-        </div>
-      </template>
-    </aside>
-
-    <!-- ===== 弹窗 ===== -->
-    <CharacterDialog
-      v-if="currentNovel"
-      v-model="showCharacterDialog"
-      :characters="currentNovel.characters"
-      @update:characters="handleUpdateCharacters"
-    />
-
-    <!-- 全局搜索浮窗 -->
-    <GlobalSearch
-      v-if="currentNovel"
-      v-model:visible="showGlobalSearch"
-      :chapters="currentNovel.chapters"
-      :search-fn="searchInChapters"
-      @jump="handleSearchJump"
-    />
-
-    <!-- Agent plan 确认面板 -->
-    <AgentPlanPanel @confirm="handleConfirmPlan" @cancel="handleCancelPlan" />
-
-    <!-- 角色面板（档案 + 状态） -->
-    <CharacterPanel
-      v-if="currentNovel"
-      :characters="currentNovel.characters"
-      @update:character="handleUpdateSingleCharacter"
-      @update:state="handleUpdateCharacterState"
-    />
-
-    <!-- 设定资料库面板 -->
-    <LorePanel
-      v-if="currentNovel"
-      v-model:visible="showLorePanel"
-      :novel="currentNovel"
-      :focus-entry-id="pendingLoreEntryId"
-      @saved="reloadLoreEntries"
-    />
-
-    <!-- 故事状态查看/编辑弹窗 -->
-    <StoryStateDialog
-      v-if="currentNovel"
-      v-model="showStoryStateDialog"
-      :novel-id="currentNovel.id"
-      :characters="currentNovel.characters"
-    />
-
-    <!-- 导入小说对话框 -->
-    <ImportNovelDialog
-      v-model:visible="showImportDialog"
-      @imported="handleImported"
-    />
-
-    <!-- 编辑器设置弹窗 -->
-    <v-dialog v-model="showEditorSettings" max-width="420">
-      <div class="lg-card settings-dialog">
-        <div class="settings-header">
-          <span class="settings-title">编辑器设置</span>
-          <button class="lg-icon-btn" @click="showEditorSettings = false">
-            <v-icon :icon="mdiClose" size="16" />
-          </button>
-        </div>
-        <div class="settings-body">
-          <!-- 字号 -->
-          <div class="setting-row">
-            <div class="setting-label">
-              <span class="setting-name">编辑区字号</span>
-              <span class="setting-value">{{ settingStore.editorFontSize }}px</span>
+          <!-- ===== 目录视图：分组玻璃卡片 ===== -->
+          <template v-else>
+            <!-- 当前小说区：标题 + 切换/导入入口 -->
+            <div class="sidebar-card lg-card">
+              <div class="sidebar-card__head">
+                <v-icon
+                  :icon="mdiBookOpenVariant"
+                  size="14"
+                  class="lg-section-label"
+                />
+                <span class="lg-section-label">当前小说</span>
+              </div>
+              <div class="current-novel-box">
+                <div
+                  v-if="currentNovel"
+                  class="current-novel-title text-truncate"
+                >
+                  {{ currentNovel.title }}
+                </div>
+                <div
+                  v-else
+                  class="current-novel-title current-novel-title--empty"
+                >
+                  未打开小说
+                </div>
+                <div class="current-novel-actions">
+                  <button class="lg-pill mini-action" @click="switchNovel">
+                    <v-icon :icon="mdiSwapHorizontal" size="13" /> 切换
+                  </button>
+                  <button
+                    class="lg-pill mini-action mini-action--ghost"
+                    @click="showImportDialog = true"
+                  >
+                    <v-icon :icon="mdiImport" size="13" /> 导入
+                  </button>
+                </div>
+              </div>
             </div>
-            <v-slider
-              :model-value="settingStore.editorFontSize"
-              :min="14"
-              :max="24"
-              :step="1"
-              color="primary"
-              track-size="3"
-              thumb-size="16"
-              hide-details
-              @update:model-value="settingStore.editorFontSize = $event"
+
+            <!-- 章节区 -->
+            <div v-if="currentNovel" class="sidebar-card lg-card">
+              <div class="sidebar-card__head">
+                <v-icon
+                  :icon="mdiFormatListBulleted"
+                  size="14"
+                  class="lg-section-label"
+                />
+                <span class="lg-section-label">章节</span>
+              </div>
+              <ChapterList
+                ref="chapterListRef"
+                :chapters="currentNovel.chapters"
+                :current-chapter-id="currentChapter?.id"
+                @select="handleSelectChapter"
+                @delete="handleDeleteChapter"
+                @create="handleCreateChapter"
+              />
+            </div>
+
+            <!-- 角色区 -->
+            <div
+              v-if="currentNovel"
+              class="sidebar-card lg-card sidebar-card--clickable"
+              @click="showCharacterDialog = true"
+            >
+              <div class="sidebar-card__head">
+                <v-icon
+                  :icon="mdiAccountGroupOutline"
+                  size="14"
+                  class="lg-section-label"
+                />
+                <span class="lg-section-label">角色</span>
+              </div>
+              <div class="chip-wrap">
+                <v-chip
+                  v-for="char in currentNovel.characters"
+                  :key="char.id"
+                  size="x-small"
+                  variant="tonal"
+                  color="primary"
+                  class="chip-item chip-clickable"
+                  @click.stop="agentStore.openCharacterPanel(char.name)"
+                >
+                  {{ char.name }}
+                </v-chip>
+                <span v-if="!currentNovel.characters.length" class="empty-hint"
+                  >暂无角色</span
+                >
+              </div>
+            </div>
+
+            <!-- 设定资料库区 -->
+            <div
+              v-if="currentNovel"
+              class="sidebar-card lg-card sidebar-card--clickable"
+              @click="showLorePanel = true"
+            >
+              <div class="sidebar-card__head">
+                <v-icon
+                  :icon="mdiBookshelf"
+                  size="14"
+                  class="lg-section-label"
+                />
+                <span class="lg-section-label">设定</span>
+              </div>
+              <div class="chip-wrap">
+                <v-chip
+                  v-for="entry in loreEntries"
+                  :key="entry.id"
+                  size="x-small"
+                  color="info"
+                  variant="tonal"
+                  class="chip-item chip-clickable"
+                  @click.stop="openLoreAt(entry.id)"
+                >
+                  {{ entry.name }}
+                </v-chip>
+                <span v-if="!loreEntries.length" class="empty-hint"
+                  >暂无设定</span
+                >
+              </div>
+            </div>
+          </template>
+        </template>
+      </aside>
+
+      <!-- ===== 弹窗 ===== -->
+      <CharacterDialog
+        v-if="currentNovel"
+        v-model="showCharacterDialog"
+        :characters="currentNovel.characters"
+        @update:characters="handleUpdateCharacters"
+      />
+
+      <!-- 全局搜索浮窗 -->
+      <GlobalSearch
+        v-if="currentNovel"
+        v-model:visible="showGlobalSearch"
+        :chapters="currentNovel.chapters"
+        :search-fn="searchInChapters"
+        @jump="handleSearchJump"
+      />
+
+      <!-- 角色面板（档案 + 状态） -->
+      <CharacterPanel
+        v-if="currentNovel"
+        :characters="currentNovel.characters"
+        @update:character="handleUpdateSingleCharacter"
+        @update:state="handleUpdateCharacterState"
+      />
+
+      <!-- 设定资料库面板 -->
+      <LorePanel
+        v-if="currentNovel"
+        v-model:visible="showLorePanel"
+        :novel="currentNovel"
+        :focus-entry-id="pendingLoreEntryId"
+        @saved="reloadLoreEntries"
+      />
+
+      <!-- 故事状态查看/编辑弹窗 -->
+      <StoryStateDialog
+        v-if="currentNovel"
+        v-model="showStoryStateDialog"
+        :novel-id="currentNovel.id"
+        :characters="currentNovel.characters"
+      />
+
+      <!-- 导入小说对话框 -->
+      <ImportNovelDialog
+        v-model:visible="showImportDialog"
+        @imported="handleImported"
+      />
+
+      <!-- 编辑器设置弹窗 -->
+      <v-dialog v-model="showEditorSettings" max-width="420">
+        <div class="lg-card settings-dialog">
+          <div class="settings-header">
+            <span class="settings-title">编辑器设置</span>
+            <button class="lg-icon-btn" @click="showEditorSettings = false">
+              <v-icon :icon="mdiClose" size="16" />
+            </button>
+          </div>
+          <div class="settings-body">
+            <!-- 字号 -->
+            <div class="setting-row">
+              <div class="setting-label">
+                <span class="setting-name">编辑区字号</span>
+                <span class="setting-value"
+                  >{{ settingStore.editorFontSize }}px</span
+                >
+              </div>
+              <v-slider
+                :model-value="settingStore.editorFontSize"
+                :min="14"
+                :max="24"
+                :step="1"
+                color="primary"
+                track-size="3"
+                thumb-size="16"
+                hide-details
+                @update:model-value="settingStore.editorFontSize = $event"
+              />
+              <div class="setting-range-labels">
+                <span>14px</span>
+                <span>24px</span>
+              </div>
+            </div>
+
+            <!-- AI 写作 -->
+            <div class="setting-divider" />
+            <div class="setting-section-title">AI 写作（DeepSeek）</div>
+            <v-text-field
+              v-model="apiKey"
+              label="DeepSeek API Key"
+              placeholder="sk-..."
+              variant="outlined"
+              density="compact"
+              :type="showApiKey ? 'text' : 'password'"
+              :append-inner-icon="showApiKey ? mdiEyeOff : mdiEye"
+              hint="API Key is required for AI writing"
+              persistent-hint
+              @click:append-inner="showApiKey = !showApiKey"
             />
-            <div class="setting-range-labels">
-              <span>14px</span>
-              <span>24px</span>
+            <div class="key-row">
+              <v-switch
+                v-model="rememberApiKey"
+                color="primary"
+                density="compact"
+                hide-details
+                label="记住 API Key"
+                class="key-switch"
+              />
+              <button
+                v-if="apiKey"
+                class="lg-pill mini-action key-clear"
+                @click="clearApiKey"
+              >
+                清除
+              </button>
             </div>
-          </div>
-
-          <!-- AI 写作 -->
-          <div class="setting-divider" />
-          <div class="setting-section-title">AI 写作（DeepSeek）</div>
-          <v-text-field
-            v-model="apiKey"
-            label="DeepSeek API Key"
-            placeholder="sk-..."
-            variant="outlined"
-            density="compact"
-            :type="showApiKey ? 'text' : 'password'"
-            :append-inner-icon="showApiKey ? mdiEyeOff : mdiEye"
-            hint="API Key is required for AI writing"
-            persistent-hint
-            @click:append-inner="showApiKey = !showApiKey"
-          />
-          <div class="key-row">
+            <div class="model-warn">
+              关闭「记住」后 Key 只保存在本次会话，关闭窗口即失效。Key
+              存储在浏览器/本机存储中（Web 部署请使用受限或限额 Key），除
+              api.deepseek.com 外不会发往任何服务。
+            </div>
+            <v-select
+              v-model="settingStore.deepseekModel"
+              label="模型"
+              :items="modelOptions"
+              variant="outlined"
+              density="compact"
+            />
+            <div
+              v-if="settingStore.deepseekModel === 'deepseek-reasoner'"
+              class="model-warn"
+            >
+              深度推理模型不支持工具调用，Agent
+              将跳过资料检索循环，改为「直读上下文」模式规划（检索能力受限）。
+            </div>
             <v-switch
-              v-model="rememberApiKey"
+              v-model="settingStore.autoChapterSummary"
               color="primary"
               density="compact"
               hide-details
-              label="记住 API Key"
-              class="key-switch"
+              label="生成后自动写章节摘要"
+              hint="摘要会作为后续章节规划时的「前情提要」"
+              persistent-hint
             />
-            <button v-if="apiKey" class="lg-pill mini-action key-clear" @click="clearApiKey">
-              清除
-            </button>
+            <v-switch
+              v-model="agentStore.autoUpdateStoryState"
+              color="primary"
+              density="compact"
+              hide-details
+              label="生成后自动更新角色状态"
+              hint="关闭后，Agent 生成正文不再自动增量更新角色动态状态"
+              persistent-hint
+            />
           </div>
-          <div class="model-warn">
-            关闭「记住」后 Key 只保存在本次会话，关闭窗口即失效。Key 存储在浏览器/本机存储中（Web
-            部署请使用受限或限额 Key），除 api.deepseek.com 外不会发往任何服务。
-          </div>
-          <v-select
-            v-model="settingStore.deepseekModel"
-            label="模型"
-            :items="modelOptions"
-            variant="outlined"
-            density="compact"
-          />
-          <div v-if="settingStore.deepseekModel === 'deepseek-reasoner'" class="model-warn">
-            深度推理模型不支持工具调用，Agent 将跳过资料检索循环，改为「直读上下文」模式规划（检索能力受限）。
-          </div>
-          <v-switch
-            v-model="settingStore.autoChapterSummary"
-            color="primary"
-            density="compact"
-            hide-details
-            label="生成后自动写章节摘要"
-            hint="摘要会作为后续章节规划时的「前情提要」"
-            persistent-hint
-          />
-          <v-switch
-            v-model="agentStore.autoUpdateStoryState"
-            color="primary"
-            density="compact"
-            hide-details
-            label="生成后自动更新角色状态"
-            hint="关闭后，Agent 生成正文不再自动增量更新角色动态状态"
-            persistent-hint
-          />
         </div>
-      </div>
-    </v-dialog>
+      </v-dialog>
 
-    <!-- 错误提示 -->
-    <v-snackbar v-model="showError" :color="snackColor" timeout="6000" location="top">
-      {{ errorMessage }}
-    </v-snackbar>
-  </div>
+      <!-- 错误提示 -->
+      <v-snackbar
+        v-model="showError"
+        :color="snackColor"
+        timeout="6000"
+        location="top"
+      >
+        {{ errorMessage }}
+      </v-snackbar>
+    </div>
   </div>
 </template>
 
@@ -366,7 +482,6 @@ import {
   mdiPenPlus,
   mdiBookPlus,
   mdiPlus,
-  mdiAutoFix,
   mdiMenuOpen,
   mdiMenuClose,
   mdiBookOpenVariant,
@@ -378,10 +493,12 @@ import {
   mdiClose,
   mdiEye,
   mdiEyeOff,
+  mdiRobotOutline,
 } from '@mdi/js'
 import { useNovelStore } from '@/store/novelStore'
 import { useSettingStore } from '@/store/setting'
 import { useAgentStore } from '@/store/agentStore'
+import { useChatStore } from '@/store/chatStore'
 import {
   loadCurrentNovel,
   createNovel,
@@ -395,18 +512,28 @@ import {
   searchInChapters,
 } from '@/services/novelService'
 import { parseMentions } from '@/services/deepseekService'
-import {
-  createSession,
-  runPlanPhase,
-  runGeneratePhase,
-  abort as abortSession,
-  INLINE_PLAN_MAX_TOOL_ROUNDS,
-  type AgentSession,
-  type AgentPlan,
-  type AgentCallbacks,
-  type AgentConfig,
+import type {
+  AgentSession,
+  AgentPlan,
+  AgentConfig,
 } from '@/services/agentService'
+import {
+  createChatSession,
+  abortChatSession,
+  runChatTurn,
+  runChatGenerateTurn,
+  buildContinuePrevTask,
+  buildContinueCurrentTask,
+  buildVirtualWrite,
+  restoreSessionMessages,
+  loadChatSessionFile,
+  saveChatSessionFile,
+  deleteChatSessionFile,
+  type ChatTurnCallbacks,
+} from '@/services/agentChat'
+import type { ChatWriteData } from '@/types/agentChat'
 import { loadStoryState, saveStoryState } from '@/services/storyStateService'
+import { PLAN_BLOCK_PATTERN } from '@/services/agentProtocol'
 import { loadOrCreateLore } from '@/services/loreService'
 import {
   isWorkspaceInitialized,
@@ -421,11 +548,9 @@ import type { EntryMeta } from '@/types/lore'
 import WorkspaceInit from '@/components/WorkspaceInit.vue'
 import ChapterList from './components/ChapterList.vue'
 import NovelEditor from './components/NovelEditor.vue'
-import MentionTextarea from './components/MentionTextarea.vue'
 import NovelOverviewBar from './components/NovelOverviewBar.vue'
 import CharacterDialog from './components/CharacterDialog.vue'
-import AgentPlanPanel from './components/AgentPlanPanel.vue'
-import AgentStatusBar from './components/AgentStatusBar.vue'
+import AgentChatPanel from './components/AgentChatPanel.vue'
 import CharacterPanel from './components/CharacterPanel.vue'
 import LorePanel from './components/LorePanel.vue'
 import StoryStateDialog from './components/StoryStateDialog.vue'
@@ -438,10 +563,16 @@ import { useApiKey } from '@/hooks/useApiKey'
 const novelStore = useNovelStore()
 const settingStore = useSettingStore()
 const agentStore = useAgentStore()
+const chatStore = useChatStore()
 const { apiKey, remember: rememberApiKey, clear: clearApiKey } = useApiKey()
 
-const { currentNovel, currentChapter, currentChapterContent, isDirty, isGenerating } =
-  storeToRefs(novelStore)
+const {
+  currentNovel,
+  currentChapter,
+  currentChapterContent,
+  isDirty,
+  isGenerating,
+} = storeToRefs(novelStore)
 
 // ===== 工作区状态 =====
 const workspaceReady = ref(isWorkspaceInitialized())
@@ -469,8 +600,8 @@ const chapterListRef = ref<InstanceType<typeof ChapterList> | null>(null)
 const sidebarCollapsed = ref(false)
 
 const modelOptions = [
-  { title: "deepseek-chat（通用，速度快）", value: "deepseek-chat" },
-  { title: "deepseek-reasoner（深度推理，更慢）", value: "deepseek-reasoner" },
+  { title: 'deepseek-chat（通用，速度快）', value: 'deepseek-chat' },
+  { title: 'deepseek-reasoner（深度推理，更慢）', value: 'deepseek-reasoner' },
 ]
 
 function onOpenCharacters() {
@@ -503,10 +634,17 @@ function reloadLoreEntries() {
   if (currentNovel.value) loadLoreEntries(currentNovel.value)
 }
 
-// ===== Agent 状态 =====
-const chapterBrief = ref('')
-const agentSession = ref<AgentSession | null>(null)
-const briefPlaceholder = '写本章概要，Agent 会自动检索资料、选定角色并规划大纲（可用 @角色名 强制指定）'
+// ===== 侧栏视图（目录 / Agent） =====
+const sidebarTab = ref<'menu' | 'agent'>('menu')
+
+/** rail 的 🤖 按钮：展开侧栏并切到 Agent 视图 */
+function openAgentTab() {
+  sidebarCollapsed.value = false
+  sidebarTab.value = 'agent'
+}
+
+// ===== Agent 交互面板（chat）状态 =====
+const chatSession = ref<AgentSession | null>(null)
 
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -524,7 +662,9 @@ onMounted(async () => {
     }
   }
   window.addEventListener('keydown', handleGlobalSearchKey)
-  onBeforeUnmount(() => window.removeEventListener('keydown', handleGlobalSearchKey))
+  onBeforeUnmount(() =>
+    window.removeEventListener('keydown', handleGlobalSearchKey),
+  )
 })
 
 /**
@@ -545,13 +685,17 @@ async function loadCurrentNovelData(title?: string) {
     }
     novelStore.openNovel(novel)
     // 加载故事状态到缓存（供角色面板展示）
-    loadStoryState(novel.id).then((s) => agentStore.setStoryState(s)).catch(() => {})
+    loadStoryState(novel.id)
+      .then((s) => agentStore.setStoryState(s))
+      .catch(() => {})
     // 加载设定资料库条目缓存（供侧栏 chip 展示）
     loadLoreEntries(novel)
     // 后台异步加载尚未计算字数的章节
     loadMissingWordCounts(novel)
   } catch (e) {
-    showErrorMsg('加载小说失败：' + (e instanceof Error ? e.message : String(e)))
+    showErrorMsg(
+      '加载小说失败：' + (e instanceof Error ? e.message : String(e)),
+    )
   }
 }
 
@@ -564,6 +708,9 @@ async function handleWorkspaceReady(title?: string) {
 /** 切换小说：保存当前章节后回到选择界面 */
 async function switchNovel() {
   await trySaveCurrentChapter()
+  if (chatStore.busy && chatSession.value) abortChatSession(chatSession.value)
+  chatStore.resetForChapter(null)
+  chatSession.value = null
   novelStore.openNovel(null)
   loreEntries.value = []
   workspaceReady.value = false
@@ -576,7 +723,9 @@ async function handleOpenFolder() {
   try {
     await openPath(dir)
   } catch (e) {
-    showErrorMsg('打开文件夹失败：' + (e instanceof Error ? e.message : String(e)))
+    showErrorMsg(
+      '打开文件夹失败：' + (e instanceof Error ? e.message : String(e)),
+    )
   }
 }
 
@@ -615,8 +764,11 @@ async function handleSelectChapter(chapter: ChapterMeta) {
   try {
     const content = await loadChapterContent(chapter.filename)
     novelStore.openChapter(chapter, content)
+    void loadChatSessionForChapter()
   } catch (e) {
-    showErrorMsg('加载章节失败：' + (e instanceof Error ? e.message : String(e)))
+    showErrorMsg(
+      '加载章节失败：' + (e instanceof Error ? e.message : String(e)),
+    )
   }
 }
 
@@ -626,8 +778,11 @@ async function handleCreateChapter(title: string) {
     const { novel, chapter } = await createChapter(currentNovel.value, title)
     novelStore.updateCurrentNovel(novel)
     novelStore.openChapter(chapter, '')
+    void loadChatSessionForChapter()
   } catch (e) {
-    showErrorMsg('创建章节失败：' + (e instanceof Error ? e.message : String(e)))
+    showErrorMsg(
+      '创建章节失败：' + (e instanceof Error ? e.message : String(e)),
+    )
   }
 }
 
@@ -638,9 +793,12 @@ async function handleDeleteChapter(chapterId: string) {
     novelStore.updateCurrentNovel(updatedNovel)
     if (currentChapter.value?.id === chapterId) {
       novelStore.openChapter(null as unknown as ChapterMeta, '')
+      void loadChatSessionForChapter()
     }
   } catch (e) {
-    showErrorMsg('删除章节失败：' + (e instanceof Error ? e.message : String(e)))
+    showErrorMsg(
+      '删除章节失败：' + (e instanceof Error ? e.message : String(e)),
+    )
   }
 }
 
@@ -686,7 +844,9 @@ async function handleUpdateCharacters(characters: Character[]) {
   if (!currentNovel.value) return
   const updated = { ...currentNovel.value, characters }
   novelStore.updateCurrentNovel(updated)
-  await saveNovelMeta(updated).catch((e) => showErrorMsg('保存角色失败：' + e.message))
+  await saveNovelMeta(updated).catch((e) =>
+    showErrorMsg('保存角色失败：' + e.message),
+  )
 }
 
 // ===== 全局搜索 =====
@@ -695,7 +855,9 @@ async function handleSearchJump(result: SearchResult) {
   if (!currentNovel.value) return
 
   // 找到目标章节元数据
-  const chapter = currentNovel.value.chapters.find((c) => c.id === result.chapterId)
+  const chapter = currentNovel.value.chapters.find(
+    (c) => c.id === result.chapterId,
+  )
   if (!chapter) return
 
   // 如果不是当前章节，先切换
@@ -705,7 +867,9 @@ async function handleSearchJump(result: SearchResult) {
       const content = await loadChapterContent(chapter.filename)
       novelStore.openChapter(chapter, content)
     } catch (e) {
-      showErrorMsg('加载章节失败：' + (e instanceof Error ? e.message : String(e)))
+      showErrorMsg(
+        '加载章节失败：' + (e instanceof Error ? e.message : String(e)),
+      )
       return
     }
   }
@@ -721,21 +885,6 @@ function errorText(e: unknown): string {
   return e instanceof Error ? e.message : String(e)
 }
 
-/** 生成结束（成功或失败）后的统一收尾：刷新状态缓存 → 重置 Agent → 解除生成态 */
-async function finishAgent() {
-  const novelId = agentSession.value?.novelId ?? currentNovel.value?.id
-  if (novelId) {
-    try {
-      agentStore.setStoryState(await loadStoryState(novelId))
-    } catch {
-      // 忽略
-    }
-  }
-  agentStore.resetAgent()
-  agentSession.value = null
-  novelStore.stopGenerating()
-}
-
 /** 章节摘要落盘（写回 ChapterMeta.summary，供后续章节的「前情提要」） */
 async function persistChapterSummary(summary: string) {
   const novel = currentNovel.value
@@ -749,168 +898,362 @@ async function persistChapterSummary(summary: string) {
   }
 }
 
-/** 构造 Agent 回调：状态同步 + 错误统一收尾 + 可选流式写入编辑器 */
-function makeAgentCallbacks(opts: {
-  label: string
-  streamToEditor?: boolean
-  onPlanReady?: (plan: AgentPlan) => void
-}): AgentCallbacks {
+// ===== Agent 交互面板（chat）编排 =====
+
+/** 每轮 turn 的 UI 关联状态（助手气泡 / 写章预览卡 / 工具卡队列） */
+interface TurnUiState {
+  assistantId: string | null
+  previewCardId: string | null
+  /** onToolStart 顺序入队、onToolEnd 顺序出队，保证卡片与工具一一对应 */
+  pendingCards: string[]
+}
+
+function createTurnUi(): TurnUiState {
+  return { assistantId: null, previewCardId: null, pendingCards: [] }
+}
+
+/** 取当前章最新内容（编辑器里未保存的手动编辑也算） */
+function liveChapterContent(): string {
+  return currentChapterContent.value
+}
+
+/** 确保当前章节有会话（章节变化则重建） */
+function ensureChatSession(): AgentSession | null {
+  const novel = currentNovel.value
+  const chapter = currentChapter.value
+  if (!novel || !chapter) return null
+  if (chatSession.value && chatSession.value.chapterId === chapter.id)
+    return chatSession.value
+  chatSession.value = createChatSession({
+    novel,
+    chapter,
+    chapterContent: currentChapterContent.value,
+    liveContent: liveChapterContent,
+  })
+  return chatSession.value
+}
+
+/** 打开章节后：重置转录并恢复该章节的持久化对话 */
+async function loadChatSessionForChapter() {
+  const chapter = currentChapter.value
+  chatStore.resetForChapter(chapter?.id ?? null)
+  chatSession.value = null
+  if (!chapter) return
+  const session = ensureChatSession()
+  if (!session) return
+  try {
+    const file = await loadChatSessionFile(chapter.id)
+    // 异步期间用户可能已切章
+    if (currentChapter.value?.id !== chapter.id) return
+    if (file) {
+      chatStore.transcript = file.transcript
+      restoreSessionMessages(session, file.llmMessages)
+      // 恢复「待确认 plan」：重开面板后 plan 卡仍在，可继续确认/取消
+      const pending = chatStore.getPendingPlan()
+      if (pending && file.phase === 'awaiting_confirmation') {
+        session.plan = { ...pending.plan, outline: pending.outlineDraft }
+      }
+    }
+  } catch {
+    // 恢复失败就当新对话
+  }
+}
+
+/** 持久化当前对话（转录 + LLM 消息历史） */
+function persistChatSession() {
+  const session = chatSession.value
+  const chapter = currentChapter.value
+  if (!session || !chapter) return
+  // 用引擎阶段（而非 UI 阶段）落盘：plan 待确认时也要记为 awaiting_confirmation
+  void saveChatSessionFile(
+    chapter.id,
+    chapter.title,
+    session.messages,
+    chatStore.transcript,
+    session.phase === 'done' || session.phase === 'canceled' ? 'idle' : session.phase,
+  )
+}
+
+/** 写章提交：同步编辑器与快照（落盘由工具完成；字数经编辑器自动保存链路同步） */
+function commitChatWrite(write: ChatWriteData) {
+  const chapter = currentChapter.value
+  const session = chatSession.value
+  if (!chapter) return
+  if (chapter.id !== write.chapterId) {
+    chatStore.pushSystem(
+      `已写入《${write.chapterTitle}》 ${write.addedChars} 字（切换到该章节查看）`,
+    )
+    return
+  }
+  novelStore.updateContent(write.newContent)
+  editorRef.value?.replaceContent(write.newContent)
+  if (session) session.chapterContent = write.newContent
+}
+
+/** 构造 chat 回调：转录同步 + 写章提交 + 统一收尾 */
+function makeChatCallbacks(turnUi: TurnUiState): ChatTurnCallbacks {
+  let finished = false
+  const finish = () => {
+    if (finished) return
+    finished = true
+    if (turnUi.assistantId) chatStore.endAssistant(turnUi.assistantId)
+    chatStore.setBusy(false)
+    chatStore.setStatus('')
+    chatStore.setPhase('idle')
+    novelStore.stopGenerating()
+    // 刷新故事状态缓存（写章后角色动态状态可能已更新）
+    const novelId = currentNovel.value?.id
+    if (novelId)
+      loadStoryState(novelId)
+        .then((s) => agentStore.setStoryState(s))
+        .catch(() => {})
+    persistChatSession()
+  }
+
   return {
-    onStatus: (s) => agentStore.setStatus(s),
     onPhase: (p) => {
-      agentStore.setPhase(p)
-      syncGenerating(p)
-      // 被中断：短暂展示「已取消」后自动收起，避免状态胶囊长期停留
+      chatStore.setPhase(p)
+      if (p === 'planning' || p === 'generating' || p === 'finalizing') {
+        if (!isGenerating.value) novelStore.startGenerating()
+      }
       if (p === 'canceled') {
-        setTimeout(() => {
-          if (agentStore.phase === 'canceled') void finishAgent()
-        }, 4000)
+        chatStore.pushSystem('已停止')
+        finish()
       }
     },
-    onToolCall: (log) => agentStore.addToolLog(log),
-    onPlanReady: opts.onPlanReady,
-    onTextDelta: opts.streamToEditor
-      ? (delta) => editorRef.value?.appendContent(delta)
-      : undefined,
+    onStatus: (s) => chatStore.setStatus(s),
+    onTextDelta: (delta) => {
+      if (!turnUi.assistantId) turnUi.assistantId = chatStore.beginAssistant()
+      chatStore.appendAssistant(turnUi.assistantId, delta)
+    },
+    onToolStart: (tool, argsSummary) => {
+      // 写章卡可能已被预览事件提前创建
+      if (
+        (tool === 'append_to_chapter' || tool === 'replace_tail') &&
+        turnUi.previewCardId
+      ) {
+        chatStore.updateTool(turnUi.previewCardId, { argsSummary })
+        turnUi.pendingCards.push(turnUi.previewCardId)
+        turnUi.previewCardId = null
+        return
+      }
+      const id = chatStore.pushTool(tool, argsSummary)
+      turnUi.pendingCards.push(id)
+    },
+    onWritePreview: (tool, partial) => {
+      if (!turnUi.previewCardId) {
+        turnUi.previewCardId = chatStore.pushTool(tool, '正在写入正文…')
+      }
+      chatStore.setToolPreview(turnUi.previewCardId, partial)
+      chatStore.setStatus(`正在写入正文… ${partial.length} 字`)
+    },
+    onToolEnd: (tool, ok, resultText, write) => {
+      const id = turnUi.pendingCards.shift() ?? null
+      if (id)
+        chatStore.updateTool(id, {
+          status: ok ? 'done' : 'error',
+          resultText,
+          write,
+        })
+      if (write) commitChatWrite(write)
+    },
+    onVirtualWrite: (content) => {
+      const session = chatSession.value
+      if (!session) return
+      const write = buildVirtualWrite(session, content)
+      void saveChapterContent(session.chapter.filename, write.newContent).catch(
+        (e) => {
+          showErrorMsg(
+            '写入章节失败：' + (e instanceof Error ? e.message : String(e)),
+          )
+        },
+      )
+      const id = chatStore.pushTool(
+        'append_to_chapter',
+        `写入 ${write.addedChars} 字（无工具模式）`,
+      )
+      chatStore.updateTool(id, {
+        status: 'done',
+        resultText: `已把 ${write.addedChars} 字正文追加到章节末尾。`,
+        write,
+      })
+      commitChatWrite(write)
+    },
+    onPlanReady: (plan) => {
+      // 展示文本里去掉 PLAN 协议块（已渲染为 plan 卡）
+      if (turnUi.assistantId) {
+        const m = chatStore.transcript.find((x) => x.id === turnUi.assistantId)
+        if (m && m.kind === 'assistant')
+          m.text = m.text.replace(PLAN_BLOCK_PATTERN, '').trim()
+      }
+      chatStore.pushPlan(plan)
+      chatStore.setStatus('等待确认规划')
+    },
     onChapterSummary: (summary) => void persistChapterSummary(summary),
     onContextTrimmed: (info) =>
       showWarnMsg(
         `上下文接近上限，已省略 ${info.trimmed} 条早期调研结果（约 ${info.estimatedTokens} tokens）。`,
       ),
-    onWarn: (msg) => showWarnMsg(`${opts.label}：${msg}`),
+    onWarn: (msg) => showWarnMsg(msg),
     onError: (e) => {
-      showErrorMsg(`${opts.label}失败：${errorText(e)}`)
-      void finishAgent()
+      showErrorMsg(errorText(e))
+      finish()
     },
-    onDone: () => void finishAgent(),
+    onDone: () => finish(),
   }
 }
 
-// ===== AI 生成（内联续写：Tab 触发，走 Agent 轻量模式，跳过确认） =====
-async function handleGenerate(cursorPos: number, lineText: string) {
-  if (!currentNovel.value || !currentChapter.value) return
-  if (isGenerating.value) return
+// ===== 交互面板：发送 / 快捷动作 / 停止 / plan 确认 =====
+
+/** 发送一条自由消息（概要展开 / 提问 / plan 修改意见，由模型判定走哪条路径） */
+async function handleChatSend(text: string) {
+  const novel = currentNovel.value
+  const chapter = currentChapter.value
+  if (!novel || !chapter) return
+  if (chatStore.busy || isGenerating.value) return
+  if (!apiKey.value) {
+    showErrorMsg('请先在「设置」中填写 DeepSeek API Key')
+    return
+  }
+  const session = ensureChatSession()
+  if (!session) return
+  session.forcedMentions = parseMentions(text, novel)
+
+  chatStore.pushUser(text)
+  chatStore.setBusy(true)
+  const turnUi = createTurnUi()
+  // 有待确认 plan 时，本条消息视为对 plan 的修改意见 → 强制 plan 路径
+  await runChatTurn(
+    session,
+    { visibleText: text, forcePlan: chatStore.getPendingPlan() !== null },
+    buildAgentConfig(),
+    makeChatCallbacks(turnUi),
+  )
+}
+
+/** 快捷动作：续写上一章（新章场景）/ 续写本章 */
+async function handleChatQuickAction(
+  action: 'continue-prev' | 'continue-current',
+) {
+  const novel = currentNovel.value
+  const chapter = currentChapter.value
+  if (!novel || !chapter) return
+  if (chatStore.busy || isGenerating.value) return
   if (!apiKey.value) {
     showErrorMsg('请先在「设置」中填写 DeepSeek API Key')
     return
   }
 
-  const brief = `续写一小段，自然衔接前文。${lineText.trim() ? `本行提示：${lineText.trim()}` : ''}`
+  let task: { visible: string; llm: string } | null
+  try {
+    task =
+      action === 'continue-prev'
+        ? await buildContinuePrevTask(
+            novel,
+            chapter,
+            settingStore.agentWriteLength,
+          )
+        : buildContinueCurrentTask(
+            novel,
+            chapter,
+            currentChapterContent.value,
+            settingStore.agentWriteLength,
+          )
+  } catch (e) {
+    showErrorMsg(errorText(e))
+    return
+  }
+  if (!task) {
+    showErrorMsg('没有上一章，无法「续写上一章」')
+    return
+  }
 
-  // 光标前最近约 1200 字内的 @角色 视为强制指定（编辑器内 @补全写入的提及在此生效）
-  const lookback = currentChapterContent.value.slice(Math.max(0, cursorPos - 1200), cursorPos)
-  const forcedMentions = parseMentions(`${lookback}\n${lineText}`, currentNovel.value)
-
-  const session = createSession({
-    novel: currentNovel.value,
-    chapter: currentChapter.value,
-    chapterContent: currentChapterContent.value,
-    cursorPosition: cursorPos,
-    forcedMentions,
-    skipConfirmation: true,
-    // 只写一小段：压缩调研轮数与收尾开销，降低首字延迟
-    planMaxToolRounds: INLINE_PLAN_MAX_TOOL_ROUNDS,
-  })
-  agentSession.value = session
-  agentStore.clearToolLog()
-  agentStore.setPlan(null)
-  agentStore.setPhase('planning')
-  editorRef.value?.moveCursorToNextLine()
-
-  await runPlanPhase(
+  const session = ensureChatSession()
+  if (!session) return
+  chatStore.pushUser(task.visible)
+  chatStore.setBusy(true)
+  const turnUi = createTurnUi()
+  await runChatTurn(
     session,
-    brief,
-    buildAgentConfig({ autoChapterSummary: false }),
-    makeAgentCallbacks({ label: 'AI 生成', streamToEditor: true }),
+    { visibleText: task.visible, llmText: task.llm, forcePlan: true },
+    buildAgentConfig(),
+    makeChatCallbacks(turnUi),
   )
 }
 
-function handleStopGenerate() {
-  if (agentSession.value) {
-    abortSession(agentSession.value)
+/** 停止当前轮次（编辑器 Escape 也走这里） */
+function handleChatStop() {
+  if (chatSession.value && chatStore.busy) {
+    chatStore.pushSystem('正在停止…')
+    abortChatSession(chatSession.value)
   }
-  novelStore.stopGenerating()
 }
 
-// ===== Agent 整章生成（plan → 确认 → 生成） =====
+/** 确认 plan → 生成轮（写章 + finalizing） */
+async function handleChatConfirmPlan(plan: AgentPlan) {
+  const session = chatSession.value
+  if (!session) return
+  if (chatStore.busy || isGenerating.value) return
+  if (!apiKey.value) {
+    showErrorMsg('请先在「设置」中填写 DeepSeek API Key')
+    return
+  }
+  const pending = chatStore.getPendingPlan()
+  if (pending) chatStore.updatePlan(pending.id, { status: 'confirmed' })
+  session.plan = plan
+  chatStore.setBusy(true)
+  const turnUi = createTurnUi()
+  await runChatGenerateTurn(
+    session,
+    buildAgentConfig(),
+    makeChatCallbacks(turnUi),
+  )
+}
+
+/** 取消待确认的 plan */
+function handleChatCancelPlan() {
+  const pending = chatStore.getPendingPlan()
+  if (pending) {
+    chatStore.updatePlan(pending.id, { status: 'cancelled' })
+    chatStore.pushSystem('规划已取消，可继续调整或让 Agent 重新规划')
+  }
+  persistChatSession()
+}
+
+/** 撤销某次写章（恢复到写入前快照） */
+function handleChatUndoWrite(msgId: string) {
+  const msg = chatStore.transcript.find((m) => m.id === msgId)
+  const session = chatSession.value
+  if (!msg || msg.kind !== 'tool' || !msg.write?.snapshot) return
+  if (chatStore.busy) return
+
+  const snapshot = msg.write.snapshot
+  novelStore.updateContent(snapshot)
+  editorRef.value?.replaceContent(snapshot)
+  if (session) session.chapterContent = snapshot
+  msg.write = { ...msg.write, snapshot: undefined }
+  chatStore.pushSystem('已恢复该次写入前的章节内容')
+  persistChatSession()
+}
+
+/** 清空对话（删持久化文件 + 重建会话） */
+async function handleChatClear() {
+  const chapter = currentChapter.value
+  chatStore.clear()
+  chatSession.value = null
+  if (chapter) await deleteChatSessionFile(chapter.id)
+}
+
+// ===== Agent 配置 =====
 function buildAgentConfig(overrides: Partial<AgentConfig> = {}): AgentConfig {
   return {
     apiKey: apiKey.value,
     model: settingStore.deepseekModel,
     autoUpdateStoryState: agentStore.autoUpdateStoryState,
     autoChapterSummary: settingStore.autoChapterSummary,
+    lengthTarget: settingStore.agentWriteLength,
     ...overrides,
   }
-}
-
-function syncGenerating(phase: string) {
-  if (phase === 'planning' || phase === 'generating' || phase === 'finalizing') {
-    if (!isGenerating.value) novelStore.startGenerating()
-  } else {
-    novelStore.stopGenerating()
-  }
-}
-
-async function startChapterAgent() {
-  if (!currentNovel.value || !currentChapter.value) return
-  if (isGenerating.value) return
-  if (!apiKey.value) {
-    showErrorMsg('请先在「设置」中填写 DeepSeek API Key')
-    return
-  }
-  if (!chapterBrief.value.trim()) {
-    showErrorMsg('请先填写本章概要')
-    return
-  }
-
-  const forcedMentions = parseMentions(chapterBrief.value, currentNovel.value)
-  const session = createSession({
-    novel: currentNovel.value,
-    chapter: currentChapter.value,
-    chapterContent: currentChapterContent.value,
-    cursorPosition: currentChapterContent.value.length,
-    forcedMentions,
-    skipConfirmation: false,
-  })
-  agentSession.value = session
-  agentStore.clearToolLog()
-  agentStore.setPlan(null)
-  agentStore.setPhase('planning')
-
-  await runPlanPhase(
-    session,
-    chapterBrief.value,
-    buildAgentConfig(),
-    makeAgentCallbacks({
-      label: 'Agent 规划',
-      onPlanReady: (plan) => {
-        agentStore.setPlan(plan)
-        agentStore.planDialogVisible = true
-      },
-    }),
-  )
-}
-
-async function handleConfirmPlan(plan: AgentPlan) {
-  const session = agentSession.value
-  if (!session) return
-  session.plan = plan
-  agentStore.planDialogVisible = false
-  agentStore.setPhase('generating')
-  syncGenerating('generating')
-
-  await runGeneratePhase(
-    session,
-    buildAgentConfig(),
-    makeAgentCallbacks({ label: 'Agent 生成', streamToEditor: true }),
-  )
-}
-
-function handleCancelPlan() {
-  const session = agentSession.value
-  if (session) abortSession(session)
-  agentStore.planDialogVisible = false
-  void finishAgent()
 }
 
 // ===== 角色面板：档案/状态编辑落盘 =====
@@ -929,7 +1272,9 @@ async function handleUpdateCharacterState(patch: {
   if (!currentNovel.value) return
   try {
     const state = await loadStoryState(currentNovel.value.id)
-    const idx = state.characterStates.findIndex((c) => c.characterName === patch.characterName)
+    const idx = state.characterStates.findIndex(
+      (c) => c.characterName === patch.characterName,
+    )
     const now = Date.now()
     if (idx >= 0) {
       state.characterStates[idx] = {
@@ -954,7 +1299,9 @@ async function handleUpdateCharacterState(patch: {
     await saveStoryState(state)
     agentStore.setStoryState(state)
   } catch (e) {
-    showErrorMsg('保存角色状态失败：' + (e instanceof Error ? e.message : String(e)))
+    showErrorMsg(
+      '保存角色状态失败：' + (e instanceof Error ? e.message : String(e)),
+    )
   }
 }
 
@@ -973,6 +1320,7 @@ function showWarnMsg(msg: string) {
 
 onBeforeUnmount(() => {
   if (autoSaveTimer) clearTimeout(autoSaveTimer)
+  if (chatStore.busy && chatSession.value) abortChatSession(chatSession.value)
   novelStore.stopGenerating()
 })
 </script>
@@ -1011,6 +1359,62 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 4px;
 }
+/* Agent 视图：加宽以容纳聊天 */
+.novel-sidebar--agent {
+  width: 340px;
+}
+.rail .lg-icon-btn.rail-active {
+  background: rgba(var(--v-theme-primary), 0.14);
+  color: rgb(var(--v-theme-primary));
+}
+
+/* 视图切换 Tab（目录 / Agent） */
+.sidebar-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  flex-shrink: 0;
+}
+.sidebar-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: rgba(var(--v-theme-on-surface), 0.55);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease;
+}
+.sidebar-tab:hover {
+  background: rgba(var(--v-theme-on-surface), 0.05);
+}
+.sidebar-tab--active {
+  background: rgba(var(--v-theme-primary), 0.13);
+  color: rgb(var(--v-theme-primary));
+  font-weight: 600;
+}
+.sidebar-tabs .collapse-inline {
+  margin-left: auto;
+}
+
+/* Agent 面板卡容器 */
+.agent-sidebar-card {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.agent-sidebar-card :deep(.agent-panel) {
+  min-height: 0;
+}
 .novel-sidebar--rail .rail {
   display: flex;
   flex-direction: column;
@@ -1032,7 +1436,9 @@ onBeforeUnmount(() => {
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.18s ease, color 0.18s ease;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease;
 }
 .rail-avatar--active {
   background: rgba(var(--v-theme-primary), 0.14);
@@ -1200,27 +1606,6 @@ onBeforeUnmount(() => {
 .empty-btn--ghost:hover {
   background: rgba(var(--v-theme-on-surface), 0.1);
   color: rgba(var(--v-theme-on-surface), 0.85);
-}
-
-/* 章节概要输入条 */
-.brief-bar {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  padding: 8px 12px;
-  margin: 10px 14px 0;
-  border-radius: 16px;
-  flex-shrink: 0;
-}
-.brief-input {
-  font-size: 13px;
-}
-.brief-input :deep(.v-field__input) {
-  padding-top: 6px;
-  padding-bottom: 6px;
-}
-.brief-btn {
-  flex-shrink: 0;
 }
 
 /* 可点击的角色 chip */
