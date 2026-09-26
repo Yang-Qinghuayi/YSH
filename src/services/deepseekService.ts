@@ -27,6 +27,16 @@ export type DeepSeekModel = 'deepseek-chat' | 'deepseek-reasoner'
 
 export type AgentPhase = 'planning' | 'generating' | 'finalizing'
 
+/**
+ * 模型是否支持 Function Calling。
+ * deepseek-reasoner（R1 系）官方明确不支持 Function Call / Json Output，且带 reasoning_content
+ * 的多轮消息有额外约束；传 tools 会被拒绝或忽略。因此 Agent 需要按模型走
+ * 「工具循环」或「直读上下文（inline）」两条路径，避免静默失败。
+ */
+export function supportsToolCalling(model: DeepSeekModel): boolean {
+  return model !== 'deepseek-reasoner'
+}
+
 /** 流式事件：文本增量 / 工具调用（已聚合）/ 结束 */
 export type StreamEvent =
   | { type: 'text'; delta: string }
@@ -42,12 +52,15 @@ export function parseMentions(text: string, novel: Novel): Mention[] {
   const pattern = /@([一-龥\w]+)/g
   let match: RegExpExecArray | null
 
+  const seen = new Set<string>()
   while ((match = pattern.exec(text)) !== null) {
     const [raw, name] = match
+    if (seen.has(name)) continue
 
     // 找角色
     const character = novel.characters.find((c) => c.name === name)
     if (character) {
+      seen.add(name)
       mentions.push({ type: 'character', raw, characterName: name, character })
     }
   }
@@ -70,11 +83,21 @@ export function sliceContextBeforeCursor(
 
 // ===================== Agent system prompt =====================
 
-/** 构建 Agent system prompt（按阶段） */
+/**
+ * 构建 Agent system prompt（按阶段）。
+ * opts.loreContextText：无工具（inline）模式下直读进 prompt 的资料库文本；
+ * opts.toolFree：为 true 时规划阶段改用「不调用工具、直接依据上文」的指令。
+ */
 export function buildAgentSystemPrompt(
   phase: AgentPhase,
   novel: Novel,
   storyStateText?: string,
+  opts?: {
+    loreContextText?: string
+    toolFree?: boolean
+    /** 前情提要：最近若干章的摘要（按时间顺序） */
+    recentSummaries?: { title: string; summary: string }[]
+  },
 ): string {
   const lines: string[] = [
     '你是一位专业的中文小说创作 Agent，能自主调用工具调研上下文、规划章节并撰写正文。',
@@ -98,6 +121,16 @@ export function buildAgentSystemPrompt(
     lines.push('')
   }
 
+  // 前情提要（章节摘要，帮助长篇小说维持连贯）
+  const summaries = (opts?.recentSummaries ?? []).filter((s) => s.summary?.trim())
+  if (summaries.length > 0) {
+    lines.push('【前情提要】')
+    for (const s of summaries) {
+      lines.push(`- ${s.title}：${s.summary.trim()}`)
+    }
+    lines.push('')
+  }
+
   // 故事状态摘要
   if (storyStateText && storyStateText.trim()) {
     lines.push('【当前故事状态】')
@@ -105,14 +138,25 @@ export function buildAgentSystemPrompt(
     lines.push('')
   }
 
+  // 资料库（无工具模式：由调用方直读拼装好后传入）
+  if (opts?.loreContextText && opts.loreContextText.trim()) {
+    lines.push(opts.loreContextText.trim())
+    lines.push('')
+  }
+
   // 阶段指令
   if (phase === 'planning') {
     lines.push('【当前任务：规划】')
-    lines.push('1. 调用只读工具（query_lore / search_chapters / read_story_state / read_context / select_skill）调研本章所需上下文。')
-    lines.push('2. 选定本章要调用的角色档案（select_skill），并引用相关 Lore 条目。')
+    if (opts?.toolFree) {
+      lines.push('1. 本次运行不提供任何工具，请直接依据以上小说简介、角色档案、故事状态与资料库内容完成调研判断。')
+      lines.push('2. 在规划中指明本章要重点刻画哪些角色、依据哪些设定。')
+    } else {
+      lines.push('1. 调用只读工具（query_lore / search_chapters / read_story_state / read_context / select_characters）调研本章所需上下文。')
+      lines.push('2. 选定本章要调用的角色档案（select_characters），并引用相关 Lore 条目。')
+    }
     lines.push('3. 调研完成后，输出章节大纲。输出格式必须严格为：')
     lines.push('<<<PLAN>>>')
-    lines.push('{"outline":"章节大纲（分场景/分段的写作要点）","selectedSkills":[{"id":"技能id","name":"名称","reason":"为何选用"}],"referencedLoreEntries":[{"id":"条目id","name":"名称"}],"approach":"整体写法思路"}')
+    lines.push('{"outline":"章节大纲（分场景/分段的写作要点）","selectedCharacters":[{"id":"角色id","name":"名称","reason":"为何选用"}],"referencedLoreEntries":[{"id":"条目id","name":"名称"}],"approach":"整体写法思路"}')
     lines.push('<<<END>>>')
     lines.push('不要在 PLAN 标记之外输出正文。')
   } else if (phase === 'generating') {
@@ -125,6 +169,15 @@ export function buildAgentSystemPrompt(
   }
 
   return lines.join('\n')
+}
+
+/** 生成章节摘要的指令（finalizing 阶段使用，正文已在上下文中） */
+export function buildChapterSummaryInstruction(): string {
+  return [
+    '请为以上刚生成的章节正文写一段摘要，用于后续章节的「前情提要」。',
+    '要求：2-3 句、不超过 120 字；只写剧情事实（谁做了什么、结果如何、留下了什么线索），不要评价文笔。',
+    '只输出摘要正文，不要标题、不要引号、不要 Markdown 标记。',
+  ].join('\n')
 }
 
 /** 把故事状态摘要成供 system prompt 用的文本 */
@@ -179,7 +232,8 @@ export async function* streamChatWithTools(
     {
       model: params.model,
       messages: params.messages,
-      tools: params.tools,
+      // 空数组也要转成 undefined：部分模型（reasoner）收到 tools 字段会直接报错
+      tools: params.tools?.length ? params.tools : undefined,
       tool_choice: params.tools?.length ? 'auto' : undefined,
       max_tokens: params.maxTokens,
       stream: true,

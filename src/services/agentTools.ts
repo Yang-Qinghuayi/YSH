@@ -1,7 +1,7 @@
 /**
  * agentTools.ts
  * Agent 可调用的工具集（function calling）。
- * 只读工具（plan 阶段）：query_lore / search_chapters / read_story_state / read_context / select_skill
+ * 只读工具（plan 阶段）：query_lore / search_chapters / read_story_state / read_context / select_characters
  * 副作用工具（finalizing 阶段）：update_story_state
  *
  * 每个工具统一返回 { ok, data?, error?, text }——text 是回传 LLM 的摘要文本（控 token，不回传全文）。
@@ -12,16 +12,12 @@ import type {
   ChatCompletionFunctionTool,
 } from 'openai/resources/chat/completions'
 import type { Novel, ChapterMeta } from '@/types/novel'
-import type {
-  StoryState,
-  CharacterState,
-  TimelineNode,
-  Foreshadowing,
-} from '@/types/storyState'
+import type { StoryState, CharacterState } from '@/types/storyState'
 import { loadOrCreateLore, loadEntryContent } from '@/services/loreService'
 import { searchInChapters } from '@/services/novelService'
 import { loadStoryState, saveStoryState } from '@/services/storyStateService'
 import { sliceContextBeforeCursor } from '@/services/deepseekService'
+import { applyStoryStatePatch, type StoryStatePatch } from '@/services/storyStateMerge'
 
 /** 工具执行上下文 */
 export interface ToolContext {
@@ -234,29 +230,33 @@ const readContextTool: AgentTool = {
   },
 }
 
-/** select_skill：选定要调用的角色档案，返回合并写作指导 */
-const selectSkillTool: AgentTool = {
+/** select_characters：选定本章要调用的角色档案，返回合并写作指导 */
+const selectCharactersTool: AgentTool = {
   def: {
     type: 'function',
     function: {
-      name: 'select_skill',
-      description: '选定本章要调用的角色档案（按 id），返回合并后的写作指导文本。角色档案会携带角色描述与文学形象参考。',
+      name: 'select_characters',
+      description: '选定本章要调用的角色档案（按 id），返回合并后的写作指导文本。角色档案会携带角色描述、别名与文学形象参考。',
       parameters: {
         type: 'object',
         properties: {
-          skillIds: {
+          characterIds: {
             type: 'array',
             items: { type: 'string' },
             description: '要选用的角色 id 列表',
           },
         },
-        required: ['skillIds'],
+        required: ['characterIds'],
       },
     },
   },
   async execute(args, ctx) {
     try {
-      const ids = (args.skillIds as string[] | undefined) ?? []
+      // 兼容旧参数名 skillIds（模型可能沿用历史 schema）
+      const ids =
+        (args.characterIds as string[] | undefined) ??
+        (args.skillIds as string[] | undefined) ??
+        []
       const lines: string[] = []
 
       for (const id of ids) {
@@ -278,19 +278,22 @@ const selectSkillTool: AgentTool = {
   },
 }
 
-/** update_story_state：增量更新故事状态（副作用，仅 finalizing 阶段） */
+/**
+ * update_story_state：增量更新故事状态（副作用，仅 finalizing 阶段）
+ * 合并语义见 storyStateMerge.ts（纯函数，可单测）。
+ */
 const updateStoryStateTool: AgentTool = {
   def: {
     type: 'function',
     function: {
       name: 'update_story_state',
-      description: '根据本次生成的正文，增量更新故事状态。只提交发生变化的角色状态（按 characterName 匹配替换/新增）；timeline/foreshadowings 为追加。',
+      description: '根据本次生成的正文，增量更新故事状态。只提交发生变化的字段（未提交的字段保持原值，不要为了占位而填空字符串）；按 characterName 匹配更新或新增角色；timeline/foreshadowings 为追加。',
       parameters: {
         type: 'object',
         properties: {
           characterStates: {
             type: 'array',
-            description: '受影响的角色完整新状态',
+            description: '受影响的角色状态增量：只需给出发生变化的字段，未给出的字段保留原值',
             items: {
               type: 'object',
               properties: {
@@ -348,53 +351,23 @@ const updateStoryStateTool: AgentTool = {
       const now = Date.now()
       const chapterId = ctx.chapter.id
 
-      const incoming = (args.characterStates as Partial<CharacterState>[]) ?? []
-      for (const c of incoming) {
-        if (!c.characterName) continue
-        const idx = state.characterStates.findIndex((s) => s.characterName === c.characterName)
-        const merged: CharacterState = {
-          characterName: c.characterName,
-          mood: c.mood,
-          location: c.location,
-          injuries: c.injuries,
-          possessions: c.possessions,
-          relationships: c.relationships ?? [],
-          notes: c.notes,
-          lastUpdatedChapterId: chapterId,
-          updatedAt: now,
-        }
-        if (idx >= 0) state.characterStates[idx] = merged
-        else state.characterStates.push(merged)
+      const patch: StoryStatePatch = {
+        characterStates: (args.characterStates as CharacterState[]) ?? [],
+        timeline: (args.timeline as StoryStatePatch['timeline']) ?? [],
+        foreshadowings: (args.foreshadowings as StoryStatePatch['foreshadowings']) ?? [],
       }
 
-      const tl = (args.timeline as { label: string; detail?: string }[]) ?? []
-      for (const t of tl) {
-        const node: TimelineNode = {
-          id: `tl-${now}-${Math.random().toString(36).slice(2, 8)}`,
-          chapterId,
-          label: t.label,
-          detail: t.detail,
-          order: state.timeline.length,
-        }
-        state.timeline.push(node)
-      }
+      // 增量合并：只覆盖本次「明确提交」的字段，未提交的字段保留原值
+      // （旧实现是字段级全量赋值，模型漏填时会静默清空已有状态）
+      const next = applyStoryStatePatch(state, patch, chapterId, now)
 
-      const fs = (args.foreshadowings as { description: string; status?: string }[]) ?? []
-      for (const f of fs) {
-        const node: Foreshadowing = {
-          id: `fs-${now}-${Math.random().toString(36).slice(2, 8)}`,
-          description: f.description,
-          plantedChapterId: chapterId,
-          status: (f.status as Foreshadowing['status']) ?? 'open',
-        }
-        state.foreshadowings.push(node)
-      }
-
-      await saveStoryState(state)
-      const affected = incoming.length
+      await saveStoryState(next)
+      const affected = patch.characterStates?.length ?? 0
+      const tl = patch.timeline ?? []
+      const fs = patch.foreshadowings ?? []
       return {
         ok: true,
-        data: state,
+        data: next,
         text: `故事状态已更新（角色状态 ${affected} 条${tl.length ? `，时间线 ${tl.length} 条` : ''}${fs.length ? `，伏笔 ${fs.length} 条` : ''}）。`,
       }
     } catch (e) {
@@ -411,7 +384,7 @@ export const READONLY_TOOLS: AgentTool[] = [
   searchChaptersTool,
   readStoryStateTool,
   readContextTool,
-  selectSkillTool,
+  selectCharactersTool,
 ]
 
 /** 副作用工具（finalizing 阶段） */

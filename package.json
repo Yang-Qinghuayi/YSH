@@ -17,6 +17,8 @@
     "lint:prettier": "prettier --write \"src/**/*.{js,tsx,css,scss,vue,md,json,html}\"",
     "lint:ts": "tsc --noEmit --skipLibCheck",
     "lint:lint-staged": "lint-staged",
+    "test": "node --test tests/*.test.ts",
+    "test:watch": "node --test --watch tests/*.test.ts",
     "prepare": "husky install"
   },
   "dependencies": {

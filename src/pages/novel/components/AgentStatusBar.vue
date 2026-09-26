@@ -17,7 +17,22 @@ import { storeToRefs } from 'pinia'
 const agentStore = useAgentStore()
 const { phase, statusText, toolCallLog } = storeToRefs(agentStore)
 
-defineEmits<{ stop: [] }>()
+const emit = defineEmits<{ stop: []; dismiss: [] }>()
+
+// 「已取消」只停留 3.5s，随后通知父组件收起，避免状态胶囊长期占用屏幕
+let dismissTimer: ReturnType<typeof setTimeout> | null = null
+watch(phase, (p) => {
+  if (dismissTimer) {
+    clearTimeout(dismissTimer)
+    dismissTimer = null
+  }
+  if (p === 'canceled') {
+    dismissTimer = setTimeout(() => emit('dismiss'), 3500)
+  }
+})
+onBeforeUnmount(() => {
+  if (dismissTimer) clearTimeout(dismissTimer)
+})
 
 const busy = computed(
   () => phase.value === 'planning' || phase.value === 'generating' || phase.value === 'finalizing',
@@ -32,6 +47,7 @@ const phaseIcon = computed(() => {
 const phaseColor = computed(() => (phase.value === 'canceled' ? 'error' : 'success'))
 
 const label = computed(() => {
+  if (phase.value === 'canceled') return '已取消'
   if (statusText.value) return statusText.value
   const doneCount = toolCallLog.value.filter((l) => l.status === 'done').length
   if (phase.value === 'planning') return `规划中${doneCount ? `（已调 ${doneCount} 个工具）` : '…'}`

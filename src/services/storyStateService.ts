@@ -63,11 +63,3 @@ export async function saveStoryState(state: StoryState): Promise<StoryState> {
   await appService.fs.writeFile(P + storyStatePath(), base, JSON.stringify(updated, null, 2))
   return updated
 }
-
-/** 按 characterName 取单个角色状态（不存在则返回 null） */
-export function getCharacterState(
-  state: StoryState,
-  characterName: string,
-): StoryState['characterStates'][number] | null {
-  return state.characterStates.find((c) => c.characterName === characterName) ?? null
-}

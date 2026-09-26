@@ -31,38 +31,48 @@ YSH 是一款本地优先的跨平台桌面应用，将电子书阅读、AI 辅�
 
 ### 小说创作
 
-基于 CodeMirror 6 的 Markdown 编辑器，支持多部小说并行管理与章节排序。在编辑器中使用 `@角色名` 可将人物档案注入 AI 上下文。AI 支持两种生成模式：在光标处续写，或从章节简介出发由 Agent 规划后生成完整章节。
+基于 CodeMirror 6 的 Markdown 编辑器，支持多部小说并行管理与章节排序。在编辑器或章节概要中输入 `@角色名`（编辑器内置补全，输入 `@` 触发）即可把该角色档案作为强制指定注入 AI 上下文。AI 支持两种生成模式：按 Tab 在光标处续写一小段，或从章节概要出发由 Agent 规划后生成完整章节。
 
 ### Lore 资料库
 
-结构化的世界观管理系统。条目按 Major / Important / Minor 三级重要度分类，AI 生成时按重要度自动引用相关内容。角色档案将静态信息（性格、背景、外貌、文风）与动态状态（当前位置、时间线事件）分离存储。
+结构化的世界观管理系统。条目按 Major / Important / Minor 三级重要度分类，条目可开关"是否进入 AI 上下文"。角色信息分为两层：静态档案（`profile` 角色描述、别名、文学形象参考）与动态状态（心情/位置/伤势/持有物/关系），前者存 `novel.json`，后者存 `story-state.json`。
 
 ## AI 创作引擎
 
 写作 AI 由自研的 Agent 状态机驱动，底层接入 DeepSeek API（OpenAI 兼容格式）。
 
 ```
-idle → planning → awaiting_confirmation → generating → done
-          │               │                    │
-      工具调用循环      用户确认闸门         流式文本输出
-     (只读，无副作用)  (可预览 / 取消)     (可随时中断)
+idle → planning → awaiting_confirmation → generating → finalizing → done
+          │               │                    │             │
+      工具调用循环      用户确认闸门         流式文本输出   状态/摘要更新
+     (只读，无副作用)  (大纲可编辑/取消)    (可随时中断)   (可随时中断)
+                                       任一步骤可进入 canceled
 ```
 
-**Planning 阶段**（只读工具，无副作用）
+- **planning**：Agent 自行调用只读工具调研（最多 12 轮，含渐进催促与"连续三轮重复"死循环检测），最后产出 `<<<PLAN>>>` 结构化规划。内联续写走轻量模式（4 轮、跳过确认）。
+- **awaiting_confirmation**：弹出规划面板，大纲可直接编辑；确认后编辑结果会作为生成指令的一部分下发（不会被忽略）。
+- **generating**：流式输出正文，逐字写入编辑器；被单次长度上限截断时自动续写（最多 2 次）。
+- **finalizing**：增量更新角色动态状态（只覆盖提交过的字段，不会清空未提交字段），并按开关生成章节摘要写入 `ChapterMeta.summary`，作为后续章节规划时的「前情提要」。
+
+**规划阶段工具**（只读）
 
 | 工具 | 用途 |
 |------|------|
-| `read_context` | 读取章节上下文与故事状态 |
-| `search_lore` | 按关键词检索 Lore 资料库 |
-| `list_characters` | 枚举活跃角色档案 |
+| `query_lore` | 按关键词/重要度检索资料库（major 条目回正文，其余回索引） |
+| `search_chapters` | 跨章节全文检索，回顾前文细节 |
+| `read_story_state` | 读取角色动态状态、时间线、伏笔 |
+| `read_context` | 读取当前章节光标前约 2000 字上下文 |
+| `select_characters` | 选定本章要调用的角色档案，返回写作指导 |
 
-**Generating 阶段**
+**收尾阶段工具**（有副作用）
 
 | 工具 | 用途 |
 |------|------|
-| `update_story_state` | 更新角色动态状态与场景位置 |
+| `update_story_state` | 增量更新角色状态、追加时间线与伏笔 |
 
-上下文注入优先级：`光标前文本` > `@提及角色档案` > `Major Lore` > `Important Lore` > `故事状态` > `Minor Lore`
+上下文管理：system prompt 常驻「小说简介 + 可用角色档案 + 前情提要 + 故事状态」，Lore 与正文细节由工具按需检索；每次请求前做 token 预算检查，超限时丢弃最旧的调研结果（保留 system、章节概要最近轮次，且不拆散工具调用配对）。
+
+模型与降级：`deepseek-chat` 支持 Function Calling，走完整工具循环；`deepseek-reasoner` 官方不支持工具调用，选择后自动降级为「无工具模式」——直读故事状态与资料库（major 全文）进 prompt，状态更新改用 `<<<STATE>>>` JSON 协议解析后复用同一套合并逻辑。
 
 ## 技术栈
 
@@ -116,6 +126,12 @@ pnpm build          # Web，输出至 dist/
 pnpm build-tauri    # 桌面，打包当前平台
 ```
 
+**测试**
+
+```bash
+pnpm test           # 协议解析 / 状态合并 / 上下文预算的单元测试
+```
+
 ## 发布
 
 推送到 `ysh` 分支自动触发 GitHub Actions，并发布至 Releases：
@@ -137,8 +153,11 @@ src/
 │   ├── lore/           # Lore 资料库
 │   └── setting/        # 应用设置
 ├── services/
-│   ├── agentService.ts      # Agent 状态机
+│   ├── agentService.ts      # Agent 状态机与 tool-use 循环
+│   ├── agentProtocol.ts     # PLAN/STATE 协议解析、循环守卫（纯函数）
 │   ├── agentTools.ts        # AI 工具集定义
+│   ├── contextBudget.ts     # 上下文预算裁剪（纯函数）
+│   ├── storyStateMerge.ts   # 故事状态增量合并（纯函数）
 │   ├── deepseekService.ts   # DeepSeek API 封装
 │   ├── novelService.ts      # 小说数据读写
 │   ├── loreService.ts       # Lore 数据读写
@@ -151,17 +170,16 @@ src/
 
 ## 数据存储
 
-所有数据存储在本地，无云同步：
+所有数据存储在本地，无云同步。**一个文件夹就是一部小说**：在"打开你的小说"向导里选定的目录即小说根，未指定时回退到 App Data。
 
 ```
-{App Data}/Data/
-├── novels/
-│   └── {id}/
-│       ├── novel.json        # 元数据与角色列表
-│       ├── chapters/*.md     # 章节正文
-│       └── lore/
-│           ├── lore.json     # 条目索引
-│           └── entries/*.md  # 条目正文
-├── settings.json
-└── library.json
+{小说文件夹}/
+├── novel.json              # 元数据、角色静态档案、章节列表（含摘要与字数）
+├── chapters/001_第一章.md   # 章节正文
+├── lore/
+│   ├── lore.json           # 条目索引（名称/重要度/简介/关键词/开关）
+│   └── entries/*.md        # 条目正文
+└── story-state.json        # 角色动态状态、时间线、伏笔
 ```
+
+DeepSeek API Key 默认保存在本机存储（可在设置里关闭"记住"，改为仅本次会话有效）；除 `api.deepseek.com` 外不会发往任何服务。Web 部署形态请使用受限或限额 Key。

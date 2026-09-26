@@ -34,11 +34,11 @@
           </div>
 
           <!-- 所选角色 -->
-          <div v-if="agentStore.currentPlan.selectedSkills?.length" class="plan-block lg-card--inset pa-3">
+          <div v-if="agentStore.currentPlan.selectedCharacters?.length" class="plan-block lg-card--inset pa-3">
             <div class="lg-section-label mb-2">所选角色</div>
             <div class="d-flex flex-wrap gap-2">
               <v-chip
-                v-for="s in agentStore.currentPlan.selectedSkills"
+                v-for="s in agentStore.currentPlan.selectedCharacters"
                 :key="s.id"
                 size="small"
                 color="primary"

@@ -263,6 +263,7 @@ import {
 import { countWords } from '@/services/novelService'
 import { pickWorkspaceDir, createNovelFolder } from '@/services/workspaceService'
 import { isTauriAppPlatform } from '@/services/environment'
+import { useApiKey } from '@/hooks/useApiKey'
 import type { EntryImportance } from '@/types/lore'
 import type { Novel } from '@/types/novel'
 
@@ -273,6 +274,7 @@ const emit = defineEmits<{
 }>()
 
 const settingStore = useSettingStore()
+const { apiKey } = useApiKey()
 
 type Step = 'input' | 'preview' | 'done'
 const step = ref<Step>('input')
@@ -357,8 +359,7 @@ function onFileChange(e: Event) {
 let abortCtrl: AbortController | null = null
 
 async function startParse() {
-  const apiKey = settingStore.deepseekApiKey
-  if (!apiKey) {
+  if (!apiKey.value) {
     showErrorMsg('请先在「设置」中填写 DeepSeek API Key')
     return
   }
@@ -374,7 +375,7 @@ async function startParse() {
   try {
     const meta: ImportMeta = await extractImportMeta(
       {
-        apiKey,
+        apiKey: apiKey.value,
         model: settingStore.deepseekModel,
         chapters,
         signal: abortCtrl.signal,
