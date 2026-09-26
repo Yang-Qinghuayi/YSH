@@ -118,12 +118,7 @@ export interface ViewConfig {
   uiLanguage: string;
 }
 
-export interface TTSConfig {
-  ttsRate: number;
-  ttsVoice: string;
-}
-
-export interface ViewSettings extends BookLayout, BookStyle, BookFont, ViewConfig, TTSConfig {}
+export interface ViewSettings extends BookLayout, BookStyle, BookFont, ViewConfig {}
 
 export interface BookProgress {
   location: string;
@@ -133,7 +128,7 @@ export interface BookProgress {
   section: PageInfo;
   pageinfo: PageInfo;
   range: Range;
-  // Remaining-time estimates (in minutes) used by TTS time estimation.
+  // Remaining-time estimates (in minutes).
   // Optional: not all progress sources populate this.
   timeinfo?: { section?: number; total?: number };
 }

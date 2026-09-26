@@ -277,17 +277,11 @@ Not a particularly descriptive name, but essentially, `text-walker.js` is a smal
 
 E.g. you can join all the text nodes together, use `Intl.Segmenter` to segment the string into words, and get the results in DOM Ranges, so you can mark up those words in the original document.
 
-In foliate-js, this is used for searching and TTS.
+In foliate-js, this is used for searching.
 
 ### Searching
 
 It provides a search module, which can in fact be used as a standalone module for searching across any array of strings. There's no limit on the number of strings a match is allowed to span. It's based on `Intl.Collator` and `Intl.Segmenter`, to support ignoring diacritics and matching whole words only. It's extrenely slow, and you'd probably want to load results incrementally.
-
-### Text-to-Speech (TTS)
-
-The TTS module doesn't directly handle speech output. Rather, its methods return SSML documents (as strings), which you can then feed to your speech synthesizer.
-
-The SSML attributes `ssml:ph` and `ssml:alphabet` are supported. There's no support for PLS and CSS Speech.
 
 ### Offline Dictionaries
 

@@ -22,7 +22,6 @@ import TOCItemView from './TOCItemView.vue';
 import { useReaderStore } from '@/store/readerStore';
 import { useSidebarStore } from '@/store/sidebarStore';
 import { getContentMd5 } from '@/utils/misc';
-import { eventDispatcher } from '@/utils/event';
 import { findParentPath } from '@/utils/toc';
 import type { BookDoc, TOCItem } from '@/libs/document';
 import type { BookProgress } from '@/types/book';
@@ -86,7 +85,7 @@ onMounted(() => {
 watch(
   [progress, () => doc, () => sidebarStore.sideBarBookKey],
   async ([newProgress]) => {
-    if (!newProgress || eventDispatcher.dispatchSync('tts-is-speaking')) return;
+    if (!newProgress) return;
     await nextTick();
     scrollToProgress(newProgress);
   }

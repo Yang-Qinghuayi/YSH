@@ -1,8 +1,5 @@
 import { BookDoc } from '@/libs/document';
 import { BookNote, BookSearchConfig, BookSearchResult } from '@/types/book';
-import { TTS } from '@/foliate-js/tts.js';
-
-export type TTSGranularity = 'sentence' | 'word';
 
 export interface FoliateView extends HTMLElement {
   open: (book: BookDoc | Blob) => Promise<void>;
@@ -21,9 +18,7 @@ export interface FoliateView extends HTMLElement {
   clearSearch: () => void;
   select: (target: string | number | { fraction: number }) => void;
   deselect: () => void;
-  initTTS: (granularity?: TTSGranularity) => Promise<void>;
   book: BookDoc;
-  tts: TTS | null;
   language: {
     locale?: string;
     isCJK?: boolean;

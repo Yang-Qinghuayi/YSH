@@ -2,7 +2,6 @@ const COMMANDS: &[&str] = &[
     "auth_with_safari",
     "auth_with_custom_tab",
     "copy_uri_to_path",
-    "use_background_audio",
     "install_package",
     "set_system_ui_visibility",
     "get_status_bar_height",

@@ -1,7 +1,6 @@
 import AVFoundation
 import AuthenticationServices
 import CoreText
-import MediaPlayer
 import ObjectiveC
 import SwiftRs
 import Tauri
@@ -28,10 +27,6 @@ func getLocalizedDisplayName(familyName: String) -> String? {
 
 class SafariAuthRequestArgs: Decodable {
   let authUrl: String
-}
-
-class UseBackgroundAudioRequestArgs: Decodable {
-  let enabled: Bool
 }
 
 class SetSystemUIVisibilityRequestArgs: Decodable {
@@ -223,26 +218,6 @@ class NativeBridgePlugin: Plugin {
     set {
       objc_setAssociatedObject(
         self, &AssociatedKeys.interceptingVolumeKeys, newValue, .OBJC_ASSOCIATION_RETAIN)
-    }
-  }
-
-  @objc public func use_background_audio(_ invoke: Invoke) {
-    do {
-      let args = try invoke.parseArgs(UseBackgroundAudioRequestArgs.self)
-      let enabled = args.enabled
-      let session = AVAudioSession.sharedInstance()
-      if enabled {
-        try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
-        try session.setActive(true)
-        logger.log("AVAudioSession activated")
-      } else {
-        try session.setActive(false)
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
-        logger.log("AVAudioSession deactivated")
-      }
-      invoke.resolve()
-    } catch {
-      logger.error("Failed to set up audio session: \(error)")
     }
   }
 
