@@ -3,34 +3,32 @@
     <v-btn variant="tonal" class="ml-3" color="primary" @click="handleImportBooks">
       上传书籍
     </v-btn>
-    <div class="mt-2">
-      <card-row>
-        <v-card @click="goToRead(book.hash)" v-for="book in libraryBooks.filter(book => !book.deletedAt)" :flat="true">
-          <v-img class="cover-image" :cover="true" :src="book.coverImageUrl" style="aspect-ratio: 1" :aspect-ratio="1"
-            :lazy-src="placeholderUrl">
-          </v-img>
-          <!-- 名称 -->
-          <div class="flex items-center justify-between my-2">
-            <div class="font-bold text-[#555555] truncate  ml-2">
-              {{ book.title }}
-            </div>
-            <v-menu open-on-hover open-delay=100 close-delay="100">
-              <template v-slot:activator="{ props }">
-                <v-btn variant="text" color="primary" icon size="small" v-bind="props">
-                  <v-icon class="text-[#777c7a]">{{ mdiDotsHorizontal }}</v-icon>
-                </v-btn>
-              </template>
-
-              <v-list elevation=6 class="p-0">
-                <v-list-item class=" px-6 py-4 text-center" v-for="(item, index) in items" :key="index" :value="index"
-                  @click="item.function(book)">
-                  {{ item.title }}
-                </v-list-item>
-              </v-list>
-            </v-menu>
+    <div class="mt-2 book-grid">
+      <v-card @click="goToRead(book.hash)" v-for="book in libraryBooks.filter(book => !book.deletedAt)" :flat="true">
+        <v-img class="cover-image" :cover="true" :src="book.coverImageUrl" style="aspect-ratio: 1" :aspect-ratio="1"
+          :lazy-src="placeholderUrl">
+        </v-img>
+        <!-- 名称 -->
+        <div class="flex items-center justify-between my-2">
+          <div class="font-bold text-[#555555] truncate  ml-2">
+            {{ book.title }}
           </div>
-        </v-card>
-      </card-row>
+          <v-menu open-on-hover open-delay=100 close-delay="100">
+            <template v-slot:activator="{ props }">
+              <v-btn variant="text" color="primary" icon size="small" v-bind="props">
+                <v-icon class="text-[#777c7a]">{{ mdiDotsHorizontal }}</v-icon>
+              </v-btn>
+            </template>
+
+            <v-list elevation=6 class="p-0">
+              <v-list-item class=" px-6 py-4 text-center" v-for="(item, index) in items" :key="index" :value="index"
+                @click="item.function(book)">
+                {{ item.title }}
+              </v-list-item>
+            </v-list>
+          </v-menu>
+        </div>
+      </v-card>
     </div>
   </div>
 </template>
@@ -220,3 +218,46 @@ import { Book } from '@/types/book';
 import { storeToRefs } from 'pinia';
 
 </script>
+
+<style scoped>
+/* 书架网格：复刻原 CardRow（GridType.A）的响应式列数与间距。
+   断点沿用旧 useBreakpoint 定义：600 / 900 / 1100 / 1504 / 1709。
+   注意：不能用 Tailwind 的 sm/md/lg 前缀，其断点数值与原设计不一致。 */
+.book-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (min-width: 600px) {
+  .book-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+
+@media (min-width: 900px) {
+  .book-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1504px) {
+  .book-grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 24px;
+  }
+}
+
+@media (min-width: 1709px) {
+  .book-grid {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+}
+
+/* v-img 会给内部响应式容器写入内联宽度，导致 grid item 宽度计算异常
+   （原 CardRow 组件内的同款修正） */
+.book-grid :deep(.v-responsive__content) {
+  width: inherit !important;
+}
+</style>
