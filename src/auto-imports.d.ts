@@ -6,9 +6,7 @@
 // biome-ignore lint: disable
 export {}
 declare global {
-  const DisplayBreakpoint: typeof import('./hooks/useBreakpoint').DisplayBreakpoint
   const EffectScope: typeof import('vue').EffectScope
-  const GridType: typeof import('./hooks/useResponsiveGrid').GridType
   const UI_FONT_OPTIONS: typeof import('./hooks/useMaterialYouTheme').UI_FONT_OPTIONS
   const asyncComputed: typeof import('@vueuse/core').asyncComputed
   const autoResetRef: typeof import('@vueuse/core').autoResetRef
@@ -175,7 +173,6 @@ declare global {
   const useElementBounding: typeof import('@vueuse/core').useElementBounding
   const useElementByPoint: typeof import('@vueuse/core').useElementByPoint
   const useElementHover: typeof import('@vueuse/core').useElementHover
-  const useElementScrollSize: typeof import('./hooks/useElementScrollSize').useElementScrollSize
   const useElementSize: typeof import('@vueuse/core').useElementSize
   const useElementVisibility: typeof import('@vueuse/core').useElementVisibility
   const useEventBus: typeof import('@vueuse/core').useEventBus
@@ -193,7 +190,6 @@ declare global {
   const useFullscreen: typeof import('@vueuse/core').useFullscreen
   const useGamepad: typeof import('@vueuse/core').useGamepad
   const useGeolocation: typeof import('@vueuse/core').useGeolocation
-  const useHead: typeof import('@vueuse/head').useHead
   const useId: typeof import('vue').useId
   const useIdle: typeof import('@vueuse/core').useIdle
   const useImage: typeof import('@vueuse/core').useImage
@@ -206,7 +202,6 @@ declare global {
   const useLink: typeof import('vue-router').useLink
   const useLocalStorage: typeof import('@vueuse/core').useLocalStorage
   const useMagicKeys: typeof import('@vueuse/core').useMagicKeys
-  const useMainSize: typeof import('./hooks/useMainSize').useMainSize
   const useManualRefHistory: typeof import('@vueuse/core').useManualRefHistory
   const useMaterialYouTheme: typeof import('./hooks/useMaterialYouTheme').useMaterialYouTheme
   const useMediaControls: typeof import('@vueuse/core').useMediaControls
@@ -246,7 +241,6 @@ declare global {
   const useRafFn: typeof import('@vueuse/core').useRafFn
   const useRefHistory: typeof import('@vueuse/core').useRefHistory
   const useResizeObserver: typeof import('@vueuse/core').useResizeObserver
-  const useResponsiveGrid: typeof import('./hooks/useResponsiveGrid').useResponsiveGrid
   const useRoute: typeof import('vue-router').useRoute
   const useRouter: typeof import('vue-router').useRouter
   const useSSRWidth: typeof import('@vueuse/core').useSSRWidth
@@ -255,9 +249,6 @@ declare global {
   const useScriptTag: typeof import('@vueuse/core').useScriptTag
   const useScroll: typeof import('@vueuse/core').useScroll
   const useScrollLock: typeof import('@vueuse/core').useScrollLock
-  const useScrollToTop: typeof import('./hooks/useScrollToTop').default
-  const useSematicBreakPoint: typeof import('./hooks/useBreakpoint').useSematicBreakPoint
-  const useSeoMeta: typeof import('@vueuse/head').useSeoMeta
   const useSessionStorage: typeof import('@vueuse/core').useSessionStorage
   const useShare: typeof import('@vueuse/core').useShare
   const useShortcuts: typeof import('./hooks/useShortcuts').default
@@ -329,12 +320,6 @@ declare global {
   // @ts-ignore
   export type { Component, Slot, Slots, ComponentPublicInstance, ComputedRef, DirectiveBinding, ExtractDefaultPropTypes, ExtractPropTypes, ExtractPublicPropTypes, InjectionKey, PropType, Ref, ShallowRef, MaybeRef, MaybeRefOrGetter, VNode, WritableComputedRef } from 'vue'
   import('vue')
-  // @ts-ignore
-  export type { DisplayBreakpoint } from './hooks/useBreakpoint'
-  import('./hooks/useBreakpoint')
-  // @ts-ignore
-  export type { GridType } from './hooks/useResponsiveGrid'
-  import('./hooks/useResponsiveGrid')
   // @ts-ignore
   export type { KeyActionHandlers } from './hooks/useShortcuts'
   import('./hooks/useShortcuts')

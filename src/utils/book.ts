@@ -1,8 +1,7 @@
 import { EXTS } from '@/libs/document';
-import { Book, BookConfig, BookProgress, WritingMode } from '@/types/book';
+import type { Book, BookConfig } from '@/types/book';
+
 import { getUserLang, isContentURI, isValidURL, makeSafeFilename } from './misc';
-import { getDirFromLanguage } from './rtl';
-import { SUPPORTED_LANGS } from '@/services/constants';
 
 export const getDir = (book: Book) => {
   return `${book.hash}`;
@@ -18,9 +17,6 @@ export const getCoverFilename = (book: Book) => {
 };
 export const getConfigFilename = (book: Book) => {
   return `${book.hash}/config.json`;
-};
-export const isBookFile = (filename: string) => {
-  return Object.values(EXTS).includes(filename.split('.').pop()!);
 };
 export const getFilename = (fileOrUri: string) => {
   if (isValidURL(fileOrUri) || isContentURI(fileOrUri)) {
@@ -40,9 +36,7 @@ export const INIT_BOOK_CONFIG: BookConfig = {
   updatedAt: 0,
 };
 
-export interface LanguageMap {
-  [key: string]: string;
-}
+export type LanguageMap = Record<string, string>;
 
 export interface Contributor {
   name: LanguageMap;
@@ -76,14 +70,14 @@ export const getBookLangCode = (lang: string | string[] | undefined) => {
 
 export const formatAuthors = (
   contributors: string | Contributor | [string | Contributor],
-  bookLang?: string | string[],
+  bookLang?: string | string[]
 ) => {
   const langCode = getBookLangCode(bookLang) || 'en';
   return Array.isArray(contributors)
     ? listFormater(langCode === 'zh', langCode).format(
         contributors.map((contributor) =>
-          typeof contributor === 'string' ? contributor : formatLanguageMap(contributor?.name),
-        ),
+          typeof contributor === 'string' ? contributor : formatLanguageMap(contributor?.name)
+        )
       )
     : typeof contributors === 'string'
       ? contributors
@@ -91,20 +85,6 @@ export const formatAuthors = (
 };
 export const formatTitle = (title: string | LanguageMap) => {
   return typeof title === 'string' ? title : formatLanguageMap(title);
-};
-
-export const formatPublisher = (publisher: string | LanguageMap) => {
-  return typeof publisher === 'string' ? publisher : formatLanguageMap(publisher);
-};
-
-const langCodeToLangName = (langCode: string) => {
-  return SUPPORTED_LANGS[langCode] || langCode.toUpperCase();
-};
-
-export const formatLanguage = (lang: string | string[] | undefined): string => {
-  return Array.isArray(lang)
-    ? lang.map(langCodeToLangName).join(', ')
-    : langCodeToLangName(lang || '');
 };
 
 export const getPrimaryLanguage = (lang: string | string[] | undefined) => {
@@ -123,38 +103,4 @@ export const formatDate = (date: string | number | Date | null | undefined) => {
   } catch {
     return;
   }
-};
-
-export const formatSubject = (subject: string | string[] | undefined) => {
-  if (!subject) return '';
-  return Array.isArray(subject) ? subject.join(', ') : subject;
-};
-
-export const getCurrentPage = (book: Book, progress: BookProgress) => {
-  const bookFormat = book.format;
-  const { section, pageinfo } = progress;
-  return bookFormat === 'PDF'
-    ? section
-      ? section.current + 1
-      : 0
-    : pageinfo
-      ? pageinfo.current + 1
-      : 0;
-};
-
-export const getBookDirFromWritingMode = (writingMode: WritingMode) => {
-  switch (writingMode) {
-    case 'horizontal-tb':
-      return 'ltr';
-    case 'horizontal-rl':
-    case 'vertical-rl':
-      return 'rtl';
-    default:
-      return 'auto';
-  }
-};
-
-export const getBookDirFromLanguage = (language: string | string[] | undefined) => {
-  const lang = getPrimaryLanguage(language) || '';
-  return getDirFromLanguage(lang);
 };

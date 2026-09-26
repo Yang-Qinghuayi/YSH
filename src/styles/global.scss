@@ -5,7 +5,6 @@
 
 :root {
   --font-sans: "LXGW WenKai", "LXGW WenKai Screen", "霞鹜文楷", "Kaiti SC", "STKaiti", serif;
-  --font-mono: "SFMono-Regular", "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   /* 陶土缪斯（默认调色板） */
   --background: #fff4ef;
   --foreground: #341f19;
@@ -36,8 +35,6 @@
   --surface-elev-1: #f5ece6;
   --surface-elev-2: #ecddd4;
   --surface-elev-3: #e2cec3;
-  --radius-ui: 1.1rem;
-  --radius-pill: 999px;
 }
 
 :root[data-palette='material-rose-dawn'] {

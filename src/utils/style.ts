@@ -1,15 +1,15 @@
 import {
+  CJK_SANS_SERIF_FONTS,
+  CJK_SERIF_FONTS,
+  FALLBACK_FONTS,
   MONOSPACE_FONTS,
   SANS_SERIF_FONTS,
   SERIF_FONTS,
-  FALLBACK_FONTS,
-  CJK_SANS_SERIF_FONTS,
-  CJK_SERIF_FONTS,
 } from '@/services/constants';
-import { ViewSettings } from '@/types/book';
-import { Palette } from '@/styles/themes';
-
 import fontfacesCSS from '@/styles/fonts.css?raw';
+import type { Palette } from '@/styles/themes';
+import type { ViewSettings } from '@/types/book';
+
 import { getOSPlatform } from './misc';
 
 const getFontStyles = (
@@ -22,19 +22,19 @@ const getFontStyles = (
   minFontSize: number,
   fontWeight: number,
   overrideFont: boolean,
-  themeCode: ThemeCode,
+  themeCode: ThemeCode
 ) => {
   const { fg, primary } = themeCode;
   const lastSerifFonts = ['Georgia', 'Times New Roman'];
   const serifFonts = [
     serif,
     ...SERIF_FONTS.filter(
-      (font) => font !== serif && font !== defaultCJKFont && !lastSerifFonts.includes(font),
+      (font) => font !== serif && font !== defaultCJKFont && !lastSerifFonts.includes(font)
     ),
     ...(defaultCJKFont !== serif ? [defaultCJKFont] : []),
     ...CJK_SERIF_FONTS.filter((font) => font !== serif && font !== defaultCJKFont),
     ...lastSerifFonts.filter(
-      (font) => SERIF_FONTS.includes(font) && !lastSerifFonts.includes(defaultCJKFont),
+      (font) => SERIF_FONTS.includes(font) && !lastSerifFonts.includes(defaultCJKFont)
     ),
     ...FALLBACK_FONTS,
   ];
@@ -175,7 +175,7 @@ const getLayoutStyles = (
   zoomLevel: number,
   writingMode: string,
   vertical: boolean,
-  themeCode: ThemeCode,
+  themeCode: ThemeCode
 ) => {
   const { bg, fg, primary, isDarkMode } = themeCode;
   const layoutStyle = `
@@ -294,31 +294,6 @@ const getLayoutStyles = (
   return layoutStyle;
 };
 
-export const getFootnoteStyles = () => `
-  .duokan-footnote-content,
-  .duokan-footnote-item {
-    display: block !important;
-  }
-
-  body {
-    padding: 1em !important;
-  }
-
-  a:any-link {
-    text-decoration: none;
-  }
-
-  ol {
-    margin: 0;
-    padding: 0;
-  }
-
-  p, li, blockquote, dd {
-    margin: unset !important;
-    text-indent: unset !important;
-  }
-`;
-
 export interface ThemeCode {
   bg: string;
   fg: string;
@@ -332,14 +307,10 @@ export const getThemeCode = (): ThemeCode => {
   // --theme-bg-color / 前景 / 主色与应用背景完全一致，不再依赖静态 themes
   // （项目已切换到 Material You 动态主题，静态 themes 会与应用不同步导致书籍区白底）。
   const isDarkMode =
-    typeof window !== 'undefined' &&
-    window.matchMedia('(prefers-color-scheme: dark)').matches;
+    typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
   const styles =
-    typeof document !== 'undefined'
-      ? getComputedStyle(document.documentElement)
-      : null;
-  const get = (name: string, fallback: string) =>
-    styles?.getPropertyValue(name).trim() || fallback;
+    typeof document !== 'undefined' ? getComputedStyle(document.documentElement) : null;
+  const get = (name: string, fallback: string) => styles?.getPropertyValue(name).trim() || fallback;
   const bg = get('--background', isDarkMode ? '#0a0a0a' : '#fff4ef');
   const fg = get('--foreground', isDarkMode ? '#ededed' : '#341f19');
   const primary = get('--primary', '#b85e4b');
@@ -362,7 +333,7 @@ export const getStyles = (viewSettings: ViewSettings, themeCode?: ThemeCode) => 
     viewSettings.zoomLevel! / 100.0,
     viewSettings.writingMode!,
     viewSettings.vertical!,
-    themeCode,
+    themeCode
   );
   // scale the font size on-the-fly so that we can sync the same font size on different devices
   const isMobile = ['ios', 'android'].includes(getOSPlatform());
@@ -377,7 +348,7 @@ export const getStyles = (viewSettings: ViewSettings, themeCode?: ThemeCode) => 
     viewSettings.minimumFontSize!,
     viewSettings.fontWeight!,
     viewSettings.overrideFont!,
-    themeCode,
+    themeCode
   );
   const userStylesheet = viewSettings.userStylesheet!;
   return `${layoutStyles}\n${fontStyles}\n${fontfacesCSS}\n${userStylesheet}`;

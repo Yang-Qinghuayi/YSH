@@ -50,7 +50,7 @@ module.exports = {
     'plugin:vue/vue3-recommended',
     'plugin:prettier/recommended',
   ],
-  ignorePatterns: ['dist', 'public', '!.eslintrc.js', '!.prettierrc.js'],
+  ignorePatterns: ['dist', 'public', 'src/foliate-js', '!.eslintrc.cjs', '!.prettierrc.js'],
   overrides: [
     {
       files: ['*.vue'],
