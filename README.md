@@ -27,7 +27,7 @@ YSH 是一款本地优先的跨平台桌面应用，将电子书阅读、AI 辅�
 
 ### 电子书阅读
 
-支持 EPUB、PDF、MOBI、AZW3、CBZ、FB2 格式。提供分页、双页、滚动三种阅读模式，以及划词高亮、笔记、书签等注释功能。阅读进度通过 CFI 标准精确记录，字体、字号、行高等排版参数均可自定义。内置 Edge TTS 与 Web Speech API 双引擎朗读。
+支持 EPUB、PDF、MOBI、AZW3、CBZ、FB2 格式。提供分页、双页、滚动三种阅读模式，以及划词高亮、笔记、书签等注释功能。阅读进度通过 CFI 标准精确记录，字体、字号、行高等排版参数均可自定义。
 
 ### 小说创作
 
@@ -85,7 +85,6 @@ idle → planning → awaiting_confirmation → generating → finalizing → do
 | 电子书引擎 | foliate-js（内嵌） |
 | AI 接入 | DeepSeek API |
 | 编辑器 | CodeMirror 6 |
-| TTS | Edge TTS / Web Speech API / HLS.js |
 
 ## 快速开始
 
@@ -165,8 +164,7 @@ src/
 │   ├── storyStateMerge.ts   # 故事状态增量合并（纯函数）
 │   ├── deepseekService.ts   # DeepSeek API 封装
 │   ├── novelService.ts      # 小说数据读写
-│   ├── loreService.ts       # Lore 数据读写
-│   └── tts/                 # TTS 多引擎实现
+│   └── loreService.ts       # Lore 数据读写
 ├── store/              # Pinia 状态管理
 ├── types/              # TypeScript 类型定义
 ├── hooks/              # Vue Composables

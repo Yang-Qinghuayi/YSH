@@ -28,12 +28,6 @@ pub struct CopyURIResponse {
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct UseBackgroundAudioRequest {
-    pub enabled: bool,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct InstallPackageRequest {
     pub path: String,
 }

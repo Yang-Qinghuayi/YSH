@@ -7,7 +7,6 @@ Default permissions for the plugin
 - `allow-auth-with-safari`
 - `allow-auth-with-custom-tab`
 - `allow-copy-uri-to-path`
-- `allow-use-background-audio`
 - `allow-install-package`
 - `allow-set-system-ui-visibility`
 - `allow-get-status-bar-height`
@@ -231,29 +230,4 @@ Denies the set_system_ui_visibility command without any pre-configured scope.
 </td>
 </tr>
 
-<tr>
-<td>
-
-`native-bridge:allow-use-background-audio`
-
-</td>
-<td>
-
-Enables the use_background_audio command without any pre-configured scope.
-
-</td>
-</tr>
-
-<tr>
-<td>
-
-`native-bridge:deny-use-background-audio`
-
-</td>
-<td>
-
-Denies the use_background_audio command without any pre-configured scope.
-
-</td>
-</tr>
 </table>

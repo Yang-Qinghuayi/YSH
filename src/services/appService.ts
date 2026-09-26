@@ -26,7 +26,6 @@ import {
   DEFAULT_READSETTINGS,
   SYSTEM_SETTINGS_VERSION,
   DEFAULT_BOOK_SEARCH_CONFIG,
-  DEFAULT_TTS_CONFIG,
   CLOUD_BOOKS_SUBDIR,
   DEFAULT_MOBILE_VIEW_SETTINGS,
   DEFAULT_SYSTEM_SETTINGS,
@@ -92,7 +91,6 @@ export abstract class BaseAppService implements AppService {
         ...(this.isMobile ? DEFAULT_MOBILE_VIEW_SETTINGS : {}),
         ...(isCJKEnv() ? DEFAULT_CJK_VIEW_SETTINGS : {}),
         ...DEFAULT_VIEW_CONFIG,
-        ...DEFAULT_TTS_CONFIG,
         ...settings.globalViewSettings,
       };
     } catch {
@@ -111,7 +109,6 @@ export abstract class BaseAppService implements AppService {
           ...(this.isMobile ? DEFAULT_MOBILE_VIEW_SETTINGS : {}),
           ...(isCJKEnv() ? DEFAULT_CJK_VIEW_SETTINGS : {}),
           ...DEFAULT_VIEW_CONFIG,
-          ...DEFAULT_TTS_CONFIG,
         },
       } as SystemSettings;
 

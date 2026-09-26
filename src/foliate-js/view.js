@@ -306,7 +306,6 @@ export class View extends HTMLElement {
         this.#searchResults = new Map()
         this.lastLocation = null
         this.history.clear()
-        this.tts = null
         this.mediaOverlay = null
     }
     goToTextStart() {
@@ -656,17 +655,6 @@ export class View extends HTMLElement {
         for (const list of this.#searchResults.values())
             for (const item of list) this.deleteAnnotation(item)
         this.#searchResults.clear()
-    }
-    async initTTS(granularity = 'word', nodeFilter, highlighter) {
-        const contents = this.renderer.getContents()
-        const primaryIndex = this.renderer.primaryIndex
-        const primary = contents.find(x => x.index === primaryIndex) ?? contents[0]
-        const doc = primary?.doc
-        if (!doc) return
-        if (this.tts && this.tts.doc === doc) return
-        const { TTS } = await import('./tts.js')
-        this.tts = new TTS(doc, textWalker, nodeFilter, highlighter || (range =>
-            this.renderer.scrollToAnchor(range, true)), granularity)
     }
     startMediaOverlay() {
         const contents = this.renderer.getContents()

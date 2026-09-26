@@ -49,14 +49,6 @@ impl<R: Runtime> NativeBridge<R> {
 }
 
 impl<R: Runtime> NativeBridge<R> {
-    pub fn use_background_audio(&self, payload: UseBackgroundAudioRequest) -> crate::Result<()> {
-        self.0
-            .run_mobile_plugin("use_background_audio", payload)
-            .map_err(Into::into)
-    }
-}
-
-impl<R: Runtime> NativeBridge<R> {
     pub fn install_package(
         &self,
         payload: InstallPackageRequest,

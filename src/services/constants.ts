@@ -4,7 +4,6 @@ import {
   BookSearchConfig,
   BookStyle,
   HighlightColor,
-  TTSConfig,
   ViewConfig,
   ViewSettings,
 } from '@/types/book';
@@ -131,11 +130,6 @@ export const DEFAULT_CJK_VIEW_SETTINGS: Partial<ViewSettings> = {
 export const DEFAULT_VIEW_CONFIG: ViewConfig = {
   sideBarTab: 'toc',
   uiLanguage: '',
-};
-
-export const DEFAULT_TTS_CONFIG: TTSConfig = {
-  ttsRate: 1.3,
-  ttsVoice: '',
 };
 
 export const DEFAULT_BOOK_SEARCH_CONFIG: BookSearchConfig = {
