@@ -129,8 +129,13 @@ pnpm build-tauri    # 桌面，打包当前平台
 **测试**
 
 ```bash
-pnpm test           # 协议解析 / 状态合并 / 上下文预算的单元测试
+pnpm test           # 30 个用例：协议解析 / 状态合并 / 上下文预算 + Agent 主循环端到端
 ```
+
+`tests/` 使用 Node 内建 test runner（零测试依赖）。其中 `agentService.e2e.test.ts` 会驱动真实的
+`agentService` / `agentTools` / `storyStateService` 跑完整链路（规划 → 确认 → 生成 → 收尾），
+只把三个模块替换为替身：`openai`（网络边界，改由脚本化的假模型驱动）、`@/hooks/useEnv`（内存
+文件系统）、`@/services/workspaceService`（固定路径）——因此不联网、不写真实磁盘。
 
 ## 发布
 

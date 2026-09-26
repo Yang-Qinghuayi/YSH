@@ -440,7 +440,7 @@ P2（7.4–7.9）与 P3（死代码/命名/测试/文档漂移）已在第二轮
 |------|------|
 | 死代码 / 未接线 | 移除 `AIGenerateParams`、`getCharacterState`、`novelStore.updateChapterList`；`ChapterMeta.summary` **接线为完整功能**（finalizing 生成摘要 → `onChapterSummary` → 写回 `novel.json` → 下次 planning 注入「前情提要」，最多 5 章，设置页可关）；`buildLoreContext` 已在无工具模式中启用；`@codemirror/autocomplete` 依赖接线为编辑器 `@角色` 补全，并让内联续写解析光标前的 @提及作为强制指定 |
 | 命名遗留 | 工具 `select_skill` → `select_characters`（参数 `skillIds` → `characterIds`，两者均保留旧名兼容解析）；`AgentPlan.selectedSkills` → `selectedCharacters`（`parsePlan` 兼容旧字段名） |
-| 零测试 | 新增 `tests/`（Node 内建 test runner + 类型擦除，**零新增依赖**）：`agentProtocol.test.ts`、`storyStateMerge.test.ts`、`contextBudget.test.ts`，共 **22 个用例**；`package.json` 增加 `test` / `test:watch` |
+| 零测试 | 新增 `tests/`（Node 内建 test runner + 类型擦除 + 模块解析钩子，**零新增依赖**），共 **30 个用例**：`agentProtocol.test.ts`、`storyStateMerge.test.ts`、`contextBudget.test.ts`（22 个纯函数用例）+ `agentService.e2e.test.ts`（8 个端到端用例，直接驱动真实 `agentService` 全链路，见 10.1）；`package.json` 增加 `test` / `test:watch` |
 | 文档漂移 | README 的「小说创作 / AI 创作引擎 / 项目结构 / 数据存储 / 快速开始」按第 6 节差异表逐条改写（工具表、状态机含 finalizing、上下文管理与预算策略、reasoner 降级、扁平存储结构、测试命令） |
 
 ### 本轮新增文件
@@ -458,11 +458,32 @@ tests/*.test.ts                 （新增 3 个文件）22 个用例
 |------|------|
 | `tsc --noEmit --skipLibCheck` | 43 条 vs 基线 43 条，**集合一致**（既有问题：vueuse 类型、tinycolor2 声明、ArrayBufferLike、moduleResolution 等），改动文件 0 报错 |
 | `vue-tsc --noEmit --skipLibCheck` | 47 vs 基线 47，**diff 为空** |
-| `pnpm test`（node --test） | ✅ 22/22 通过（协议解析容错、生成指令携带已确认大纲、签名与键序无关、连续三轮才催促、合并保留未提交字段、关系按 target 合并、纯函数不改入参、预算裁剪不拆散工具配对、预留输出影响裁剪量） |
+| `pnpm test`（node --test） | ✅ **30/30 通过**：22 个纯函数用例（协议解析容错、生成指令携带已确认大纲、签名与键序无关、连续三轮才催促、合并保留未提交字段、关系按 target 合并、纯函数不改入参、预算裁剪不拆散工具配对、预留输出影响裁剪量）+ 8 个端到端用例（见 10.1） |
+| 反向变异验证 | ✅ 测试有效性已证明：把 `buildGenerateInstruction` 改回「忽略 plan」→ 全链路用例立刻失败（"作者修订后的大纲"未出现在指令中）；把 `mergeCharacterState` 改回字段级全量赋值 → 以 "未提交的 mood 不应被清空" 失败 |
 | `vite build --mode web` | ✅ 构建成功（保留既有 chunk 体积/pure 注释告警） |
 | Dev server 冒烟 | ✅ 首页 200，`agentService/agentProtocol/contextBudget/storyStateMerge/useApiKey/index.vue/NovelEditor/AgentStatusBar` 8 个模块均被 Vite 正常转换，日志无错误 |
 
 > 仍属外部依赖、无法在本环境验证的部分：真实 DeepSeek API 的端到端行为（含 `deepseek-reasoner` 是否真的拒绝 `tools`——代码已按"不支持"降级，实测若其已支持工具调用，可把 `supportsToolCalling` 直接放开）。
+
+### 10.1 端到端测试装置（本轮新增）
+
+`tests/agentService.e2e.test.ts` 驱动**真实**的 `agentService.runPlanPhase / runGeneratePhase`，
+只替换三个模块，其余（含 `streamChatWithTools` 的流式聚合、`agentTools` 的工具执行、
+`storyStateService`/`loreService` 的读写与合并）全部是生产代码：
+
+| 替身 | 原因 |
+|------|------|
+| `openai`（`tests/stubs/openai.mjs`） | 唯一的网络边界。由测试脚本逐轮指定：文本、工具调用、`finish_reason`（可造 `length` 截断）、逐块延迟（可造取消窗口），并支持 `AbortSignal` |
+| `@/hooks/useEnv`（`tests/stubs/useEnv.ts`） | 真实实现依赖 `import.meta.env` 与 Pinia，Node 下无法加载；替换为内存文件系统 |
+| `@/services/workspaceService`（`tests/stubs/workspaceService.ts`） | 依赖 setting store；替换为固定路径（base=Data、无前缀） |
+
+`@/` 别名由 `tests/stubs/loader.mjs`（`module.registerHooks`）解析，其余源码原样加载。
+假模型会记录每次请求的**快照**（messages/tools/max_tokens），因此可以断言"作者改过的
+大纲确实进入了生成指令""前情提要已注入 system prompt""无工具模式不带 tools"等关键行为。
+
+覆盖的 8 个用例：全链路（工具循环 → 规划 → 改稿 → 生成 → 状态增量更新 + 摘要）、
+截断自动续写、规划截断报错、未知工具不中断会话、超预算裁剪后配对完整、
+运行中取消、`deepseek-reasoner` 无工具降级、内联续写轻量参数。
 
 ### 剩余建议（未在本轮范围）
 
