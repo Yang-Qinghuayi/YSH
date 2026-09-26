@@ -1090,10 +1090,12 @@ function makeChatCallbacks(turnUi: TurnUiState): ChatTurnCallbacks {
       chatStore.setStatus('等待确认规划')
     },
     onChapterSummary: (summary) => void persistChapterSummary(summary),
-    onContextTrimmed: (info) =>
+    onContextTrimmed: (info) => {
+      chatStore.setContextUsage(info.estimatedTokens, info.trimmed)
       showWarnMsg(
         `上下文接近上限，已省略 ${info.trimmed} 条早期调研结果（约 ${info.estimatedTokens} tokens）。`,
-      ),
+      )
+    },
     onWarn: (msg) => showWarnMsg(msg),
     onError: (e) => {
       showErrorMsg(errorText(e))
@@ -1361,7 +1363,9 @@ onBeforeUnmount(() => {
 }
 /* Agent 视图：加宽以容纳聊天 */
 .novel-sidebar--agent {
-  width: 340px;
+  /* Agent 需要同时展示对话、工具卡和上下文预算；桌面端约占屏幕三分之一 */
+  width: clamp(360px, 33.333vw, 560px);
+  min-width: 360px;
 }
 .rail .lg-icon-btn.rail-active {
   background: rgba(var(--v-theme-primary), 0.14);

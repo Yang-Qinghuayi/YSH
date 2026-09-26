@@ -25,6 +25,10 @@ export const useChatStore = defineStore('agentChat', () => {
   const phase = ref<SessionPhase>('idle')
   /** 当前转录所属章节（切换章节时重置） */
   const chapterId = ref<string | null>(null)
+  /** 最近一次模型调用的上下文估算，用于面板上的预算提示 */
+  const contextTokens = ref(0)
+  const contextLimit = ref(65536)
+  const contextTrimmed = ref(0)
 
   // ===== 生命周期 =====
   /** 切换到某章节：chapterId 变化则清空转录 */
@@ -35,6 +39,8 @@ export const useChatStore = defineStore('agentChat', () => {
     statusText.value = ''
     phase.value = 'idle'
     busy.value = false
+    contextTokens.value = 0
+    contextTrimmed.value = 0
   }
   /** 清空对话（保留 chapterId） */
   function clear() {
@@ -165,6 +171,10 @@ export const useChatStore = defineStore('agentChat', () => {
   function setPhase(p: SessionPhase) {
     phase.value = p
   }
+  function setContextUsage(tokens: number, trimmed = 0) {
+    contextTokens.value = Math.max(0, tokens)
+    contextTrimmed.value += trimmed
+  }
 
   return {
     transcript,
@@ -172,6 +182,9 @@ export const useChatStore = defineStore('agentChat', () => {
     statusText,
     phase,
     chapterId,
+    contextTokens,
+    contextLimit,
+    contextTrimmed,
     resetForChapter,
     clear,
     pushUser,
@@ -188,5 +201,6 @@ export const useChatStore = defineStore('agentChat', () => {
     setBusy,
     setStatus,
     setPhase,
+    setContextUsage,
   }
 })

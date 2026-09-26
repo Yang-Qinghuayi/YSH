@@ -26,6 +26,20 @@
       </button>
     </div>
 
+    <!-- ===== 上下文预算 ===== -->
+    <div class="context-meter" :class="{ 'context-meter--warning': contextPercent >= 75 }">
+      <div class="context-meter__top">
+        <span><v-icon :icon="mdiGauge" size="14" /> 上下文</span>
+        <strong>{{ contextPercent }}%</strong>
+      </div>
+      <div class="context-meter__track"><div class="context-meter__fill" :style="{ width: `${contextPercent}%` }" /></div>
+      <div class="context-meter__bottom">
+        <span>{{ formatTokens(contextTokens) }} / {{ formatTokens(contextLimit) }} tokens</span>
+        <span v-if="contextTrimmed">已自动压缩 {{ contextTrimmed }} 条</span>
+        <span v-else>接近上限时自动压缩</span>
+      </div>
+    </div>
+
     <!-- ===== 状态行 ===== -->
     <div v-if="chatStore.busy" class="agent-panel__status lg-card--inset">
       <v-progress-circular indeterminate size="13" width="2" color="primary" />
@@ -355,6 +369,7 @@ import {
   mdiSend,
   mdiStop,
   mdiBookPlusOutline,
+  mdiGauge,
 } from '@mdi/js'
 import { storeToRefs } from 'pinia'
 import { useChatStore } from '@/store/chatStore'
@@ -383,7 +398,11 @@ const emit = defineEmits<{
 
 const chatStore = useChatStore()
 const settingStore = useSettingStore()
-const { transcript, busy: chatBusy } = storeToRefs(chatStore)
+const { transcript, busy: chatBusy, contextTokens, contextLimit, contextTrimmed } = storeToRefs(chatStore)
+const contextPercent = computed(() => Math.min(100, Math.round((contextTokens.value / contextLimit.value) * 100)))
+function formatTokens(value: number) {
+  return value >= 1000 ? `${(value / 1000).toFixed(1)}k` : String(value)
+}
 
 // ===== 目标字数 =====
 const lengthItems = [
@@ -516,6 +535,24 @@ watch([() => transcript.value.length, lastMsgLen], () => {
   border-radius: 8px;
   margin-left: auto;
 }
+
+/* ===== 上下文预算 ===== */
+.context-meter {
+  flex-shrink: 0;
+  padding: 9px 11px;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  border-radius: 12px;
+  background: rgba(var(--v-theme-on-surface), 0.025);
+}
+.context-meter__top, .context-meter__bottom { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.context-meter__top { color: rgba(var(--v-theme-on-surface), .68); font-size: 11px; }
+.context-meter__top span { display: flex; align-items: center; gap: 5px; }
+.context-meter__top strong { color: rgb(var(--v-theme-primary)); font-size: 12px; }
+.context-meter__track { height: 5px; margin: 7px 0 5px; border-radius: 5px; overflow: hidden; background: rgba(var(--v-theme-on-surface), .09); }
+.context-meter__fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, rgb(var(--v-theme-primary)), #62c99b); transition: width .35s ease; }
+.context-meter__bottom { color: rgba(var(--v-theme-on-surface), .42); font-size: 10px; }
+.context-meter--warning .context-meter__top strong { color: rgb(var(--v-theme-error)); }
+.context-meter--warning .context-meter__fill { background: linear-gradient(90deg, #e6a23c, rgb(var(--v-theme-error))); }
 
 /* ===== 状态行 ===== */
 .agent-panel__status {
