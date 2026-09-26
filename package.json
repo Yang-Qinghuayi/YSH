@@ -5,6 +5,9 @@
   "author": "YQHY",
   "type": "module",
   "description": "my spirtual home",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "scripts": {
     "dev": "vite --mode web",
     "build": "vite build --mode web",

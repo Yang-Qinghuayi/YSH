@@ -48,6 +48,13 @@ export default defineConfig(({ command }) => {
       allowedHosts: true,
     },
 
+    // 预览生产构建（pnpm start）：同样监听 0.0.0.0 并放开代理域名，
+    // 便于在 Vercel 部署前用 dist/ 产物做本地验证
+    preview: {
+      host: '0.0.0.0',
+      allowedHosts: true,
+    },
+
     build: {
       emptyOutDir: true,
       sourcemap: isDevelopment,
