@@ -31,7 +31,11 @@ import {
   type ToolResult,
 } from '@/services/agentTools'
 import { loadStoryState } from '@/services/storyStateService'
-import { loadOrCreateLore, loadEntryContent, buildLoreContext } from '@/services/loreService'
+import {
+  loadOrCreateLore,
+  loadEntryContent,
+  buildLoreContext,
+} from '@/services/loreService'
 import {
   buildGenerateInstruction,
   buildRoundKey,
@@ -69,12 +73,18 @@ export interface AgentConfig {
   autoUpdateStoryState: boolean
   /** 生成后自动写章节摘要（用于后续章节的「前情提要」） */
   autoChapterSummary: boolean
+  /** 交互面板：目标字数（500/1000/1500/2000），约束规划粒度与正文长度 */
+  lengthTarget?: number
 }
 
 export interface AgentCallbacks {
   onStatus?: (text: string) => void
   onPhase?: (phase: SessionPhase) => void
-  onToolCall?: (log: { tool: string; status: 'running' | 'done'; text: string }) => void
+  onToolCall?: (log: {
+    tool: string
+    status: 'running' | 'done'
+    text: string
+  }) => void
   onPlanReady?: (plan: AgentPlan) => void
   onTextDelta?: (delta: string) => void
   /** 章节摘要生成完成（由调用方负责落盘到 ChapterMeta.summary） */
@@ -102,6 +112,12 @@ export interface AgentSession {
   skipConfirmation: boolean
   /** planning 阶段的最大工具轮数（内联续写等轻量场景可调小） */
   planMaxToolRounds: number
+  /**
+   * 交互面板（chat）模式：取「最新」章节内容的钩子。
+   * 会话创建时的 chapterContent 是快照，用户在编辑器里的手动编辑不落进快照，
+   * 写章工具落笔前用 liveContent 取当前文档，避免覆盖用户刚写的内容。
+   */
+  liveContent?: () => string
 }
 
 /** 整章生成：规划阶段最大工具轮数 */
@@ -147,7 +163,10 @@ export function abort(session: AgentSession): void {
 }
 
 function isAbort(e: unknown): boolean {
-  return e instanceof Error && (e.name === 'AbortError' || /aborted/i.test(e.message))
+  return (
+    e instanceof Error &&
+    (e.name === 'AbortError' || /aborted/i.test(e.message))
+  )
 }
 
 function toolContext(session: AgentSession): ToolContext {
@@ -163,10 +182,12 @@ function toolContext(session: AgentSession): ToolContext {
  * 执行一批 tool_calls，把结果以 tool 角色消息 append 回 messages。
  *
  * registry 必须与产生这批 tool_calls 时传给模型的 schema 列表**完全一致**
- * （plan 阶段 READONLY_TOOLS、finalizing 阶段 SIDE_EFFECT_TOOLS）；
+ * （plan 阶段 READONLY_TOOLS、finalizing 阶段 SIDE_EFFECT_TOOLS、chat 模式 CHAT_TOOLS）；
  * 列表外的工具名会被拒绝并以错误文本回传，而不是静默忽略。
+ *
+ * 导出供 agentChat（交互面板多轮循环）复用。
  */
-async function executeToolCalls(
+export async function executeToolCalls(
   session: AgentSession,
   toolCalls: ChatCompletionMessageFunctionToolCall[],
   registry: AgentTool[],
@@ -191,11 +212,19 @@ async function executeToolCalls(
       try {
         result = await tool.execute(args, ctx)
       } catch (e) {
-        result = { ok: false, error: String(e), text: `工具 ${tc.function.name} 执行失败：${e}` }
+        result = {
+          ok: false,
+          error: String(e),
+          text: `工具 ${tc.function.name} 执行失败：${e}`,
+        }
       }
     }
 
-    cb.onToolCall?.({ tool: tc.function.name, status: 'done', text: result.text })
+    cb.onToolCall?.({
+      tool: tc.function.name,
+      status: 'done',
+      text: result.text,
+    })
     session.messages.push({
       role: 'tool',
       tool_call_id: tc.id,
@@ -204,14 +233,23 @@ async function executeToolCalls(
   }
 }
 
-/** 单轮流式调用：先做上下文预算裁剪，再调用模型，返回文本、tool_calls 与结束原因 */
-async function runOneTurn(
+/**
+ * 单轮流式调用：先做上下文预算裁剪，再调用模型，返回文本、tool_calls 与结束原因。
+ * 导出供 agentChat（交互面板多轮循环）复用。
+ */
+export async function runOneTurn(
   session: AgentSession,
   config: AgentConfig,
   tools: AgentTool[],
   maxTokens: number,
   onText?: (delta: string) => void,
   cb?: AgentCallbacks,
+  onToolArgsDelta?: (
+    index: number,
+    id: string,
+    name: string,
+    delta: string,
+  ) => void,
 ): Promise<{
   text: string
   toolCalls: ChatCompletionMessageFunctionToolCall[] | null
@@ -237,6 +275,8 @@ async function runOneTurn(
       onText?.(ev.delta)
     } else if (ev.type === 'tool_calls') {
       toolCalls = ev.toolCalls
+    } else if (ev.type === 'tool_args_delta') {
+      onToolArgsDelta?.(ev.index, ev.id, ev.name, ev.delta)
     } else if (ev.type === 'done') {
       finishReason = ev.finishReason
     }
@@ -273,8 +313,12 @@ function applyContextBudget(
   }
 }
 
-/** 取最近若干章的摘要作为「前情提要」（按章节顺序，早于当前章） */
-function recentChapterSummaries(novel: Novel, chapter: ChapterMeta, limit = 5): { title: string; summary: string }[] {
+/** 取最近若干章的摘要作为「前情提要」（按章节顺序，早于当前章）。导出供 agentChat 复用 */
+export function recentChapterSummaries(
+  novel: Novel,
+  chapter: ChapterMeta,
+  limit = 5,
+): { title: string; summary: string }[] {
   return novel.chapters
     .filter((c) => c.order < chapter.order && c.summary?.trim())
     .sort((a, b) => a.order - b.order)
@@ -315,11 +359,16 @@ async function runInlinePlanPhase(
     const storyState = await loadStoryState(session.novelId)
     const storyStateText = summarizeStoryState(storyState)
     const loreContextText = await buildInlineLoreContext(session.novel)
-    const sys = buildAgentSystemPrompt('planning', session.novel, storyStateText, {
-      loreContextText,
-      toolFree: true,
-      recentSummaries: recentChapterSummaries(session.novel, session.chapter),
-    })
+    const sys = buildAgentSystemPrompt(
+      'planning',
+      session.novel,
+      storyStateText,
+      {
+        loreContextText,
+        toolFree: true,
+        recentSummaries: recentChapterSummaries(session.novel, session.chapter),
+      },
+    )
 
     const forcedNote = session.forcedMentions.length
       ? `\n\n作者已强制指定：${session.forcedMentions.map((m) => m.raw).join(' ')}。请在规划中纳入。`
@@ -379,7 +428,11 @@ async function runInlineStoryStateUpdate(
 
   cb.onToolCall?.({ tool: 'update_story_state', status: 'running', text: '' })
   const result = await tool.execute(patch, toolContext(session))
-  cb.onToolCall?.({ tool: 'update_story_state', status: 'done', text: result.text })
+  cb.onToolCall?.({
+    tool: 'update_story_state',
+    status: 'done',
+    text: result.text,
+  })
 }
 
 /** plan 阶段：只读工具循环 + 产出 plan（模型不支持工具时降级为直读上下文） */
@@ -397,9 +450,14 @@ export async function runPlanPhase(
   try {
     const storyState = await loadStoryState(session.novelId)
     const storyStateText = summarizeStoryState(storyState)
-    const sys = buildAgentSystemPrompt('planning', session.novel, storyStateText, {
-      recentSummaries: recentChapterSummaries(session.novel, session.chapter),
-    })
+    const sys = buildAgentSystemPrompt(
+      'planning',
+      session.novel,
+      storyStateText,
+      {
+        recentSummaries: recentChapterSummaries(session.novel, session.chapter),
+      },
+    )
 
     const forcedNote = session.forcedMentions.length
       ? `\n\n作者已强制指定：${session.forcedMentions.map((m) => m.raw).join(' ')}。请在规划中纳入。`
@@ -442,8 +500,7 @@ export async function runPlanPhase(
       }
 
       // 最后一轮：关闭工具，强制文本输出，避免继续调研
-      const toolsForThisTurn =
-        roundIndex === finalRound ? [] : READONLY_TOOLS
+      const toolsForThisTurn = roundIndex === finalRound ? [] : READONLY_TOOLS
 
       const { text, toolCalls, finishReason } = await runOneTurn(
         session,
@@ -476,7 +533,9 @@ export async function runPlanPhase(
         finishReason === 'length'
       ) {
         cb.onError?.(
-          new Error('规划输出被长度限制截断，未生成完整大纲。可重试，或改用 deepseek-chat / 缩短章节概要。'),
+          new Error(
+            '规划输出被长度限制截断，未生成完整大纲。可重试，或改用 deepseek-chat / 缩短章节概要。',
+          ),
         )
         return
       }
@@ -553,7 +612,10 @@ export async function runGeneratePhase(
     fullText += text
 
     let continuations = 0
-    while (finishReason === 'length' && continuations < MAX_GENERATE_CONTINUATIONS) {
+    while (
+      finishReason === 'length' &&
+      continuations < MAX_GENERATE_CONTINUATIONS
+    ) {
       continuations++
       cb.onStatus?.(
         `正文达到单次长度上限，正在续写（${continuations}/${MAX_GENERATE_CONTINUATIONS}）…`,
@@ -571,7 +633,9 @@ export async function runGeneratePhase(
       finishReason = next.finishReason
     }
     if (finishReason === 'length') {
-      cb.onWarn?.('正文已达到单次长度上限并续写多次，可能仍未写完，请检查章节结尾。')
+      cb.onWarn?.(
+        '正文已达到单次长度上限并续写多次，可能仍未写完，请检查章节结尾。',
+      )
     }
 
     // finalizing：更新故事状态 + 章节摘要
@@ -586,11 +650,19 @@ export async function runGeneratePhase(
           cb.onStatus?.('正在更新故事状态…')
           session.messages.push({
             role: 'user',
-            content: '请调用 update_story_state 工具，根据以上正文以增量方式更新受影响角色的动态状态。',
+            content:
+              '请调用 update_story_state 工具，根据以上正文以增量方式更新受影响角色的动态状态。',
           })
 
           for (let i = 0; i < FINALIZE_MAX_TOOL_ROUNDS; i++) {
-            const { toolCalls } = await runOneTurn(session, config, SIDE_EFFECT_TOOLS, 1200, undefined, cb)
+            const { toolCalls } = await runOneTurn(
+              session,
+              config,
+              SIDE_EFFECT_TOOLS,
+              1200,
+              undefined,
+              cb,
+            )
             if (toolCalls && toolCalls.length > 0) {
               await executeToolCalls(session, toolCalls, SIDE_EFFECT_TOOLS, cb)
               continue
@@ -604,8 +676,18 @@ export async function runGeneratePhase(
 
       if (needSummary) {
         cb.onStatus?.('正在生成章节摘要…')
-        session.messages.push({ role: 'user', content: buildChapterSummaryInstruction() })
-        const summaryTurn = await runOneTurn(session, config, [], 320, undefined, cb)
+        session.messages.push({
+          role: 'user',
+          content: buildChapterSummaryInstruction(),
+        })
+        const summaryTurn = await runOneTurn(
+          session,
+          config,
+          [],
+          320,
+          undefined,
+          cb,
+        )
         const summary = cleanChapterSummary(summaryTurn.text)
         if (summary) cb.onChapterSummary?.(summary)
       }
@@ -622,7 +704,11 @@ export async function runGeneratePhase(
   }
 }
 
-function setPhase(session: AgentSession, phase: SessionPhase, cb: AgentCallbacks): void {
+function setPhase(
+  session: AgentSession,
+  phase: SessionPhase,
+  cb: AgentCallbacks,
+): void {
   session.phase = phase
   cb.onPhase?.(phase)
 }

@@ -20,7 +20,9 @@ export interface AgentPlan {
 }
 
 /** 兼容旧字段名 selectedSkills（模型可能沿用历史 schema） */
-function pickSelectedCharacters(obj: Record<string, unknown>): AgentPlan['selectedCharacters'] {
+function pickSelectedCharacters(
+  obj: Record<string, unknown>,
+): AgentPlan['selectedCharacters'] {
   const value = obj.selectedCharacters ?? obj.selectedSkills
   return Array.isArray(value) ? (value as AgentPlan['selectedCharacters']) : []
 }
@@ -62,7 +64,12 @@ export function parsePlan(text: string): AgentPlan {
       // fallthrough
     }
   }
-  return { outline: text.trim(), selectedCharacters: [], referencedLoreEntries: [], approach: '' }
+  return {
+    outline: text.trim(),
+    selectedCharacters: [],
+    referencedLoreEntries: [],
+    approach: '',
+  }
 }
 
 /** 解析无工具模式回吐的 <<<STATE>>>…<<<END>>> JSON（容错到首尾花括号） */
@@ -72,7 +79,9 @@ export function parseStatePatch(text: string): Record<string, unknown> | null {
   const tryParse = (s: string): Record<string, unknown> | null => {
     try {
       const obj = JSON.parse(s)
-      return obj && typeof obj === 'object' ? (obj as Record<string, unknown>) : null
+      return obj && typeof obj === 'object'
+        ? (obj as Record<string, unknown>)
+        : null
     } catch {
       return null
     }
@@ -155,7 +164,9 @@ export function stableStringify(value: unknown): string {
 }
 
 /** 把一轮内的多次工具调用组合为稳定签名（与调用顺序、参数键序无关） */
-export function buildRoundKey(tcs: ChatCompletionMessageFunctionToolCall[]): string {
+export function buildRoundKey(
+  tcs: ChatCompletionMessageFunctionToolCall[],
+): string {
   const items = tcs.map((tc) => {
     let parsed: unknown
     try {
@@ -176,14 +187,156 @@ export function buildRoundKey(tcs: ChatCompletionMessageFunctionToolCall[]): str
   return stableStringify(items)
 }
 
+// ===================== 交互面板（chat 模式）协议 =====================
+
+/**
+ * CONTENT 协议：无工具模式（deepseek-reasoner 等不支持 Function Calling 的模型）
+ * 下，模型把「要写入章节的正文」包在 <<<CONTENT>>>…<<<END>>> 中回吐，
+ * 客户端解析后按虚拟 append_to_chapter 落盘（与 STATE 协议同款思路）。
+ */
+export const CONTENT_BLOCK_PATTERN = /<<<CONTENT>>>\s*([\s\S]*?)\s*<<<END>>/
+
+/** 从模型输出中解析 CONTENT 块（无工具模式下的写章正文）；未找到返回 null */
+export function parseContentBlock(text: string): string | null {
+  const match = text.match(CONTENT_BLOCK_PATTERN)
+  if (!match) return null
+  const content = match[1].trim()
+  return content ? content : null
+}
+
+/**
+ * 从「流式中的 tool 参数 JSON」增量提取 content 字段（纯函数）。
+ *
+ * 背景：streamChatWithTools 会把 tool_calls 的 arguments 以 delta 分片吐出，
+ * 交互面板需要边收边渲染「正在写入的正文」预览。此函数对任意截断位置的
+ * arguments 字符串做容错解析：
+ * - 逐字符还原 JSON 字符串转义（\" \\ \n \t \r \uXXXX 等）
+ * - 字符串未结束（流还没传完）时返回「已确定的部分」
+ * - 尾部停在半截转义（如 \u 后不足 4 位 hex）时停在转义前
+ */
+export function extractPartialContent(args: string): string {
+  const key = '"content"'
+  const keyIdx = args.indexOf(key)
+  if (keyIdx === -1) return ''
+
+  let i = keyIdx + key.length
+  while (i < args.length && /\s/.test(args[i])) i++
+  if (args[i] !== ':') return ''
+  i++
+  while (i < args.length && /\s/.test(args[i])) i++
+  if (args[i] !== '"') return ''
+  i++
+
+  let out = ''
+  while (i < args.length) {
+    const c = args[i]
+    if (c !== '\\') {
+      if (c === '"') break // 字符串正常结束
+      out += c
+      i++
+      continue
+    }
+    const next = args[i + 1]
+    if (next === undefined) break // 尾部停在孤立的反斜杠上
+    switch (next) {
+      case 'n':
+        out += '\n'
+        i += 2
+        break
+      case 't':
+        out += '\t'
+        i += 2
+        break
+      case 'r':
+        out += '\r'
+        i += 2
+        break
+      case 'b':
+        out += '\b'
+        i += 2
+        break
+      case 'f':
+        out += '\f'
+        i += 2
+        break
+      case '"':
+        out += '"'
+        i += 2
+        break
+      case '\\':
+        out += '\\'
+        i += 2
+        break
+      case '/':
+        out += '/'
+        i += 2
+        break
+      case 'u': {
+        const hex = args.slice(i + 2, i + 6)
+        const code = parseInt(hex, 16)
+        // \uXXXX 不完整或非法：停在转义前（注意这里必须 return，break 只退出 switch）
+        if (hex.length < 4 || Number.isNaN(code)) return out
+        out += String.fromCharCode(code)
+        i += 6
+        break
+      }
+      default:
+        // 未知转义：按字面保留（容错，不中断预览）
+        out += next
+        i += 2
+    }
+  }
+  return out
+}
+
+/**
+ * 追加写入章节正文（纯函数）。
+ * 段落分隔由模型在 content 里自行控制（续接上文则不加空行，另起段落则自带换行），
+ * 这里只做最外层归一：去掉 addition 尾部空白，避免落盘文件末尾堆空行。
+ */
+export function applyAppendToChapter(
+  current: string,
+  addition: string,
+): { next: string; addedChars: number } {
+  const add = addition.replace(/\s+$/, '')
+  if (!add) return { next: current, addedChars: 0 }
+  return { next: current + add, addedChars: add.length }
+}
+
+/**
+ * 重写章节结尾（纯函数）：用 replacement 替换 current 的最后 chars 个字符。
+ * chars 越界时收敛到 [0, current.length]；chars=0 等价于在结尾插入。
+ */
+export function applyReplaceTail(
+  current: string,
+  chars: number,
+  replacement: string,
+): { next: string; removedChars: number } {
+  const removeLen = Math.max(
+    0,
+    Math.min(Math.floor(Number.isFinite(chars) ? chars : 0), current.length),
+  )
+  return {
+    next: current.slice(0, current.length - removeLen) + replacement,
+    removedChars: removeLen,
+  }
+}
+
 /**
  * 连续重复轮检测：把本轮签名推入窗口，若最近 3 轮完全相同则返回 true
  * 并清空窗口（避免反复触发催促）。
  */
-export function detectRepeatedRounds(window: string[], roundKey: string): boolean {
+export function detectRepeatedRounds(
+  window: string[],
+  roundKey: string,
+): boolean {
   window.push(roundKey)
   if (window.length > 3) window.shift()
-  if (window.length === 3 && window[0] === window[1] && window[1] === window[2]) {
+  if (
+    window.length === 3 &&
+    window[0] === window[1] &&
+    window[1] === window[2]
+  ) {
     window.length = 0
     return true
   }

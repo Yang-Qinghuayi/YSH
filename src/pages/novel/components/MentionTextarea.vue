@@ -24,7 +24,9 @@
         @mousedown.prevent="selectCharacter(char)"
       >
         <span class="mention-name">@{{ char.name }}</span>
-        <span v-if="char.profile" class="mention-detail">{{ char.profile }}</span>
+        <span v-if="char.profile" class="mention-detail">{{
+          char.profile
+        }}</span>
       </button>
     </div>
   </div>
@@ -43,6 +45,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:modelValue': [value: string]
+  /** @提及菜单开合（供父组件区分 Enter 是「选提及」还是「发送」） */
+  'menu-open': [open: boolean]
 }>()
 
 const textareaRef = ref<VTextarea | null>(null)
@@ -120,7 +124,8 @@ function onKeydown(e: KeyboardEvent) {
     activeIndex.value = (activeIndex.value + 1) % filtered.value.length
   } else if (e.key === 'ArrowUp') {
     e.preventDefault()
-    activeIndex.value = (activeIndex.value - 1 + filtered.value.length) % filtered.value.length
+    activeIndex.value =
+      (activeIndex.value - 1 + filtered.value.length) % filtered.value.length
   } else if (e.key === 'Enter' || e.key === 'Tab') {
     e.preventDefault()
     selectCharacter(filtered.value[activeIndex.value])
@@ -135,6 +140,8 @@ function onBlur() {
     menuOpen.value = false
   }, 120)
 }
+
+watch(menuOpen, (v) => emit('menu-open', v))
 </script>
 
 <style scoped>
