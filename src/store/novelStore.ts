@@ -51,13 +51,6 @@ export const useNovelStore = defineStore('novel', () => {
     currentNovel.value = updated
   }
 
-  // 在当前小说中更新章节列表
-  function updateChapterList(chapters: ChapterMeta[]) {
-    if (!currentNovel.value) return
-    currentNovel.value = { ...currentNovel.value, chapters }
-    updateCurrentNovel(currentNovel.value)
-  }
-
   // AI 生成状态管理
   function startGenerating() {
     abortController.value = new AbortController()
@@ -82,7 +75,6 @@ export const useNovelStore = defineStore('novel', () => {
     updateContent,
     markSaved,
     updateCurrentNovel,
-    updateChapterList,
     startGenerating,
     stopGenerating,
   }

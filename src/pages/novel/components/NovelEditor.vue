@@ -12,15 +12,17 @@ import {
   placeholder,
 } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
+import { autocompletion, type CompletionContext } from "@codemirror/autocomplete";
 import { markdown } from "@codemirror/lang-markdown";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { useTheme } from "vuetify";
 import { useSettingStore } from "@/store/setting";
-import type { ChapterMeta } from "@/types/novel";
+import type { ChapterMeta, Character } from "@/types/novel";
 
 const props = defineProps<{
   chapter: ChapterMeta | null;
   content: string;
+  characters: Character[];
   isGenerating: boolean;
 }>();
 
@@ -37,6 +39,24 @@ const editorView = shallowRef<EditorView | null>(null);
 const vuetifyTheme = useTheme();
 const settingStore = useSettingStore();
 const isDark = computed(() => vuetifyTheme.global.current.value.dark);
+
+/** @角色 补全：输入 @ 后按角色档案提示，选中即写入 @角色名（供 Agent 强制指定） */
+function mentionCompletion(context: CompletionContext) {
+  const before = context.matchBefore(/@[\u4e00-\u9fff\w]*/);
+  if (!before) return null;
+  if (before.from === before.to && !context.explicit) return null;
+  const options = props.characters.map((c) => ({
+    label: `@${c.name}`,
+    detail: c.literaryReference || c.profile?.slice(0, 24) || undefined,
+    type: 'variable',
+  }));
+  if (!options.length) return null;
+  return {
+    from: before.from,
+    options,
+    validFor: /^@[\u4e00-\u9fff\w]*$/,
+  };
+}
 
 function handleTab(view: EditorView): boolean {
   const { state } = view;
@@ -112,6 +132,11 @@ function createEditor(content: string) {
       }
     }),
     EditorView.lineWrapping,
+    autocompletion({
+      override: [mentionCompletion],
+      activateOnTyping: true,
+      icons: false,
+    }),
     placeholder('写下来吧……'),
     lightTheme,
     ...(isDark.value ? [oneDark] : []),

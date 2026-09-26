@@ -24,8 +24,12 @@ export interface SettingState {
   uiFont: string;
   editorFontSize: number;
   // AI 写作（DeepSeek）
-  deepseekApiKey: string;
+  // 注意：API Key 不在此持久化，见 @/hooks/useApiKey（区分「记住/仅本次会话」）
   deepseekModel: 'deepseek-chat' | 'deepseek-reasoner';
+  /** 是否把 API Key 持久化到本机（关闭则仅本次会话有效） */
+  rememberApiKey: boolean;
+  /** 生成后自动写章节摘要，用于后续章节的「前情提要」 */
+  autoChapterSummary: boolean;
   // 工作区文件夹（null = 使用 AppData 默认位置）
   workspaceDir: string | null;
 }
@@ -45,8 +49,9 @@ export const useSettingStore = defineStore('setting', {
         navPosition: NavPosition.left,
         uiFont: 'LXGW WenKai',
         editorFontSize: 17,
-        deepseekApiKey: '',
         deepseekModel: 'deepseek-chat',
+        rememberApiKey: true,
+        autoChapterSummary: true,
         workspaceDir: null,
       },
       { mergeDefaults: true }

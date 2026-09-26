@@ -80,6 +80,7 @@
           style="min-height: 0;"
           :chapter="currentChapter"
           :content="currentChapterContent"
+          :characters="currentNovel?.characters ?? []"
           :is-generating="isGenerating"
           @update:content="handleContentChange"
           @generate="handleGenerate"
@@ -88,7 +89,7 @@
         />
 
         <!-- Agent 状态条 -->
-        <AgentStatusBar @stop="handleStopGenerate" />
+        <AgentStatusBar @stop="handleStopGenerate" @dismiss="finishAgent" />
       </template>
     </div>
 
@@ -291,7 +292,7 @@
           <div class="setting-divider" />
           <div class="setting-section-title">AI 写作（DeepSeek）</div>
           <v-text-field
-            v-model="settingStore.deepseekApiKey"
+            v-model="apiKey"
             label="DeepSeek API Key"
             placeholder="sk-..."
             variant="outlined"
@@ -302,12 +303,41 @@
             persistent-hint
             @click:append-inner="showApiKey = !showApiKey"
           />
+          <div class="key-row">
+            <v-switch
+              v-model="rememberApiKey"
+              color="primary"
+              density="compact"
+              hide-details
+              label="记住 API Key"
+              class="key-switch"
+            />
+            <button v-if="apiKey" class="lg-pill mini-action key-clear" @click="clearApiKey">
+              清除
+            </button>
+          </div>
+          <div class="model-warn">
+            关闭「记住」后 Key 只保存在本次会话，关闭窗口即失效。Key 存储在浏览器/本机存储中（Web
+            部署请使用受限或限额 Key），除 api.deepseek.com 外不会发往任何服务。
+          </div>
           <v-select
             v-model="settingStore.deepseekModel"
             label="模型"
             :items="modelOptions"
             variant="outlined"
             density="compact"
+          />
+          <div v-if="settingStore.deepseekModel === 'deepseek-reasoner'" class="model-warn">
+            深度推理模型不支持工具调用，Agent 将跳过资料检索循环，改为「直读上下文」模式规划（检索能力受限）。
+          </div>
+          <v-switch
+            v-model="settingStore.autoChapterSummary"
+            color="primary"
+            density="compact"
+            hide-details
+            label="生成后自动写章节摘要"
+            hint="摘要会作为后续章节规划时的「前情提要」"
+            persistent-hint
           />
           <v-switch
             v-model="agentStore.autoUpdateStoryState"
@@ -323,7 +353,7 @@
     </v-dialog>
 
     <!-- 错误提示 -->
-    <v-snackbar v-model="showError" color="error" timeout="4000" location="top">
+    <v-snackbar v-model="showError" :color="snackColor" timeout="6000" location="top">
       {{ errorMessage }}
     </v-snackbar>
   </div>
@@ -370,8 +400,10 @@ import {
   runPlanPhase,
   runGeneratePhase,
   abort as abortSession,
+  INLINE_PLAN_MAX_TOOL_ROUNDS,
   type AgentSession,
   type AgentPlan,
+  type AgentCallbacks,
   type AgentConfig,
 } from '@/services/agentService'
 import { loadStoryState, saveStoryState } from '@/services/storyStateService'
@@ -400,11 +432,13 @@ import StoryStateDialog from './components/StoryStateDialog.vue'
 import ImportNovelDialog from './components/ImportNovelDialog.vue'
 import GlobalSearch from '@/components/GlobalSearch.vue'
 import { useDialogEsc } from '@/hooks/useDialogEsc'
+import { useApiKey } from '@/hooks/useApiKey'
 
 // ===== Store =====
 const novelStore = useNovelStore()
 const settingStore = useSettingStore()
 const agentStore = useAgentStore()
+const { apiKey, remember: rememberApiKey, clear: clearApiKey } = useApiKey()
 
 const { currentNovel, currentChapter, currentChapterContent, isDirty, isGenerating } =
   storeToRefs(novelStore)
@@ -423,6 +457,7 @@ const showLorePanel = ref(false)
 const showImportDialog = ref(false)
 const showStoryStateDialog = ref(false)
 const showEditorSettings = ref(false)
+const snackColor = ref<'error' | 'warning'>('error')
 useDialogEsc(showEditorSettings)
 const loreEntries = ref<EntryMeta[]>([])
 const pendingLoreEntryId = ref<string | null>(null)
@@ -680,26 +715,101 @@ async function handleSearchJump(result: SearchResult) {
   editorRef.value?.jumpToLine(result.lineIndex)
 }
 
-// ===== AI 生成（内联续写：Tab 触发，走 Agent 快速模式，跳过确认） =====
+// ===== Agent 回调与收尾（统一处理取消/失败/成功，避免状态胶囊卡住） =====
+
+function errorText(e: unknown): string {
+  return e instanceof Error ? e.message : String(e)
+}
+
+/** 生成结束（成功或失败）后的统一收尾：刷新状态缓存 → 重置 Agent → 解除生成态 */
+async function finishAgent() {
+  const novelId = agentSession.value?.novelId ?? currentNovel.value?.id
+  if (novelId) {
+    try {
+      agentStore.setStoryState(await loadStoryState(novelId))
+    } catch {
+      // 忽略
+    }
+  }
+  agentStore.resetAgent()
+  agentSession.value = null
+  novelStore.stopGenerating()
+}
+
+/** 章节摘要落盘（写回 ChapterMeta.summary，供后续章节的「前情提要」） */
+async function persistChapterSummary(summary: string) {
+  const novel = currentNovel.value
+  const chapter = currentChapter.value
+  if (!novel || !chapter) return
+  chapter.summary = summary
+  try {
+    await saveNovelMeta(novel)
+  } catch {
+    // 摘要写盘失败不影响正文
+  }
+}
+
+/** 构造 Agent 回调：状态同步 + 错误统一收尾 + 可选流式写入编辑器 */
+function makeAgentCallbacks(opts: {
+  label: string
+  streamToEditor?: boolean
+  onPlanReady?: (plan: AgentPlan) => void
+}): AgentCallbacks {
+  return {
+    onStatus: (s) => agentStore.setStatus(s),
+    onPhase: (p) => {
+      agentStore.setPhase(p)
+      syncGenerating(p)
+      // 被中断：短暂展示「已取消」后自动收起，避免状态胶囊长期停留
+      if (p === 'canceled') {
+        setTimeout(() => {
+          if (agentStore.phase === 'canceled') void finishAgent()
+        }, 4000)
+      }
+    },
+    onToolCall: (log) => agentStore.addToolLog(log),
+    onPlanReady: opts.onPlanReady,
+    onTextDelta: opts.streamToEditor
+      ? (delta) => editorRef.value?.appendContent(delta)
+      : undefined,
+    onChapterSummary: (summary) => void persistChapterSummary(summary),
+    onContextTrimmed: (info) =>
+      showWarnMsg(
+        `上下文接近上限，已省略 ${info.trimmed} 条早期调研结果（约 ${info.estimatedTokens} tokens）。`,
+      ),
+    onWarn: (msg) => showWarnMsg(`${opts.label}：${msg}`),
+    onError: (e) => {
+      showErrorMsg(`${opts.label}失败：${errorText(e)}`)
+      void finishAgent()
+    },
+    onDone: () => void finishAgent(),
+  }
+}
+
+// ===== AI 生成（内联续写：Tab 触发，走 Agent 轻量模式，跳过确认） =====
 async function handleGenerate(cursorPos: number, lineText: string) {
   if (!currentNovel.value || !currentChapter.value) return
   if (isGenerating.value) return
-
-  const apiKey = settingStore.deepseekApiKey
-  if (!apiKey) {
+  if (!apiKey.value) {
     showErrorMsg('请先在「设置」中填写 DeepSeek API Key')
     return
   }
 
   const brief = `续写一小段，自然衔接前文。${lineText.trim() ? `本行提示：${lineText.trim()}` : ''}`
 
+  // 光标前最近约 1200 字内的 @角色 视为强制指定（编辑器内 @补全写入的提及在此生效）
+  const lookback = currentChapterContent.value.slice(Math.max(0, cursorPos - 1200), cursorPos)
+  const forcedMentions = parseMentions(`${lookback}\n${lineText}`, currentNovel.value)
+
   const session = createSession({
     novel: currentNovel.value,
     chapter: currentChapter.value,
     chapterContent: currentChapterContent.value,
     cursorPosition: cursorPos,
-    forcedMentions: [],
+    forcedMentions,
     skipConfirmation: true,
+    // 只写一小段：压缩调研轮数与收尾开销，降低首字延迟
+    planMaxToolRounds: INLINE_PLAN_MAX_TOOL_ROUNDS,
   })
   agentSession.value = session
   agentStore.clearToolLog()
@@ -707,31 +817,12 @@ async function handleGenerate(cursorPos: number, lineText: string) {
   agentStore.setPhase('planning')
   editorRef.value?.moveCursorToNextLine()
 
-  await runPlanPhase(session, brief, buildAgentConfig(), {
-    onStatus: (s) => agentStore.setStatus(s),
-    onPhase: (p) => {
-      agentStore.setPhase(p)
-      syncGenerating(p)
-    },
-    onToolCall: (log) => agentStore.addToolLog(log),
-    onTextDelta: (delta) => {
-      editorRef.value?.appendContent(delta)
-    },
-    onError: (e) => {
-      showErrorMsg('AI 生成失败：' + (e instanceof Error ? e.message : String(e)))
-    },
-    onDone: async () => {
-      try {
-        const s = await loadStoryState(session.novelId)
-        agentStore.setStoryState(s)
-      } catch {
-        // 忽略
-      }
-      agentStore.resetAgent()
-      agentSession.value = null
-      novelStore.stopGenerating()
-    },
-  })
+  await runPlanPhase(
+    session,
+    brief,
+    buildAgentConfig({ autoChapterSummary: false }),
+    makeAgentCallbacks({ label: 'AI 生成', streamToEditor: true }),
+  )
 }
 
 function handleStopGenerate() {
@@ -742,11 +833,13 @@ function handleStopGenerate() {
 }
 
 // ===== Agent 整章生成（plan → 确认 → 生成） =====
-function buildAgentConfig(): AgentConfig {
+function buildAgentConfig(overrides: Partial<AgentConfig> = {}): AgentConfig {
   return {
-    apiKey: settingStore.deepseekApiKey,
+    apiKey: apiKey.value,
     model: settingStore.deepseekModel,
     autoUpdateStoryState: agentStore.autoUpdateStoryState,
+    autoChapterSummary: settingStore.autoChapterSummary,
+    ...overrides,
   }
 }
 
@@ -761,9 +854,7 @@ function syncGenerating(phase: string) {
 async function startChapterAgent() {
   if (!currentNovel.value || !currentChapter.value) return
   if (isGenerating.value) return
-
-  const apiKey = settingStore.deepseekApiKey
-  if (!apiKey) {
+  if (!apiKey.value) {
     showErrorMsg('请先在「设置」中填写 DeepSeek API Key')
     return
   }
@@ -786,23 +877,18 @@ async function startChapterAgent() {
   agentStore.setPlan(null)
   agentStore.setPhase('planning')
 
-  await runPlanPhase(session, chapterBrief.value, buildAgentConfig(), {
-    onStatus: (s) => agentStore.setStatus(s),
-    onPhase: (p) => {
-      agentStore.setPhase(p)
-      syncGenerating(p)
-    },
-    onToolCall: (log) => agentStore.addToolLog(log),
-    onPlanReady: (plan) => {
-      agentStore.setPlan(plan)
-      agentStore.planDialogVisible = true
-    },
-    onError: (e) => {
-      showErrorMsg('Agent 规划失败：' + (e instanceof Error ? e.message : String(e)))
-      agentStore.resetAgent()
-      novelStore.stopGenerating()
-    },
-  })
+  await runPlanPhase(
+    session,
+    chapterBrief.value,
+    buildAgentConfig(),
+    makeAgentCallbacks({
+      label: 'Agent 规划',
+      onPlanReady: (plan) => {
+        agentStore.setPlan(plan)
+        agentStore.planDialogVisible = true
+      },
+    }),
+  )
 }
 
 async function handleConfirmPlan(plan: AgentPlan) {
@@ -813,41 +899,18 @@ async function handleConfirmPlan(plan: AgentPlan) {
   agentStore.setPhase('generating')
   syncGenerating('generating')
 
-  await runGeneratePhase(session, buildAgentConfig(), {
-    onStatus: (s) => agentStore.setStatus(s),
-    onPhase: (p) => {
-      agentStore.setPhase(p)
-      syncGenerating(p)
-    },
-    onToolCall: (log) => agentStore.addToolLog(log),
-    onTextDelta: (delta) => {
-      editorRef.value?.appendContent(delta)
-    },
-    onError: (e) => {
-      showErrorMsg('Agent 生成失败：' + (e instanceof Error ? e.message : String(e)))
-    },
-    onDone: async () => {
-      // 刷新故事状态缓存，角色面板实时更新
-      try {
-        const s = await loadStoryState(session.novelId)
-        agentStore.setStoryState(s)
-      } catch {
-        // 忽略
-      }
-      agentStore.resetAgent()
-      agentSession.value = null
-      novelStore.stopGenerating()
-    },
-  })
+  await runGeneratePhase(
+    session,
+    buildAgentConfig(),
+    makeAgentCallbacks({ label: 'Agent 生成', streamToEditor: true }),
+  )
 }
 
 function handleCancelPlan() {
   const session = agentSession.value
   if (session) abortSession(session)
   agentStore.planDialogVisible = false
-  agentStore.resetAgent()
-  agentSession.value = null
-  novelStore.stopGenerating()
+  void finishAgent()
 }
 
 // ===== 角色面板：档案/状态编辑落盘 =====
@@ -897,6 +960,13 @@ async function handleUpdateCharacterState(patch: {
 
 // ===== 工具函数 =====
 function showErrorMsg(msg: string) {
+  snackColor.value = 'error'
+  errorMessage.value = msg
+  showError.value = true
+}
+
+function showWarnMsg(msg: string) {
+  snackColor.value = 'warning'
   errorMessage.value = msg
   showError.value = true
 }
@@ -1207,6 +1277,29 @@ onBeforeUnmount(() => {
   font-size: 11px;
   color: rgba(var(--v-theme-on-surface), 0.3);
   margin-top: -4px;
+}
+.key-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: -8px;
+}
+.key-switch {
+  flex: 1;
+}
+.key-clear {
+  flex: 0 0 auto;
+  max-width: 72px;
+}
+.model-warn {
+  margin-top: -6px;
+  padding: 7px 10px;
+  border-radius: 12px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: rgba(var(--v-theme-on-surface), 0.62);
+  background: rgba(var(--v-theme-warning, 255, 179, 0), 0.12);
+  border: 1px solid rgba(var(--v-theme-warning, 255, 179, 0), 0.22);
 }
 .setting-divider {
   height: 1px;
