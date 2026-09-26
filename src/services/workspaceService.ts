@@ -6,11 +6,12 @@
  *   - 若未设置：回退到 AppData（Web 兜底）
  */
 
-import type { BaseDir } from '@/types/system'
-import { useSettingStore } from '@/store/setting'
-import { useAppService } from '@/hooks/useEnv'
-import { open } from '@tauri-apps/plugin-dialog'
-import { join, basename } from '@tauri-apps/api/path'
+import { basename, join } from '@tauri-apps/api/path';
+import { open } from '@tauri-apps/plugin-dialog';
+
+import { useAppService } from '@/hooks/useEnv';
+import { useSettingStore } from '@/store/setting';
+import type { BaseDir } from '@/types/system';
 
 /**
  * 获取当前数据目录配置
@@ -26,18 +27,18 @@ import { join, basename } from '@tauri-apps/api/path'
  *   await fs.readFile(pathPrefix + 'novel.json', base, 'text')
  */
 export function getDataBase(): { base: BaseDir; pathPrefix: string } {
-  const setting = useSettingStore()
+  const setting = useSettingStore();
   // 有具体路径时使用工作区
   if (setting.workspaceDir) {
-    return { base: 'None', pathPrefix: setting.workspaceDir + '/' }
+    return { base: 'None', pathPrefix: setting.workspaceDir + '/' };
   }
   // null 或空字符串都使用 AppData
-  return { base: 'Data', pathPrefix: '' }
+  return { base: 'Data', pathPrefix: '' };
 }
 
 /** 是否已完成工作区初始化（null = 从未选择过） */
 export function isWorkspaceInitialized(): boolean {
-  return useSettingStore().workspaceDir !== null
+  return useSettingStore().workspaceDir !== null;
 }
 
 /**
@@ -50,29 +51,23 @@ export async function pickWorkspaceDir(): Promise<string | null> {
     directory: true,
     multiple: false,
     title: '选择工作区文件夹',
-  })
-  return typeof result === 'string' ? result : null
+  });
+  return typeof result === 'string' ? result : null;
 }
 
 /** 设置工作区文件夹路径（保存到 localStorage） */
 export function setWorkspaceDir(dir: string) {
-  const setting = useSettingStore()
-  setting.workspaceDir = dir
-}
-
-/** 清除工作区文件夹（回退到 AppData） */
-export function clearWorkspaceDir() {
-  const setting = useSettingStore()
-  setting.workspaceDir = null
+  const setting = useSettingStore();
+  setting.workspaceDir = dir;
 }
 
 /** 获取当前工作区路径（用于展示） */
 export function getWorkspaceDir(): string | null {
-  return useSettingStore().workspaceDir ?? null
+  return useSettingStore().workspaceDir ?? null;
 }
 
 /** Windows 保留文件夹名 */
-const RESERVED_NAMES = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i
+const RESERVED_NAMES = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
 
 /**
  * 把小说标题规范化为合法的文件夹名（跨平台）。
@@ -84,20 +79,20 @@ export function sanitizeDirName(title: string): string {
     .replace(/[/\\:*?"<>|]/g, '_')
     .replace(/\s+/g, ' ')
     .trim()
-    .replace(/^\.+|\.+$/g, '')
-  if (RESERVED_NAMES.test(name)) name = `${name}_`
-  if (name.length > 80) name = name.slice(0, 80).trim()
-  return name || '未命名小说'
+    .replace(/^\.+|\.+$/g, '');
+  if (RESERVED_NAMES.test(name)) name = `${name}_`;
+  if (name.length > 80) name = name.slice(0, 80).trim();
+  return name || '未命名小说';
 }
 
 /** 跨平台拼接路径 */
 export async function joinPath(parent: string, name: string): Promise<string> {
-  return join(parent, name)
+  return join(parent, name);
 }
 
 /** 取路径最后一段（文件夹名） */
 export async function getDirName(path: string): Promise<string> {
-  return basename(path)
+  return basename(path);
 }
 
 /**
@@ -105,21 +100,20 @@ export async function getDirName(path: string): Promise<string> {
  * 返回新文件夹的绝对路径。
  */
 export async function createNovelFolder(parentDir: string, title: string): Promise<string> {
-  const appService = await useAppService()
+  const appService = await useAppService();
   // target 是绝对路径，固定用 'None' 让 fs 当绝对路径处理
-  const base: BaseDir = 'None'
+  const base: BaseDir = 'None';
 
-  const slug = sanitizeDirName(title)
-  let target = await joinPath(parentDir, slug)
+  const slug = sanitizeDirName(title);
+  let target = await joinPath(parentDir, slug);
   // 同名冲突：追加 -2、-3…
-  let suffix = 2
+  let suffix = 2;
   while (await appService.fs.exists(target, base).catch(() => false)) {
-    target = await joinPath(parentDir, `${slug}-${suffix}`)
-    suffix++
+    target = await joinPath(parentDir, `${slug}-${suffix}`);
+    suffix++;
   }
 
-  await appService.fs.createDir(target, base, false)
-  setWorkspaceDir(target)
-  return target
+  await appService.fs.createDir(target, base, false);
+  setWorkspaceDir(target);
+  return target;
 }
-

@@ -49,8 +49,8 @@ export class TxtToEpubConverter {
 
     const fileHeader = txtContent.slice(0, 1024);
     const authorMatch =
-      fileHeader.match(/[【\[]?作者[】\]]?[:：\s]\s*(.+)\r?\n/) ||
-      fileHeader.match(/[【\[]?\s*(.+)\s+著\s*[】\]]?\r?\n/);
+      fileHeader.match(/[【[]?作者[】\]]?[:：\s]\s*(.+)\r?\n/) ||
+      fileHeader.match(/[【[]?\s*(.+)\s+著\s*[】\]]?\r?\n/);
     const author = authorMatch ? authorMatch[1]!.trim() : providedAuthor || '';
     const language = providedLanguage || this.detectLanguage(fileHeader);
     const identifier = await partialMD5(txtFile);
@@ -81,7 +81,7 @@ export class TxtToEpubConverter {
   private extractChapters(
     txtContent: string,
     metadata: Metadata,
-    option: ExtractChapterOptions,
+    option: ExtractChapterOptions
   ): Chapter[] {
     const { language } = metadata;
     const { linesBetweenSegments } = option;
@@ -89,7 +89,7 @@ export class TxtToEpubConverter {
     let chapterRegex: RegExp;
     if (language === 'zh') {
       chapterRegex =
-        /(?:^|\n|\s|《[^》]+》)(第?[一二三四五六七八九十百千万0-9]+[章卷节回讲篇](?:[：:、 　\(\)0-9]+[^\n-]*)?(?!\S)|(?:^|\n|\s|《[^》]+》)[一二三四五六七八九十百千万]+(?:[：:、 　][^\n-]+)(?!\S)|(?:楔子|前言|引言|序言|序章|总论|概论)(?:[：: 　][^\n-]*)?(?!\S))/g;
+        /(?:^|\n|\s|《[^》]+》)(第?[一二三四五六七八九十百千万0-9]+[章卷节回讲篇](?:[：:、\u3000()0-9]+[^\n-]*)?(?!\S)|(?:^|\n|\s|《[^》]+》)[一二三四五六七八九十百千万]+(?:[：:、\u3000][^\n-]+)(?!\S)|(?:楔子|前言|引言|序言|序章|总论|概论)(?:[：:\u3000][^\n-]*)?(?!\S))/g;
     } else {
       chapterRegex =
         /(?:^|\n|\s)(Chapter [0-9]+(?:[: ][^\n]*)?(?!\S)|Part [0-9]+(?:[: ][^\n]*)?(?!\S)|Prologue(?:[: ][^\n]*)?(?!\S)|Introduction(?:[: ][^\n]*)?(?!\S))/g;
@@ -211,7 +211,7 @@ export class TxtToEpubConverter {
       .map(
         (_, index) => `
       <item id="chap${index + 1}" href="OEBPS/chapter${index + 1}.xhtml" media-type="application/xhtml+xml"/>
-    `,
+    `
       )
       .join('\n')
       .trim();
@@ -219,7 +219,7 @@ export class TxtToEpubConverter {
     const spine = chapters
       .map(
         (_, index) => `
-      <itemref idref="chap${index + 1}"/>`,
+      <itemref idref="chap${index + 1}"/>`
       )
       .join('\n')
       .trim();
@@ -248,7 +248,7 @@ export class TxtToEpubConverter {
       await zipWriter.add(
         `OEBPS/chapter${i + 1}.xhtml`,
         new TextReader(chapterContent),
-        zipWriteOptions,
+        zipWriteOptions
       );
     }
 

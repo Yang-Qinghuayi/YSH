@@ -59,8 +59,3 @@ export const loadShortcuts = (): ShortcutConfig => {
     ...customShortcuts,
   };
 };
-
-// Save custom shortcuts to localStorage
-export const saveShortcuts = (shortcuts: ShortcutConfig) => {
-  localStorage.setItem('customShortcuts', JSON.stringify(shortcuts));
-};

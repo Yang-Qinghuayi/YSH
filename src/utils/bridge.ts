@@ -10,30 +10,6 @@ export interface CopyURIResponse {
   error?: string;
 }
 
-export interface InstallPackageRequest {
-  path: string;
-}
-
-export interface InstallPackageResponse {
-  success: boolean;
-  error?: string;
-}
-
-export interface SetSystemUIVisibilityRequest {
-  visible: boolean;
-  darkMode: boolean;
-}
-
-export interface SetSystemUIVisibilityResponse {
-  success: boolean;
-  error?: string;
-}
-
-export interface GetStatusBarHeightResponse {
-  height: number;
-  error?: string;
-}
-
 export interface GetSystemFontsListResponse {
   fonts: string[];
   error?: string;
@@ -47,34 +23,6 @@ export async function copyURIToPath(request: CopyURIRequest): Promise<CopyURIRes
   return result;
 }
 
-export async function installPackage(
-  request: InstallPackageRequest,
-): Promise<InstallPackageResponse> {
-  const result = await invoke<InstallPackageResponse>('plugin:native-bridge|install_package', {
-    payload: request,
-  });
-  return result;
-}
-
-export async function setSystemUIVisibility(
-  request: SetSystemUIVisibilityRequest,
-): Promise<SetSystemUIVisibilityResponse> {
-  const result = await invoke<SetSystemUIVisibilityResponse>(
-    'plugin:native-bridge|set_system_ui_visibility',
-    {
-      payload: request,
-    },
-  );
-  return result;
-}
-
-export async function getStatusBarHeight(): Promise<GetStatusBarHeightResponse> {
-  const result = await invoke<GetStatusBarHeightResponse>(
-    'plugin:native-bridge|get_status_bar_height',
-  );
-  return result;
-}
-
 let cachedSysFontsResult: GetSystemFontsListResponse | null = null;
 
 export async function getSysFontsList(): Promise<GetSystemFontsListResponse> {
@@ -82,7 +30,7 @@ export async function getSysFontsList(): Promise<GetSystemFontsListResponse> {
     return cachedSysFontsResult;
   }
   const result = await invoke<GetSystemFontsListResponse>(
-    'plugin:native-bridge|get_sys_fonts_list',
+    'plugin:native-bridge|get_sys_fonts_list'
   );
   cachedSysFontsResult = result;
   return result;

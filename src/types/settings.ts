@@ -1,6 +1,4 @@
-import { HighlightColor, HighlightStyle, ViewSettings } from './book';
-
-export type ThemeType = 'light' | 'dark' | 'auto';
+import type { HighlightColor, HighlightStyle, ViewSettings } from './book';
 
 export interface ReadSettings {
   sideBarWidth: string;
@@ -18,16 +16,7 @@ export interface SystemSettings {
   version: number;
   localBooksDir: string;
 
-  keepLogin: boolean;
-  autoUpload: boolean;
-  alwaysOnTop: boolean;
-  autoCheckUpdates: boolean;
-  screenWakeLock: boolean;
   autoImportBooksOnOpen: boolean;
-
-  lastSyncedAtBooks: number;
-  lastSyncedAtConfigs: number;
-  lastSyncedAtNotes: number;
 
   globalReadSettings: ReadSettings;
   globalViewSettings: ViewSettings;

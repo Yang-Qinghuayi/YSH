@@ -1,6 +1,6 @@
-import { BookFormat } from '@/types/book';
-import { Contributor, LanguageMap } from '@/utils/book';
 import * as epubcfi from '@/foliate-js/epubcfi.js';
+import type { BookFormat } from '@/types/book';
+import type { Contributor, LanguageMap } from '@/utils/book';
 
 // A groupBy polyfill for foliate-js
 Object.groupBy ??= (iterable, callbackfn) => {
@@ -33,8 +33,6 @@ Map.groupBy ??= (iterable, callbackfn) => {
 };
 
 export const CFI = epubcfi;
-
-export type DocumentFile = File;
 
 export interface TOCItem {
   id: number;
@@ -126,9 +124,8 @@ export class DocumentLoader {
       return null;
     };
 
-    const { configure, ZipReader, BlobReader, TextWriter, BlobWriter } = await import(
-      '@zip.js/zip.js'
-    );
+    const { configure, ZipReader, BlobReader, TextWriter, BlobWriter } =
+      await import('@zip.js/zip.js');
     type Entry = import('@zip.js/zip.js').Entry & {
       getData?: (writer: unknown) => Promise<string | Blob>;
     };
@@ -142,10 +139,10 @@ export class DocumentLoader {
         map.has(name) ? f(map.get(name)!, ...args) : null;
 
     const loadText = load((entry: Entry) =>
-      entry.getData ? entry.getData(new TextWriter()) : null,
+      entry.getData ? entry.getData(new TextWriter()) : null
     );
     const loadBlob = load((entry: Entry, type?: string) =>
-      entry.getData ? entry.getData(new BlobWriter(type!)) : null,
+      entry.getData ? entry.getData(new BlobWriter(type!)) : null
     );
     const getSize = (name: string) => map.get(name)?.uncompressedSize ?? 0;
 

@@ -30,11 +30,6 @@ export interface Book {
   primaryLanguage?: string;
 }
 
-export interface BookGroupType {
-  id: string;
-  name: string;
-}
-
 export interface PageInfo {
   current: number;
   next?: number;
@@ -54,13 +49,6 @@ export interface BookNote {
   createdAt: number;
   updatedAt: number;
   deletedAt?: number | null;
-}
-
-export interface BooknoteGroup {
-  id: number;
-  href: string;
-  label: string;
-  booknotes: BookNote[];
 }
 
 export type WritingMode = 'auto' | 'horizontal-tb' | 'horizontal-rl' | 'vertical-rl';
@@ -167,27 +155,9 @@ export interface BookConfig {
   searchConfig?: Partial<BookSearchConfig>;
   viewSettings?: Partial<ViewSettings>;
 
-  lastSyncedAtConfig?: number;
-  lastSyncedAtNotes?: number;
-
   updatedAt: number;
 }
 
-export interface BookDataRecord {
-  id: string;
-  book_hash: string;
-  user_id: string;
-  updated_at: number | null;
-  deleted_at: number | null;
-}
-
-export interface BooksGroup {
-  id: string;
-  name: string;
-  books: Book[];
-
-  updatedAt: number;
-}
 export interface BookContent {
   book: Book;
   file: File;
