@@ -1,35 +1,13 @@
-/**
- * @deprecated 旧版角色的"技能"结构，仅用于数据迁移。新代码请使用 Character.profile。
- */
-export interface CharacterSkill {
-  id: string;
-  name: string;
-  prompt: string;
-}
-
-/**
- * 旧版角色结构（含 profile / skills），仅用于迁移读取，不直接使用。
- */
-export interface LegacyCharacter {
-  id: string;
-  name: string;
-  profile?: string;
-  skills?: CharacterSkill[];
-  [key: string]: unknown;
-}
-
-// 小说中的角色（静态档案）
-// 角色分为两层：
-//   1. 静态档案（本接口）——角色描述/别名/文学形象参考，不变的"是谁"，走 skill 激活机制
-//   2. 动态状态——经历/心情/想法/位置/伤势/关系，随情节变，叠在 StoryState 上（见 types/storyState.ts）
-// 状态不进档案、档案不进状态。
+// 小说中的角色
+// 一个人物只由两样东西记录：
+//   1. 长期记忆（本接口的 skill）——性格/出身/外貌/信念/说话方式/别名/参考形象……
+//      由作者填写；发生重大事件后，章节定稿时 Agent 可改写（改写记录可回滚，见 StoryState.longTermLog）
+//   2. 短期记忆——角色视角（POV）下最近经历了什么、知道什么、误以为什么，
+//      每章定稿后改写一次，存 story-state.json（见 types/storyState.ts）
 export interface Character {
   id: string;
   name: string; // @提及键，如 @李明
-  // —— 静态档案：不变的"是谁" ——
-  profile?: string; // 角色描述（自然语言叙事，综合性格/出身/外貌/爱好）
-  aliases?: string[]; // 别名/触发词
-  literaryReference?: string; // 文学形象参考（如 杨过、李寻欢），仅参考气质风骨，不涉及历史背景
+  skill?: string; // 长期记忆（Skill）：自然语言叙事
 }
 
 // 章节元数据（存于 novel.json 中）
@@ -37,7 +15,8 @@ export interface ChapterMeta {
   id: string;
   filename: string; // 如 "001_第一章.md"，对应 chapters/ 目录下的文件
   title: string;
-  summary?: string; // 可选章节摘要，给后续章节提供上下文
+  summary?: string; // 章节概要（定稿时生成，可手动编辑），给后续章节提供上下文
+  finalizedAt?: number; // 最近一次「本章定稿」的时间
   order: number; // 排列顺序
   wordCount?: number; // 字数（不含 Markdown 格式符和空白）
 }
@@ -65,7 +44,7 @@ export interface Novel {
 }
 
 // @ 提及解析结果
-// 角色档案合并后，仅支持 @角色名（激活该角色档案含文风）。
+// 仅支持 @角色名（强制该角色进入本次写作）。
 export interface Mention {
   type: 'character';
   raw: string; // 原始文本，如 "@李明"

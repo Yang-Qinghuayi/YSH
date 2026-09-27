@@ -37,6 +37,15 @@
       </button>
       <button
         class="action-btn"
+        :class="{ 'action-btn--disabled': !hasChapter }"
+        :disabled="!hasChapter"
+        :title="hasChapter ? '本章概要' : '请先打开一个章节'"
+        @click="emit('view-summary')"
+      >
+        <v-icon :icon="mdiTextBoxOutline" size="16" />
+      </button>
+      <button
+        class="action-btn"
         title="查看故事状态"
         @click="emit('view-state')"
       >
@@ -61,7 +70,7 @@ import {
   mdiAccountGroupOutline,
   mdiFolderOpen,
   mdiStateMachine,
-  mdiSwapHorizontal,
+  mdiTextBoxOutline,
   mdiCog,
 } from '@mdi/js'
 import { formatTotalWordCount } from '@/services/novelService'
@@ -70,11 +79,14 @@ import type { Novel } from '@/types/novel'
 
 const props = defineProps<{
   novel: Novel | null
+  /** 是否已打开章节（「本章概要」按钮依赖） */
+  hasChapter?: boolean
 }>()
 
 const emit = defineEmits<{
   'open-folder': []
   'view-state': []
+  'view-summary': []
   'switch-novel': []
   'open-settings': []
 }>()
@@ -175,6 +187,12 @@ const totalWordCount = computed(() => {
 .action-btn:hover {
   background: rgba(var(--v-theme-on-surface), 0.08);
   color: rgba(var(--v-theme-on-surface), 0.85);
+}
+.action-btn--disabled,
+.action-btn--disabled:hover {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background: transparent;
 }
 
 /* 窄屏：隐藏简介与单位，统计精简 */

@@ -1,142 +1,130 @@
 <template>
-  <v-dialog v-model="visible" max-width="720" scrollable>
-    <v-card rounded="xl" class="lg-dialog" v-if="state">
+  <v-dialog v-model="visible" max-width="760" scrollable>
+    <v-card rounded="xl" class="lg-dialog" v-if="loaded">
       <!-- 标题栏 -->
       <v-card-title class="d-flex align-center gap-3 pt-5 px-5">
         <span class="title-badge">
           <v-icon :icon="mdiStateMachine" size="18" />
         </span>
         <span class="text-h6">故事状态</span>
-        <span class="updated-hint" v-if="state.updatedAt">
-          最近更新 {{ formatTime(state.updatedAt) }}
+        <span class="updated-hint" v-if="liveState?.updatedAt">
+          最近更新 {{ formatTime(liveState.updatedAt) }}
         </span>
       </v-card-title>
 
       <v-card-text class="pa-5">
-        <!-- ===== 角色状态 ===== -->
-        <div class="section">
-          <div class="section-head">
-            <span class="section-label">角色状态</span>
-            <v-btn size="x-small" variant="tonal" rounded="pill" :prepend-icon="mdiPlus" @click="addCharacter">
-              新增
-            </v-btn>
-          </div>
-
-          <div v-if="state.characterStates.length === 0" class="empty-hint">暂无角色状态</div>
-          <div v-for="(c, i) in state.characterStates" :key="i" class="sub-card">
-            <div class="sub-card-head">
-              <v-select
-                v-model="c.characterName"
-                :items="characterNames"
-                item-title="name"
-                item-value="name"
-                density="compact"
-                variant="outlined"
-                hide-details
-                rounded="xl"
-                placeholder="选择角色"
-                class="name-select"
-              />
-              <button class="del-btn" title="删除" @click="state.characterStates.splice(i, 1)">
-                <v-icon :icon="mdiClose" size="15" />
-              </button>
-            </div>
-            <div class="field-grid">
-              <v-text-field v-model="c.mood" label="心情/想法" density="compact" variant="outlined" hide-details rounded="xl" />
-              <v-text-field v-model="c.location" label="位置" density="compact" variant="outlined" hide-details rounded="xl" />
-              <v-text-field v-model="c.injuries" label="伤势" density="compact" variant="outlined" hide-details rounded="xl" />
-              <v-text-field
-                :model-value="(c.possessions || []).join('、')"
-                @update:model-value="c.possessions = splitList($event)"
-                label="持有物品（顿号分隔）"
-                density="compact"
-                variant="outlined"
-                hide-details
-                rounded="xl"
-              />
-            </div>
-
-            <!-- 关系 -->
-            <div class="rel-wrap">
-              <div class="rel-label">关系</div>
-              <div v-for="(r, ri) in c.relationships" :key="ri" class="rel-row">
-                <v-text-field v-model="r.target" placeholder="对方角色" density="compact" variant="outlined" hide-details rounded="xl" class="rel-target" />
-                <v-text-field v-model="r.relation" placeholder="关系描述" density="compact" variant="outlined" hide-details rounded="xl" class="rel-relation" />
-                <button class="del-btn sm" @click="c.relationships.splice(ri, 1)">
-                  <v-icon :icon="mdiClose" size="14" />
-                </button>
-              </div>
-              <button class="add-link" @click="c.relationships.push({ target: '', relation: '' })">
-                <v-icon :icon="mdiPlus" size="13" /> 添加关系
-              </button>
-            </div>
-
-            <v-textarea v-model="c.notes" label="备注" density="compact" variant="outlined" hide-details rounded="xl" rows="1" auto-grow max-rows="3" class="mt-2" />
-          </div>
+        <div class="intro-hint">
+          每章写完后，在 Agent 面板点「定稿」：会生成章节概要、改写角色短期记忆、判断是否改写长期记忆，并更新整体进度。
         </div>
 
-        <!-- ===== 时间线 ===== -->
+        <!-- ===== 整体进度 ===== -->
         <div class="section">
           <div class="section-head">
-            <span class="section-label">时间线</span>
-            <v-btn size="x-small" variant="tonal" rounded="pill" :prepend-icon="mdiPlus" @click="addTimeline">
-              新增
-            </v-btn>
-          </div>
-          <div v-if="state.timeline.length === 0" class="empty-hint">暂无时间线节点</div>
-          <div v-for="(t, i) in state.timeline" :key="t.id" class="sub-card compact">
-            <v-text-field v-model="t.label" placeholder="事件标签" density="compact" variant="outlined" hide-details rounded="xl" />
-            <v-text-field v-model="t.detail" placeholder="详情（可选）" density="compact" variant="outlined" hide-details rounded="xl" class="mt-2" />
-            <button class="del-btn float" @click="state.timeline.splice(i, 1)">
-              <v-icon :icon="mdiClose" size="15" />
-            </button>
-          </div>
-        </div>
-
-        <!-- ===== 伏笔 ===== -->
-        <div class="section">
-          <div class="section-head">
-            <span class="section-label">伏笔</span>
-            <v-btn size="x-small" variant="tonal" rounded="pill" :prepend-icon="mdiPlus" @click="addForeshadowing">
-              新增
-            </v-btn>
-          </div>
-          <div v-if="state.foreshadowings.length === 0" class="empty-hint">暂无伏笔</div>
-          <div v-for="(f, i) in state.foreshadowings" :key="f.id" class="sub-card compact">
-            <div class="foreshadow-row">
-              <v-text-field v-model="f.description" placeholder="伏笔描述" density="compact" variant="outlined" hide-details rounded="xl" />
-              <v-select
-                v-model="f.status"
-                :items="statusItems"
-                density="compact"
-                variant="outlined"
-                hide-details
-                rounded="xl"
-                class="status-select"
-              />
-              <button class="del-btn" @click="state.foreshadowings.splice(i, 1)">
-                <v-icon :icon="mdiClose" size="15" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- ===== 备注 ===== -->
-        <div class="section">
-          <div class="section-head">
-            <span class="section-label">总体备注</span>
+            <span class="section-label">整体进度</span>
+            <span v-if="mainlineChapterTitle" class="section-meta">
+              截至《{{ mainlineChapterTitle }}》
+            </span>
           </div>
           <v-textarea
-            v-model="state.notes"
-            placeholder="记录全局设定、节奏提醒等"
+            v-model="mainlineDraft"
+            placeholder="主线梳理：已经发生的主线事件、当前局势与主要悬念。定稿时自动更新，也可手动修改。"
             density="compact"
             variant="outlined"
             hide-details
             rounded="xl"
-            rows="2"
+            rows="4"
             auto-grow
-            max-rows="5"
+            max-rows="12"
           />
+        </div>
+
+        <!-- ===== 角色短期记忆 ===== -->
+        <div class="section">
+          <div class="section-head">
+            <span class="section-label">角色短期记忆（POV）</span>
+            <span class="section-meta">只记录该角色自己知道的信息</span>
+          </div>
+          <div v-if="!characters.length" class="empty-hint">暂无角色</div>
+          <div v-for="c in characters" :key="c.id" class="sub-card">
+            <div class="sub-card-head">
+              <span class="char-name">{{ c.name }}</span>
+              <span v-if="memoryChapterTitle(c.name)" class="section-meta">
+                截至《{{ memoryChapterTitle(c.name) }}》
+              </span>
+            </div>
+            <v-textarea
+              v-model="memoryDrafts[c.name]"
+              placeholder="暂无短期记忆"
+              density="compact"
+              variant="outlined"
+              hide-details
+              rounded="xl"
+              rows="2"
+              auto-grow
+              max-rows="8"
+            />
+          </div>
+          <!-- 角色已删除/改名后遗留的记忆 -->
+          <div v-for="name in orphanMemoryNames" :key="name" class="sub-card sub-card--orphan">
+            <div class="sub-card-head">
+              <span class="char-name">{{ name }}</span>
+              <span class="section-meta">（角色已不存在）</span>
+              <v-spacer />
+              <button class="del-btn" title="删除这条记忆" @click="removedOrphans.add(name)">
+                <v-icon :icon="mdiClose" size="15" />
+              </button>
+            </div>
+            <div class="orphan-text">{{ originalMemory(name) }}</div>
+          </div>
+        </div>
+
+        <!-- ===== 长期记忆改写记录 ===== -->
+        <div class="section">
+          <div class="section-head">
+            <span class="section-label">长期记忆（Skill）改写记录</span>
+            <span class="section-meta">定稿时 Agent 自动写入，可回滚</span>
+          </div>
+          <div v-if="!changeLog.length" class="empty-hint">暂无改写</div>
+          <div
+            v-for="ch in changeLog"
+            :key="ch.id"
+            class="sub-card"
+            :class="{ 'sub-card--muted': ch.revertedAt }"
+          >
+            <div class="sub-card-head">
+              <span class="char-name">{{ ch.characterName }}</span>
+              <span class="section-meta">
+                《{{ chapterTitle(ch.chapterId) || '未知章节' }}》· {{ formatTime(ch.at) }}
+              </span>
+              <v-spacer />
+              <span v-if="ch.revertedAt" class="reverted-tag">已回滚</span>
+              <v-btn
+                v-else
+                size="x-small"
+                variant="tonal"
+                rounded="pill"
+                color="warning"
+                :prepend-icon="mdiUndoVariant"
+                @click="emit('revert', ch.id)"
+              >
+                回滚
+              </v-btn>
+            </div>
+            <div class="change-reason">原因：{{ ch.reason }}</div>
+            <button class="add-link" @click="toggleExpand(ch.id)">
+              {{ expanded.has(ch.id) ? '收起对比' : '查看改写前后' }}
+            </button>
+            <div v-if="expanded.has(ch.id)" class="diff-grid">
+              <div>
+                <div class="diff-label">改写前</div>
+                <div class="diff-text">{{ ch.before || '（空）' }}</div>
+              </div>
+              <div>
+                <div class="diff-label">改写后</div>
+                <div class="diff-text">{{ ch.after }}</div>
+              </div>
+            </div>
+          </div>
         </div>
       </v-card-text>
 
@@ -150,100 +138,128 @@
 </template>
 
 <script setup lang="ts">
-import { mdiStateMachine, mdiPlus, mdiClose } from '@mdi/js'
+import { mdiStateMachine, mdiClose, mdiUndoVariant } from '@mdi/js'
+import { storeToRefs } from 'pinia'
 import { useAgentStore } from '@/store/agentStore'
 import { loadStoryState, saveStoryState } from '@/services/storyStateService'
-import type { StoryState, CharacterState } from '@/types/storyState'
-import type { Character } from '@/types/novel'
+import type { StoryState, CharacterMemory } from '@/types/storyState'
+import type { Character, ChapterMeta } from '@/types/novel'
 
 const props = defineProps<{
   modelValue: boolean
   novelId: string
   characters: Character[]
+  chapters: ChapterMeta[]
 }>()
 
-const emit = defineEmits<{ 'update:modelValue': [v: boolean] }>()
+const emit = defineEmits<{
+  'update:modelValue': [v: boolean]
+  /** 回滚一次长期记忆改写（由父组件改 novel.json 与 story-state.json） */
+  revert: [changeId: string]
+}>()
 const agentStore = useAgentStore()
+const { storyState: liveState } = storeToRefs(agentStore)
 
 const visible = computed({
   get: () => props.modelValue,
   set: (v) => emit('update:modelValue', v),
 })
 
-const state = ref<StoryState | null>(null)
+/** 打开时的快照（用于判断哪些字段被编辑过） */
+const original = ref<StoryState | null>(null)
+const loaded = computed(() => !!original.value)
+const mainlineDraft = ref('')
+const memoryDrafts = reactive<Record<string, string>>({})
+const removedOrphans = reactive(new Set<string>())
 const saving = ref(false)
-
-const characterNames = computed(() => props.characters.map((c) => ({ name: c.name })))
-const statusItems = [
-  { title: '未揭晓', value: 'open' },
-  { title: '已揭晓', value: 'resolved' },
-  { title: '已放弃', value: 'abandoned' },
-]
+const expanded = ref<Set<string>>(new Set())
 
 // 打开时加载最新状态
 watch(
   () => props.modelValue,
   async (v) => {
-    if (v) {
-      const s = await loadStoryState(props.novelId)
-      // 深拷贝一份编辑，避免直接污染 store
-      state.value = JSON.parse(JSON.stringify(s))
-    } else {
-      state.value = null
+    if (!v) {
+      original.value = null
+      return
     }
+    const s = await loadStoryState(props.novelId)
+    agentStore.setStoryState(s)
+    original.value = JSON.parse(JSON.stringify(s))
+    mainlineDraft.value = s.mainline
+    for (const k of Object.keys(memoryDrafts)) delete memoryDrafts[k]
+    for (const c of props.characters) {
+      memoryDrafts[c.name] =
+        s.characterMemories.find((m) => m.characterName === c.name)?.shortTerm ?? ''
+    }
+    removedOrphans.clear()
+    expanded.value = new Set()
   },
 )
 
-function splitList(text: string): string[] {
-  return text.split(/[、,，]/).map((s) => s.trim()).filter(Boolean)
+function chapterTitle(id?: string): string {
+  if (!id) return ''
+  return props.chapters.find((c) => c.id === id)?.title ?? ''
 }
-
-function addCharacter() {
-  if (!state.value) return
-  const cs: CharacterState = {
-    characterName: '',
-    mood: '',
-    location: '',
-    injuries: '',
-    possessions: [],
-    relationships: [],
-    notes: '',
-    lastUpdatedChapterId: '',
-    updatedAt: Date.now(),
-  }
-  state.value.characterStates.push(cs)
+const mainlineChapterTitle = computed(() =>
+  chapterTitle(original.value?.mainlineUpdatedChapterId),
+)
+function originalMemory(name: string): string {
+  return original.value?.characterMemories.find((m) => m.characterName === name)?.shortTerm ?? ''
 }
-
-function addTimeline() {
-  if (!state.value) return
-  state.value.timeline.push({
-    id: `tl-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    chapterId: '',
-    label: '',
-    detail: '',
-    order: state.value.timeline.length,
-  })
+function memoryChapterTitle(name: string): string {
+  const m = original.value?.characterMemories.find((x) => x.characterName === name)
+  return chapterTitle(m?.lastUpdatedChapterId)
 }
+const orphanMemoryNames = computed(() => {
+  const names = new Set(props.characters.map((c) => c.name))
+  return (original.value?.characterMemories ?? [])
+    .map((m) => m.characterName)
+    .filter((n) => !names.has(n) && !removedOrphans.has(n))
+})
 
-function addForeshadowing() {
-  if (!state.value) return
-  state.value.foreshadowings.push({
-    id: `fs-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    description: '',
-    plantedChapterId: '',
-    status: 'open',
-  })
+/** 改写记录：新的在前（读 store 的实时状态，回滚后立即刷新） */
+const changeLog = computed(() => [...(liveState.value?.longTermLog ?? [])].reverse())
+
+function toggleExpand(id: string) {
+  const s = new Set(expanded.value)
+  if (s.has(id)) s.delete(id)
+  else s.add(id)
+  expanded.value = s
 }
 
 async function save() {
-  if (!state.value) return
+  if (!original.value) return
   saving.value = true
   try {
-    // 清理空角色名项
-    state.value.characterStates = state.value.characterStates.filter(
-      (c) => c.characterName.trim(),
+    // 基于磁盘最新状态合并本次编辑（避免覆盖期间发生的回滚/定稿）
+    const latest = await loadStoryState(props.novelId)
+    const now = Date.now()
+    let memories: CharacterMemory[] = latest.characterMemories.filter(
+      (m) => !removedOrphans.has(m.characterName),
     )
-    const saved = await saveStoryState(state.value)
+    for (const c of props.characters) {
+      const draft = (memoryDrafts[c.name] ?? '').trim()
+      if (draft === originalMemory(c.name).trim()) continue
+      const idx = memories.findIndex((m) => m.characterName === c.name)
+      if (!draft) {
+        memories = memories.filter((m) => m.characterName !== c.name)
+      } else if (idx >= 0) {
+        memories[idx] = { ...memories[idx], shortTerm: draft, updatedAt: now }
+      } else {
+        memories.push({
+          characterName: c.name,
+          shortTerm: draft,
+          lastUpdatedChapterId: '',
+          updatedAt: now,
+        })
+      }
+    }
+    const mainlineChanged = mainlineDraft.value.trim() !== original.value.mainline.trim()
+    const saved = await saveStoryState({
+      ...latest,
+      mainline: mainlineChanged ? mainlineDraft.value.trim() : latest.mainline,
+      characterMemories: memories,
+    })
     agentStore.setStoryState(saved)
     visible.value = false
   } catch (e) {
@@ -254,7 +270,12 @@ async function save() {
 }
 
 function formatTime(ts: number): string {
-  return new Date(ts).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+  return new Date(ts).toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 </script>
 
@@ -279,20 +300,33 @@ function formatTime(ts: number): string {
   color: rgba(var(--v-theme-on-surface), 0.4);
   font-weight: 400;
 }
+.intro-hint {
+  font-size: 12px;
+  line-height: 1.6;
+  color: rgba(var(--v-theme-on-surface), 0.55);
+  background: rgba(var(--v-theme-primary), 0.06);
+  border-radius: 12px;
+  padding: 8px 12px;
+  margin-bottom: 16px;
+}
 
 .section {
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 .section-head {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
   margin-bottom: 8px;
 }
 .section-label {
   font-size: 13px;
   font-weight: 600;
   color: rgba(var(--v-theme-on-surface), 0.7);
+}
+.section-meta {
+  font-size: 11px;
+  color: rgba(var(--v-theme-on-surface), 0.42);
 }
 .empty-hint {
   font-size: 12px;
@@ -309,8 +343,11 @@ function formatTime(ts: number): string {
   padding: 12px;
   margin-bottom: 8px;
 }
-.sub-card.compact {
-  padding: 10px 36px 10px 12px;
+.sub-card--muted {
+  opacity: 0.6;
+}
+.sub-card--orphan {
+  border-style: dashed;
 }
 .sub-card-head {
   display: flex;
@@ -318,33 +355,20 @@ function formatTime(ts: number): string {
   gap: 8px;
   margin-bottom: 8px;
 }
-.name-select {
-  max-width: 200px;
+.char-name {
+  font-size: 13px;
+  font-weight: 600;
 }
-.field-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+.orphan-text,
+.change-reason {
+  font-size: 12px;
+  line-height: 1.6;
+  color: rgba(var(--v-theme-on-surface), 0.7);
+  white-space: pre-wrap;
 }
-
-.rel-wrap {
-  margin-top: 8px;
-}
-.rel-label {
+.reverted-tag {
   font-size: 11px;
-  color: rgba(var(--v-theme-on-surface), 0.45);
-  margin-bottom: 4px;
-}
-.rel-row {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 4px;
-}
-.rel-target {
-  max-width: 120px;
-}
-.rel-relation {
-  flex: 1;
+  color: rgba(var(--v-theme-on-surface), 0.5);
 }
 .add-link {
   display: inline-flex;
@@ -355,16 +379,28 @@ function formatTime(ts: number): string {
   background: transparent;
   border: none;
   cursor: pointer;
-  padding: 2px 0;
+  padding: 4px 0 0;
 }
-
-.foreshadow-row {
-  display: flex;
-  gap: 6px;
-  align-items: center;
+.diff-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
 }
-.status-select {
-  max-width: 130px;
+.diff-label {
+  font-size: 11px;
+  color: rgba(var(--v-theme-on-surface), 0.45);
+  margin-bottom: 4px;
+}
+.diff-text {
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  background: rgba(var(--v-theme-on-surface), 0.04);
+  border-radius: 10px;
+  padding: 8px 10px;
+  max-height: 240px;
+  overflow-y: auto;
 }
 
 .del-btn {
@@ -383,14 +419,5 @@ function formatTime(ts: number): string {
 }
 .del-btn:hover {
   background: rgba(var(--v-theme-error), 0.1);
-}
-.del-btn.sm {
-  width: 22px;
-  height: 22px;
-}
-.del-btn.float {
-  position: absolute;
-  top: 8px;
-  right: 8px;
 }
 </style>

@@ -1,6 +1,6 @@
 /**
  * agentProtocol.test.ts
- * 协议层（PLAN/STATE 解析、生成指令、循环守卫）的回归测试。
+ * 协议层（PLAN/MEMORY 解析、生成指令、循环守卫）的回归测试。
  * 运行：pnpm test（node --test，依赖 Node 22 的内建类型擦除）
  */
 
@@ -12,9 +12,9 @@ import {
   cleanChapterSummary,
   detectRepeatedRounds,
   parsePlan,
-  parseStatePatch,
+  parseMemoryBlock,
   PLAN_BLOCK_PATTERN,
-  INLINE_STATE_INSTRUCTION,
+  INLINE_MEMORY_INSTRUCTION,
 } from '../src/services/agentProtocol.ts'
 
 const toolCall = (name: string, args: unknown, id = 'x') => ({
@@ -75,20 +75,31 @@ test('buildGenerateInstruction：必须携带作者确认（可能改过）的�
   )
 })
 
-test('parseStatePatch：兼容标记、裸 JSON、夹带文字与垃圾输入', () => {
-  assert.deepEqual(
-    parseStatePatch('<<<STATE>>>{"characterStates":[{"characterName":"李明"}]}<<<END>>>'),
-    { characterStates: [{ characterName: '李明' }] },
+test('parseMemoryBlock：兼容标记、夹带文字、缺字段与垃圾输入', () => {
+  const block = parseMemoryBlock(
+    '<<<MEMORY>>>{"shortTerm":[{"characterName":"李明","shortTerm":"我刚得知师父未死"}],"longTerm":[]}<<<END>>>',
   )
-  assert.deepEqual(parseStatePatch('{"timeline":[{"label":"下山"}]}'), {
-    timeline: [{ label: '下山' }],
+  assert.deepEqual(block, {
+    shortTerm: [{ characterName: '李明', shortTerm: '我刚得知师父未死' }],
+    longTerm: [],
   })
-  assert.deepEqual(parseStatePatch('好的，更新如下：{"notes":"x"} 以上。'), { notes: 'x' })
-  assert.equal(parseStatePatch('完全无法解析'), null)
-  assert.equal(parseStatePatch('123'), null)
-  assert.deepEqual(parseStatePatch('<<<STATE>>>{}<<<END>>>'), {}, '空补丁应为 {} 而非 null')
-  assert.ok(INLINE_STATE_INSTRUCTION.includes('<<<STATE>>>'))
-  assert.ok(INLINE_STATE_INSTRUCTION.includes('不要填空字符串占位'))
+
+  // 夹带文字 + 缺 longTerm 字段
+  const loose = parseMemoryBlock('好的：{"shortTerm":[{"characterName":"苏婉","shortTerm":"x"}]} 以上')
+  assert.equal(loose?.shortTerm[0]?.characterName, '苏婉')
+  assert.deepEqual(loose?.longTerm, [])
+
+  // 非对象元素被过滤；字段缺失补空串
+  const odd = parseMemoryBlock(
+    '<<<MEMORY>>>{"shortTerm":[1,null,{"characterName":"李明"}],"longTerm":[{"characterName":"李明","reason":"师父之死"}]}<<<END>>>',
+  )
+  assert.deepEqual(odd?.shortTerm, [{ characterName: '李明', shortTerm: '' }])
+  assert.deepEqual(odd?.longTerm, [{ characterName: '李明', reason: '师父之死', revisedSkill: '' }])
+
+  assert.equal(parseMemoryBlock('完全无法解析'), null)
+  assert.equal(parseMemoryBlock('[1,2]'), null)
+  assert.ok(INLINE_MEMORY_INSTRUCTION.includes('<<<MEMORY>>>'))
+  assert.ok(INLINE_MEMORY_INSTRUCTION.includes('只写 TA 能知道的信息'))
 })
 
 test('cleanChapterSummary：去标记、压平换行、限长', () => {

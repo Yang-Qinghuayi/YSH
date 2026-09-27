@@ -3,7 +3,7 @@
  * Agent 与模型之间的「协议层」：全部为纯函数（无 IO、无框架依赖，可直接单测）。
  *
  *   - PLAN 协议：规划阶段模型按 <<<PLAN>>>…<<<END>>> 输出章节规划
- *   - STATE 协议：无工具模式（reasoner）下模型按 <<<STATE>>>…<<<END>>> 回吐状态补丁
+ *   - MEMORY 协议：无工具模式（reasoner）下定稿时，模型按 <<<MEMORY>>>…<<<END>>> 回吐记忆更新
  *   - 生成指令拼装：把「已确认（作者可能改过）的大纲」显式写进消息
  *   - 循环守卫：稳定签名 + 连续重复轮检测，防止模型原地打转
  */
@@ -13,7 +13,7 @@ import type { ChatCompletionMessageFunctionToolCall } from 'openai/resources/cha
 /** 章节规划（规划阶段产出，可在确认面板中被作者编辑） */
 export interface AgentPlan {
   outline: string
-  /** 本章选用的角色档案（历史字段名为 selectedSkills，解析时兼容） */
+  /** 本章选用的角色（历史字段名为 selectedSkills，解析时兼容） */
   selectedCharacters: { id: string; name: string; reason: string }[]
   referencedLoreEntries: { id: string; name: string }[]
   approach: string
@@ -27,17 +27,61 @@ function pickSelectedCharacters(
   return Array.isArray(value) ? (value as AgentPlan['selectedCharacters']) : []
 }
 
-/** 无工具模式下让模型回吐状态更新的指令 */
-export const INLINE_STATE_INSTRUCTION = [
-  '请根据以上正文，以增量方式更新受影响角色的动态状态。',
-  '只提交发生变化的字段（mood/location/injuries/possessions/relationships/notes），未变化的字段请省略，不要填空字符串占位。',
-  'timeline/foreshadowings 只做追加。',
+/**
+ * 无工具模式（reasoner）下定稿用的记忆更新指令：
+ * 一次性回吐「短期记忆改写」与「长期记忆（Skill）改写」，客户端解析后
+ * 交给 update_short_term_memory / update_long_term_memory 的执行器（合并逻辑单一来源）。
+ */
+export const INLINE_MEMORY_INSTRUCTION = [
+  '请根据本章正文，更新人物记忆。',
+  '一、短期记忆（shortTerm）：为本章出场、或在本章得知了新信息的每个角色，以 TA 的视角整段改写短期记忆（200-300 字）：TA 最近经历了什么、知道什么、误以为什么、此刻的处境与心绪。只写 TA 能知道的信息；本章没出场也没得知新信息的角色不要输出。',
+  '二、长期记忆（longTerm）：只有当本章发生了足以改变某角色性格、信念或身份的重大事件（生死、背叛、顿悟、创伤、身份巨变等）时才输出；大多数章节应为空数组。revisedSkill 是改写后的完整 Skill 全文：保留原文中未受影响的内容，只修改受影响的部分。',
   '输出格式必须严格为（不要输出标记外的任何内容）：',
-  '<<<STATE>>>',
-  '{"characterStates":[{"characterName":"","mood":"","location":"","injuries":"","possessions":[],"relationships":[{"target":"","relation":""}],"notes":""}],"timeline":[{"label":"","detail":""}],"foreshadowings":[{"description":"","status":"open"}]}',
+  '<<<MEMORY>>>',
+  '{"shortTerm":[{"characterName":"","shortTerm":""}],"longTerm":[{"characterName":"","reason":"","revisedSkill":""}]}',
   '<<<END>>>',
-  '若本次正文没有产生任何状态变化，输出 <<<STATE>>>{}<<<END>>>。',
 ].join('\n')
+
+/** 解析后的 MEMORY 块 */
+export interface MemoryBlock {
+  shortTerm: { characterName: string; shortTerm: string }[]
+  longTerm: { characterName: string; reason: string; revisedSkill: string }[]
+}
+
+/** 解析无工具模式回吐的 <<<MEMORY>>>…<<<END>>> JSON（容错到首尾花括号）；无法解析返回 null */
+export function parseMemoryBlock(text: string): MemoryBlock | null {
+  const match = text.match(/<<<MEMORY>>>\s*([\s\S]*?)\s*<<<END>>>/)
+  const raw = match ? match[1] : text
+  const tryParse = (s: string): Record<string, unknown> | null => {
+    try {
+      const obj = JSON.parse(s)
+      return obj && typeof obj === 'object' && !Array.isArray(obj)
+        ? (obj as Record<string, unknown>)
+        : null
+    } catch {
+      return null
+    }
+  }
+  let obj = tryParse(raw)
+  if (!obj) {
+    const start = raw.indexOf('{')
+    const end = raw.lastIndexOf('}')
+    if (start >= 0 && end > start) obj = tryParse(raw.slice(start, end + 1))
+  }
+  if (!obj) return null
+  const arr = (v: unknown) => (Array.isArray(v) ? v : []).filter((x) => x && typeof x === 'object')
+  return {
+    shortTerm: arr(obj.shortTerm).map((x) => ({
+      characterName: String((x as Record<string, unknown>).characterName ?? ''),
+      shortTerm: String((x as Record<string, unknown>).shortTerm ?? ''),
+    })),
+    longTerm: arr(obj.longTerm).map((x) => ({
+      characterName: String((x as Record<string, unknown>).characterName ?? ''),
+      reason: String((x as Record<string, unknown>).reason ?? ''),
+      revisedSkill: String((x as Record<string, unknown>).revisedSkill ?? ''),
+    })),
+  }
+}
 
 /** 催促收束的统一文案（渐进催促与死循环检测共用） */
 export const NUDGE_OUTPUT_PLAN =
@@ -70,28 +114,6 @@ export function parsePlan(text: string): AgentPlan {
     referencedLoreEntries: [],
     approach: '',
   }
-}
-
-/** 解析无工具模式回吐的 <<<STATE>>>…<<<END>>> JSON（容错到首尾花括号） */
-export function parseStatePatch(text: string): Record<string, unknown> | null {
-  const match = text.match(/<<<STATE>>>\s*([\s\S]*?)\s*<<<END>>>/)
-  const raw = match ? match[1] : text
-  const tryParse = (s: string): Record<string, unknown> | null => {
-    try {
-      const obj = JSON.parse(s)
-      return obj && typeof obj === 'object'
-        ? (obj as Record<string, unknown>)
-        : null
-    } catch {
-      return null
-    }
-  }
-  const direct = tryParse(raw)
-  if (direct) return direct
-  const start = raw.indexOf('{')
-  const end = raw.lastIndexOf('}')
-  if (start >= 0 && end > start) return tryParse(raw.slice(start, end + 1))
-  return null
 }
 
 /** 正文因单次长度上限被截断时的续写指令 */
@@ -192,7 +214,7 @@ export function buildRoundKey(
 /**
  * CONTENT 协议：无工具模式（deepseek-reasoner 等不支持 Function Calling 的模型）
  * 下，模型把「要写入章节的正文」包在 <<<CONTENT>>>…<<<END>>> 中回吐，
- * 客户端解析后按虚拟 append_to_chapter 落盘（与 STATE 协议同款思路）。
+ * 客户端解析后按虚拟 append_to_chapter 落盘（与 MEMORY 协议同款思路）。
  */
 export const CONTENT_BLOCK_PATTERN = /<<<CONTENT>>>\s*([\s\S]*?)\s*<<<END>>/
 

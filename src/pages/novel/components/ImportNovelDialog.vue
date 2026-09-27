@@ -127,9 +127,7 @@
               <input v-model="c.selected" type="checkbox" class="chapter-check-box mt-2" />
               <div class="char-row__fields">
                 <input v-model="c.name" type="text" class="native-input native-input-sm mb-1" placeholder="姓名" />
-                <input v-model="c.aliasesText" type="text" class="native-input native-input-sm mb-1" placeholder="别名（逗号分隔）" />
-                <textarea v-model="c.profile" class="native-input native-input-sm native-textarea-xs mb-1" rows="2" placeholder="角色描述"></textarea>
-                <input v-model="c.literaryReference" type="text" class="native-input native-input-sm" placeholder="文学形象参考" />
+                <textarea v-model="c.skill" class="native-input native-input-sm native-textarea-xs" rows="3" placeholder="长期记忆（Skill）：性格、出身、外貌、信念、说话方式、别名、参考形象……"></textarea>
               </div>
               <button class="lg-icon-btn char-row__del" title="删除" @click="form.characters.splice(i, 1)">
                 <v-icon :icon="mdiClose" size="15" />
@@ -300,7 +298,7 @@ const importanceItems: { title: string; value: EntryImportance }[] = [
 
 // ===== 表单模型 =====
 interface ChapterForm { title: string; content: string; wordCount: number; selected: boolean }
-interface CharacterForm extends ImportCharacter { aliasesText: string; selected: boolean }
+interface CharacterForm extends ImportCharacter { selected: boolean }
 interface LoreEntryForm extends ImportLoreEntry { keywordsText: string; selected: boolean }
 
 const form = reactive<{
@@ -409,7 +407,6 @@ function fillForm(meta: ImportMeta, chapters: SplitChapter[]) {
   }))
   form.characters = meta.characters.map((c) => ({
     ...c,
-    aliasesText: (c.aliases ?? []).join(', '),
     selected: true,
   }))
   form.loreEntries = meta.loreEntries.map((e) => ({
@@ -431,9 +428,7 @@ function toggleAllChapters() {
 function addCharacter() {
   form.characters.push({
     name: '',
-    profile: '',
-    literaryReference: '',
-    aliasesText: '',
+    skill: '',
     selected: true,
   })
 }
@@ -496,15 +491,9 @@ async function confirmImport() {
 }
 
 function toImportCharacter(c: CharacterForm): ImportCharacter {
-  const aliases = c.aliasesText
-    .split(/[,，、]/)
-    .map((s) => s.trim())
-    .filter(Boolean)
   return {
     name: c.name.trim() || '未命名',
-    profile: c.profile || undefined,
-    aliases: aliases.length ? aliases : undefined,
-    literaryReference: c.literaryReference || undefined,
+    skill: c.skill?.trim() || undefined,
   }
 }
 

@@ -4,7 +4,8 @@
  * 复用 agentService.e2e.test.ts 的替身体系（假 openai client + 内存 fs），
  * 驱动真实的 agentChat 多轮循环：
  *   - 概要 → 调研工具 → PLAN 闸门（awaiting_confirmation）
- *   - 确认后生成轮：append_to_chapter 工具落盘 + 实时预览事件 + finalizing
+ *   - 确认后生成轮：append_to_chapter 工具落盘 + 实时预览事件（写完即 done，不自动更新记忆）
+ *   - 首轮 system prompt 注入整体进度 / 人物 Skill / 短期记忆 / POV 规则
  *   - 自由对话轮（无 PLAN）→ 普通回复；多轮上下文保留
  *   - deepseek-reasoner（无工具）→ CONTENT 块降级落笔
  *   - 会话文件持久化往返 + 转录裁剪（快照限量）
@@ -40,6 +41,7 @@ const {
   runChatTurn,
   runChatGenerateTurn,
   buildContinuePrevTask,
+  buildContinueCurrentTask,
   findPrevChapter,
   saveChatSessionFile,
   loadChatSessionFile,
@@ -69,7 +71,7 @@ function makeNovel() {
     synopsis: '一个用于测试的故事。',
     createdAt: 1,
     updatedAt: 1,
-    characters: [{ id: 'c1', name: '李明', profile: '年轻的剑客' }],
+    characters: [{ id: 'c1', name: '李明', skill: '年轻的剑客，寡言而重情。' }],
     chapters: [CHAPTER_1, CHAPTER_2],
   }
 }
@@ -77,8 +79,6 @@ function makeNovel() {
 const CONFIG = {
   apiKey: 'sk-test',
   model: 'deepseek-chat' as const,
-  autoUpdateStoryState: true,
-  autoChapterSummary: true,
   lengthTarget: 1000,
 }
 
@@ -102,7 +102,6 @@ function makeRecorder() {
     previews: { tool: string; partial: string }[]
     plans: unknown[]
     virtualWrites: string[]
-    summaries: string[]
     warns: string[]
     errors: unknown[]
     done: number
@@ -115,7 +114,6 @@ function makeRecorder() {
     previews: [],
     plans: [],
     virtualWrites: [],
-    summaries: [],
     warns: [],
     errors: [],
     done: 0,
@@ -132,7 +130,6 @@ function makeRecorder() {
       rec.previews.push({ tool, partial }),
     onPlanReady: (p: unknown) => rec.plans.push(p),
     onVirtualWrite: (c: string) => rec.virtualWrites.push(c),
-    onChapterSummary: (s: string) => rec.summaries.push(s),
     onWarn: (m: string) => rec.warns.push(m),
     onError: (e: unknown) => rec.errors.push(e),
     onDone: () => {
@@ -160,25 +157,23 @@ function seedWorkspace() {
     ],
   })
   seedFile('lore/entries/entry-1.md', '青云宗坐落于青云之巅。')
-  seedJson('story-state.json', {
-    novelId: 'novel-1',
-    updatedAt: 1,
-    characterStates: [
-      {
-        characterName: '李明',
-        mood: '平静',
-        location: '青云宗',
-        injuries: '',
-        possessions: ['佩剑'],
-        relationships: [],
-        notes: '已入门',
-        lastUpdatedChapterId: 'ch1',
-        updatedAt: 1,
-      },
-    ],
-    timeline: [],
-    foreshadowings: [],
-  })
+  seedJson('story-state.json', STATE_V2)
+}
+
+const STATE_V2 = {
+  version: 2,
+  novelId: 'novel-1',
+  updatedAt: 1,
+  mainline: '李明拜入青云宗，掌门失踪之谜初现。',
+  characterMemories: [
+    {
+      characterName: '李明',
+      shortTerm: '我刚入门，只知道掌门闭关，不知他其实已失踪。',
+      lastUpdatedChapterId: 'ch1',
+      updatedAt: 1,
+    },
+  ],
+  longTermLog: [],
 }
 
 const PLAN_TEXT =
@@ -193,7 +188,7 @@ const PLAN_TEXT =
 
 // ===================== 测试 =====================
 
-test('chat 全链路：概要 → 调研 → PLAN 闸门 → 确认 → 写章 → finalizing', async () => {
+test('chat 全链路：概要 → 调研 → PLAN 闸门 → 确认 → 写章 → done（不自动更新记忆）', async () => {
   seedWorkspace()
   resetScript()
   const session = makeSession()
@@ -228,7 +223,14 @@ test('chat 全链路：概要 → 调研 → PLAN 闸门 → 确认 → 写章 �
   assert.equal(rec.toolEnds[0]?.ok, true)
   assert.equal(rec.done, 1)
 
-  // 生成轮：T3 append_to_chapter → T4 update_story_state → T5 收尾（无工具）→ T6 摘要
+  // 首轮 system prompt：整体进度 + Skill + 短期记忆 + POV 规则
+  const sys = requestText(0)
+  assert.match(sys, /掌门失踪之谜初现/)
+  assert.match(sys, /寡言而重情/)
+  assert.match(sys, /只知道掌门闭关，不知他其实已失踪/)
+  assert.match(sys, /POV 认知规则/)
+
+  // 生成轮：T3 append_to_chapter → T4 收尾（无工具）
   const newContent = '新章正文第一段。\n第二段内容。'
   pushTurns([
     {
@@ -240,27 +242,16 @@ test('chat 全链路：概要 → 调研 → PLAN 闸门 → 确认 → 写章 �
         },
       ],
     },
-    {
-      toolCalls: [
-        {
-          id: 'call_s1',
-          name: 'update_story_state',
-          args: { characterStates: [{ characterName: '李明', mood: '紧张' }] },
-        },
-      ],
-    },
     { text: '完成。' },
-    { text: '李明下山，与老掌门密谈。' },
   ])
 
   await runChatGenerateTurn(session, CONFIG, cb)
 
-  // 阶段推进（recorder 跨两轮：规划轮 planning→awaiting_confirmation，生成轮 generating→finalizing→done）
+  // 阶段推进（recorder 跨两轮：规划轮 planning→awaiting_confirmation，生成轮 generating→done）
   assert.deepEqual(rec.phases, [
     'planning',
     'awaiting_confirmation',
     'generating',
-    'finalizing',
     'done',
   ])
   // 章节落盘（工具内 saveChapterContent → fake fs）
@@ -281,24 +272,9 @@ test('chat 全链路：概要 → 调研 → PLAN 闸门 → 确认 → 写章 �
   // 实时预览事件（tool 参数流式）
   assert.ok(rec.previews.length > 0, '应有写章实时预览事件')
   assert.equal(rec.previews[rec.previews.length - 1]?.partial, newContent)
-  // 故事状态增量合并（mood 更新，其余字段保留）
-  const state = readJson<{
-    characterStates: {
-      characterName: string
-      mood?: string
-      location?: string
-      possessions?: string[]
-      notes?: string
-    }[]
-  }>('story-state.json')
-  assert.ok(state)
-  assert.equal(state.characterStates[0]?.mood, '紧张')
-  assert.equal(state.characterStates[0]?.location, '青云宗')
-  assert.deepEqual(state.characterStates[0]?.possessions, ['佩剑'])
-  assert.equal(state.characterStates[0]?.notes, '已入门')
-  // 章节摘要
-  assert.equal(rec.summaries.length, 1)
-  assert.equal(rec.summaries[0], '李明下山，与老掌门密谈。')
+  // 写完不自动更新记忆：故事状态原样（由「本章定稿」统一更新）
+  assert.deepEqual(readJson('story-state.json'), STATE_V2)
+  assert.ok(!rec.phases.includes('finalizing'))
   // 多轮上下文：生成请求里带着规划轮的对话
   const { state: modelState } = await import('./stubs/modelScript.mjs')
   const genReq = modelState.requests.find((r) =>
@@ -360,7 +336,7 @@ test('chat 自由对话轮：无 PLAN → 普通回复；第二轮上下文保�
   assert.ok(lastMessageText(reqIdx).includes('续写本章'))
 })
 
-test('chat toolFree（reasoner）：CONTENT 块降级落笔 + STATE 协议', async () => {
+test('chat toolFree（reasoner）：CONTENT 块降级落笔，写完即结束', async () => {
   seedWorkspace()
   resetScript()
   const session = makeSession()
@@ -377,29 +353,17 @@ test('chat toolFree（reasoner）：CONTENT 块降级落笔 + STATE 协议', asy
   )
   assert.equal(rec.plans.length, 1)
 
-  // 生成轮：CONTENT 块 → STATE 块 → 摘要
+  // 生成轮：CONTENT 块
   const content = 'reasoner 写出的正文。'
-  pushTurns([
-    { text: `好的。\n<<<CONTENT>>>\n${content}\n<<<END>>>\n写完。` },
-    {
-      text:
-        '<<<STATE>>>' +
-        JSON.stringify({
-          characterStates: [{ characterName: '李明', mood: '坚定' }],
-        }) +
-        '<<<END>>>',
-    },
-    { text: 'reasoner 生成的摘要。' },
-  ])
+  const { state: modelState } = await import('./stubs/modelScript.mjs')
+  pushTurns([{ text: `好的。\n<<<CONTENT>>>\n${content}\n<<<END>>>\n写完。` }])
+  const before = modelState.requests.length
   await runChatGenerateTurn(session, toolFreeConfig, cb)
 
   assert.equal(rec.virtualWrites.length, 1, '应触发虚拟写章')
   assert.equal(rec.virtualWrites[0], content)
-  const state = readJson<{
-    characterStates: { characterName: string; mood?: string }[]
-  }>('story-state.json')
-  assert.equal(state?.characterStates[0]?.mood, '坚定')
-  assert.equal(rec.summaries[0], 'reasoner 生成的摘要。')
+  assert.equal(modelState.requests.length - before, 1, '写完后不应再发状态/摘要请求')
+  assert.deepEqual(readJson('story-state.json'), STATE_V2)
   assert.deepEqual(rec.phases.slice(-1), ['done'])
 })
 
@@ -534,9 +498,47 @@ test('buildContinuePrevTask：注入上一章结尾；无前章返回 null', asy
   assert.ok(task!.llm.includes('第一章摘要：李明拜入师门。'))
   assert.ok(task!.llm.includes('1500'))
   assert.ok(task!.visible.includes('第一章'))
+  // ★ 写新章任务带 POV 提醒与角色短期记忆
+  assert.ok(task!.llm.includes('【POV 提醒】'))
+  assert.ok(task!.llm.includes('李明：我刚入门，只知道掌门闭关，不知他其实已失踪。'))
 
   // 第一章没有前章
   const none = await buildContinuePrevTask(novel, CHAPTER_1, 1500)
   assert.equal(none, null)
   assert.equal(findPrevChapter(novel, CHAPTER_1), undefined)
+})
+
+test('buildContinueCurrentTask：续写本章任务带 POV 提醒；无记忆时给出兜底说明', () => {
+  const novel = makeNovel()
+  const withState = buildContinueCurrentTask(novel, CHAPTER_2, '已有正文。', 1000, STATE_V2 as never)
+  assert.ok(withState.llm.includes('【POV 提醒】'))
+  assert.ok(withState.llm.includes('不知他其实已失踪'))
+  const noState = buildContinueCurrentTask(novel, CHAPTER_2, '已有正文。', 1000)
+  assert.ok(noState.llm.includes('【POV 提醒】'))
+  assert.ok(noState.llm.includes('暂无角色短期记忆'))
+})
+
+test('会话恢复 / 定稿后：每轮刷新 system prompt，使用最新的人物记忆', async () => {
+  seedWorkspace()
+  resetScript()
+  const session = makeSession()
+  const { cb } = makeRecorder()
+  pushTurns([{ text: '好的。' }, { text: '收到。' }])
+  await runChatTurn(session, { visibleText: '第一轮' }, CONFIG, cb)
+
+  // 模拟「本章定稿」改写了短期记忆
+  seedJson('story-state.json', {
+    ...STATE_V2,
+    characterMemories: [
+      { characterName: '李明', shortTerm: '我已确认掌门失踪，决定下山寻找。', lastUpdatedChapterId: 'ch2', updatedAt: 2 },
+    ],
+  })
+  await runChatTurn(session, { visibleText: '第二轮' }, CONFIG, cb)
+
+  const { state: modelState } = await import('./stubs/modelScript.mjs')
+  const sys2 = requestText(modelState.requests.length - 1)
+  assert.ok(sys2.includes('我已确认掌门失踪，决定下山寻找。'), '第二轮应使用新记忆')
+  assert.ok(!sys2.includes('只知道掌门闭关'), '旧记忆不应残留')
+  const systems = (session.messages as { role: string }[]).filter((m) => m.role === 'system')
+  assert.equal(systems.length, 1, '只保留一条 system 消息')
 })

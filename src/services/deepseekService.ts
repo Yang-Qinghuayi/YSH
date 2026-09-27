@@ -3,9 +3,11 @@
  * DeepSeek API 封装（兼容 OpenAI 格式）
  *
  * 重构后职责：
- * - parseMentions：解析 @提及（角色档案）
+ * - parseMentions：解析 @提及（角色）
  * - sliceContextBeforeCursor：取光标前 N 字前文（供 read_context 工具与 prompt 复用）
- * - buildAgentSystemPrompt：按 Agent 阶段构建 system prompt
+ * - buildAgentSystemPrompt / buildChatSystemPrompt：写作 system prompt
+ *   （整体进度 + 人物长期记忆/短期记忆 + POV 认知规则）
+ * - buildFinalizeSystemPrompt 等：「本章定稿」各步骤的 prompt
  * - createOpenAIClient / streamChatWithTools：无状态流式 tool-use 调用
  *
  * 多轮 messages 累积与状态机由 agentService 负责；本模块只做单次流式调用 + 事件转换。
@@ -18,6 +20,12 @@ import type {
   ChatCompletionMessageFunctionToolCall,
 } from 'openai/resources/chat/completions'
 import type { Novel, ChapterMeta, Mention } from '@/types/novel'
+import type { StoryState } from '@/types/storyState'
+import {
+  POV_RULES,
+  formatCharacterBlock,
+  formatMainline,
+} from '@/services/storyMemory'
 
 const DEEPSEEK_BASE_URL = 'https://api.deepseek.com'
 // 发给 AI 的前文上下文最大字符数
@@ -25,7 +33,7 @@ const MAX_CONTEXT_CHARS = 2000
 
 export type DeepSeekModel = 'deepseek-chat' | 'deepseek-reasoner'
 
-export type AgentPhase = 'planning' | 'generating' | 'finalizing'
+export type AgentPhase = 'planning' | 'generating'
 
 /**
  * 模型是否支持 Function Calling。
@@ -58,7 +66,7 @@ export type StreamEvent =
 /** 解析编辑器文本中的 @提及 */
 export function parseMentions(text: string, novel: Novel): Mention[] {
   const mentions: Mention[] = []
-  // 角色档案合并后，仅支持 @角色名（文风 voice 随角色整体激活）
+  // 仅支持 @角色名（强制该角色进入本次写作）
   const pattern = /@([一-龥\w]+)/g
   let match: RegExpExecArray | null
 
@@ -101,7 +109,7 @@ export function sliceContextBeforeCursor(
 export function buildAgentSystemPrompt(
   phase: AgentPhase,
   novel: Novel,
-  storyStateText?: string,
+  storyState?: StoryState | null,
   opts?: {
     loreContextText?: string
     toolFree?: boolean
@@ -117,17 +125,20 @@ export function buildAgentSystemPrompt(
     '',
   ]
 
-  // 可用角色档案清单
-  if (novel.characters.length > 0) {
-    lines.push('【可用角色档案】')
-    for (const c of novel.characters) {
-      const brief = c.literaryReference
-        ? `参考形象：${c.literaryReference}`
-        : c.profile
-          ? c.profile.slice(0, 60) + (c.profile.length > 60 ? '...' : '')
-          : '（无描述）'
-      lines.push(`- @${c.name}：${brief}`)
-    }
+  // 整体进度（主线梳理）
+  const mainline = formatMainline(storyState)
+  if (mainline) {
+    lines.push(mainline)
+    lines.push('')
+  }
+
+  // 人物：长期记忆（Skill）+ 短期记忆（POV）
+  const characterBlock = formatCharacterBlock(novel.characters, storyState, {
+    fullSkill: !!opts?.toolFree,
+    chapters: novel.chapters,
+  })
+  if (characterBlock) {
+    lines.push(characterBlock)
     lines.push('')
   }
 
@@ -143,16 +154,15 @@ export function buildAgentSystemPrompt(
     lines.push('')
   }
 
-  // 故事状态摘要
-  if (storyStateText && storyStateText.trim()) {
-    lines.push('【当前故事状态】')
-    lines.push(storyStateText)
-    lines.push('')
-  }
-
   // 资料库（无工具模式：由调用方直读拼装好后传入）
   if (opts?.loreContextText && opts.loreContextText.trim()) {
     lines.push(opts.loreContextText.trim())
+    lines.push('')
+  }
+
+  // POV 认知规则（规划与写正文都要遵守）
+  if (novel.characters.length > 0) {
+    lines.push(POV_RULES)
     lines.push('')
   }
 
@@ -161,15 +171,15 @@ export function buildAgentSystemPrompt(
     lines.push('【当前任务：规划】')
     if (opts?.toolFree) {
       lines.push(
-        '1. 本次运行不提供任何工具，请直接依据以上小说简介、角色档案、故事状态与资料库内容完成调研判断。',
+        '1. 本次运行不提供任何工具，请直接依据以上小说简介、整体进度、人物记忆与资料库内容完成调研判断。',
       )
-      lines.push('2. 在规划中指明本章要重点刻画哪些角色、依据哪些设定。')
+      lines.push('2. 在规划中指明本章要重点刻画哪些角色、依据哪些设定，以及各角色此刻知道/不知道什么。')
     } else {
       lines.push(
         '1. 调用只读工具（query_lore / search_chapters / read_story_state / read_context / select_characters）调研本章所需上下文。',
       )
       lines.push(
-        '2. 选定本章要调用的角色档案（select_characters），并引用相关 Lore 条目。',
+        '2. 选定本章要写的角色（select_characters，取回完整的长期记忆与短期记忆），并引用相关 Lore 条目。',
       )
     }
     lines.push('3. 调研完成后，输出章节大纲。输出格式必须严格为：')
@@ -183,14 +193,6 @@ export function buildAgentSystemPrompt(
     lines.push('【当前任务：生成正文】')
     lines.push(
       '按已确认大纲续写小说正文。只输出正文，不要输出 @提及 标记、说明文字或标题。自然衔接前文，风格保持一致。',
-    )
-  } else if (phase === 'finalizing') {
-    lines.push('【当前任务：更新故事状态】')
-    lines.push(
-      '根据本次生成的正文，调用 update_story_state 工具，以增量方式更新受影响的角色动态状态（心情/位置/伤势/持有物品/关系/经历 notes 等）。',
-    )
-    lines.push(
-      '只提交发生变化的角色状态；lastUpdatedChapterId 设为当前章节 id。不要重复输出正文。',
     )
   }
 
@@ -208,7 +210,8 @@ export function buildChatSystemPrompt(
   novel: Novel,
   chapter: ChapterMeta,
   opts?: {
-    storyStateText?: string
+    /** 故事状态：整体进度 + 角色短期记忆 */
+    storyState?: StoryState | null
     recentSummaries?: { title: string; summary: string }[]
     /** 目标字数（500/1000/1500/2000），约束规划粒度与正文长度 */
     lengthTarget?: number
@@ -227,16 +230,19 @@ export function buildChatSystemPrompt(
     '',
   ]
 
-  if (novel.characters.length > 0) {
-    lines.push('【可用角色档案】')
-    for (const c of novel.characters) {
-      const brief = c.literaryReference
-        ? `参考形象：${c.literaryReference}`
-        : c.profile
-          ? c.profile.slice(0, 60) + (c.profile.length > 60 ? '...' : '')
-          : '（无描述）'
-      lines.push(`- @${c.name}：${brief}`)
-    }
+  const mainline = formatMainline(opts?.storyState)
+  if (mainline) {
+    lines.push(mainline)
+    lines.push('')
+  }
+
+  const characterBlock = formatCharacterBlock(
+    novel.characters,
+    opts?.storyState,
+    { fullSkill: !!opts?.toolFree, chapters: novel.chapters },
+  )
+  if (characterBlock) {
+    lines.push(characterBlock)
     lines.push('')
   }
 
@@ -246,12 +252,6 @@ export function buildChatSystemPrompt(
   if (summaries.length > 0) {
     lines.push('【前情提要】')
     for (const s of summaries) lines.push(`- ${s.title}：${s.summary.trim()}`)
-    lines.push('')
-  }
-
-  if (opts?.storyStateText && opts.storyStateText.trim()) {
-    lines.push('【当前故事状态】')
-    lines.push(opts.storyStateText)
     lines.push('')
   }
 
@@ -277,6 +277,11 @@ export function buildChatSystemPrompt(
     lines.push(
       `【目标字数】本次写入章节的正文总量约 ${opts.lengthTarget} 字（允许 ±15% 浮动）。规划大纲时按此体量拆分场景，正文写到接近该体量即可停笔。`,
     )
+    lines.push('')
+  }
+
+  if (novel.characters.length > 0) {
+    lines.push(POV_RULES)
     lines.push('')
   }
 
@@ -318,51 +323,113 @@ export function buildChatSystemPrompt(
   )
   lines.push('5. 作者用 @角色名 强制指定时，规划与正文必须纳入该角色。')
   lines.push('6. 正文中不要出现 @提及 标记、章节标题或任何解释性文字。')
+  lines.push(
+    '7. 规划与写作都要遵守 POV 认知规则：规划大纲时写明关键角色此刻知道/不知道什么；写正文前可用 select_characters / read_story_state 取回角色记忆。',
+  )
 
   return lines.join('\n')
 }
 
-/** 生成章节摘要的指令（finalizing 阶段使用，正文已在上下文中） */
+/** 生成章节摘要的指令（本章定稿第一步，正文已在上下文中） */
 export function buildChapterSummaryInstruction(): string {
   return [
-    '请为以上刚生成的章节正文写一段摘要，用于后续章节的「前情提要」。',
+    '请为以上本章正文写一段章节概要，用于后续章节的「前情提要」与整体进度梳理。',
     '要求：2-3 句、不超过 120 字；只写剧情事实（谁做了什么、结果如何、留下了什么线索），不要评价文笔。',
     '只输出摘要正文，不要标题、不要引号、不要 Markdown 标记。',
   ].join('\n')
 }
 
-/** 把故事状态摘要成供 system prompt 用的文本 */
-export function summarizeStoryState(state: {
-  characterStates: {
-    characterName: string
-    mood?: string
-    location?: string
-    injuries?: string
-    possessions?: string[]
-    relationships: { target: string; relation: string }[]
-    notes?: string
-    lastUpdatedChapterId?: string
-  }[]
-  timeline?: { label: string }[]
-  foreshadowings?: { description: string; status: string }[]
-}): string {
-  const lines: string[] = []
-  if (state.characterStates.length > 0) {
-    lines.push('角色状态：')
-    for (const c of state.characterStates) {
-      const parts: string[] = []
-      if (c.mood) parts.push(`心情=${c.mood}`)
-      if (c.location) parts.push(`位置=${c.location}`)
-      if (c.injuries) parts.push(`伤势=${c.injuries}`)
-      if (c.possessions?.length) parts.push(`持有=${c.possessions.join('/')}`)
-      if (c.relationships?.length)
-        parts.push(
-          `关系=${c.relationships.map((r) => `${r.target}:${r.relation}`).join(',')}`,
-        )
-      if (c.notes) parts.push(`notes=${c.notes}`)
-      lines.push(`- ${c.characterName}：${parts.join('；') || '无变化'}`)
-    }
+// ===================== 本章定稿 prompt =====================
+
+/** 定稿时送给模型的正文上限（字符）：超长时保留开头与结尾 */
+const FINALIZE_CONTENT_MAX_CHARS = 16000
+
+function clipChapterForFinalize(content: string): string {
+  const t = content.trim()
+  if (t.length <= FINALIZE_CONTENT_MAX_CHARS) return t
+  const head = Math.floor(FINALIZE_CONTENT_MAX_CHARS * 0.4)
+  const tail = FINALIZE_CONTENT_MAX_CHARS - head
+  return `${t.slice(0, head)}\n\n……（中间省略 ${t.length - FINALIZE_CONTENT_MAX_CHARS} 字）……\n\n${t.slice(-tail)}`
+}
+
+/**
+ * 「本章定稿」会话的 system prompt：
+ * 小说简介 + 整体进度 + 人物（完整 Skill + 短期记忆）+ 本章全文。
+ * 定稿是独立的轻量会话，不依赖聊天记录（隔很久再点定稿也能用）。
+ */
+export function buildFinalizeSystemPrompt(
+  novel: Novel,
+  chapter: ChapterMeta,
+  chapterContent: string,
+  storyState: StoryState | null,
+): string {
+  const lines: string[] = [
+    '你是一位细致的中文小说编辑，负责在作者确认本章定稿后，维护这部小说的「记忆」：章节概要、角色短期记忆、角色长期记忆（Skill）与主线整体进度。',
+    '',
+    '【小说简介】',
+    novel.synopsis || '（无简介）',
+    '',
+  ]
+  const mainline = formatMainline(storyState)
+  lines.push(mainline || '【整体进度】\n（尚无）')
+  lines.push('')
+  const characterBlock = formatCharacterBlock(novel.characters, storyState, {
+    fullSkill: true,
+    chapters: novel.chapters,
+  })
+  if (characterBlock) {
+    lines.push('以下是本章之前的人物记忆：')
+    lines.push(characterBlock)
+    lines.push('')
   }
+  lines.push(`【本章正文】《${chapter.title}》`)
+  lines.push(clipChapterForFinalize(chapterContent) || '（空）')
+  lines.push('')
+  lines.push('接下来作者会分步骤给出任务，请每次只完成当前这一步。')
+  return lines.join('\n')
+}
+
+/** 定稿第二步：改写短期记忆（工具模式） */
+export function buildShortTermInstruction(): string {
+  return [
+    '第二步：更新角色短期记忆。',
+    '请调用 update_short_term_memory，为本章出场、或在本章得知了新信息的每个角色，以 TA 的视角（POV）整段改写短期记忆（200-300 字）：',
+    '- 写 TA 最近经历了什么、知道什么、误以为什么、此刻的处境与心绪，以及 TA 眼下最在意的事；',
+    '- 只写 TA 能知道的信息：TA 不在场、也没人告诉 TA 的事，不能写进 TA 的记忆；',
+    '- 在旧的短期记忆基础上改写：仍然重要的旧信息保留，过时的删去；',
+    '- 本章没出场、也没得知新信息的角色不要提交（保持原样）。',
+  ].join('\n')
+}
+
+/** 定稿第三步：判断是否改写长期记忆（工具模式） */
+export function buildLongTermInstruction(): string {
+  return [
+    '第三步：判断是否需要更新角色长期记忆（Skill）。',
+    '长期记忆是角色的性格、信念、身份与说话方式等根本设定。只有当本章发生了足以改变某角色根本设定的重大事件（生死、背叛、顿悟、创伤、身份巨变、关系根本逆转等）时，才调用 update_long_term_memory；大多数章节都不需要。',
+    '调用时 revisedSkill 必须是完整的 Skill 全文：保留原文中未受影响的内容，只修改受影响的部分，并可补一句这次改变的由来。',
+    '如果不需要更新，直接回复「无需更新」，不要调用工具。',
+  ].join('\n')
+}
+
+/** 定稿第四步：梳理整体进度 */
+export function buildMainlineInstruction(
+  summaries: { title: string; summary: string }[],
+  previousMainline: string,
+): string {
+  const lines: string[] = [
+    '第四步：梳理主线整体进度。',
+    '请综合「已有整体进度」与「各章概要」（含本章），重写一份主线整体进度，供后续写作把握全局：',
+    '- 按时间顺序概括故事已经发生的主线事件、当前局势与主要悬念；',
+    '- 前期内容可以高度压缩，越接近本章越具体；',
+    '- 400-800 字，只写剧情事实，不评价；只输出进度正文，不要标题、不要 Markdown 标记。',
+    '',
+    '【已有整体进度】',
+    previousMainline.trim() || '（尚无）',
+    '',
+    '【各章概要】',
+  ]
+  if (summaries.length === 0) lines.push('（无）')
+  for (const s of summaries) lines.push(`- ${s.title}：${s.summary}`)
   return lines.join('\n')
 }
 

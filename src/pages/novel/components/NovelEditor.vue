@@ -37,14 +37,14 @@ const vuetifyTheme = useTheme()
 const settingStore = useSettingStore()
 const isDark = computed(() => vuetifyTheme.global.current.value.dark)
 
-/** @角色 补全：输入 @ 后按角色档案提示，选中即写入 @角色名（供 Agent 强制指定） */
+/** @角色 补全：输入 @ 后按角色提示（附长期记忆摘要），选中即写入 @角色名（供 Agent 强制指定） */
 function mentionCompletion(context: CompletionContext) {
   const before = context.matchBefore(/@[\u4e00-\u9fff\w]*/)
   if (!before) return null
   if (before.from === before.to && !context.explicit) return null
   const options = props.characters.map((c) => ({
     label: `@${c.name}`,
-    detail: c.literaryReference || c.profile?.slice(0, 24) || undefined,
+    detail: c.skill?.slice(0, 24) || undefined,
     type: 'variable',
   }))
   if (!options.length) return null

@@ -19,8 +19,6 @@ export const useAgentStore = defineStore('agent', () => {
   const statusText = ref('')
   // 工具调用日志
   const toolCallLog = ref<ToolLogEntry[]>([])
-  // 是否自动更新故事状态（B 方案，默认开）
-  const autoUpdateStoryState = ref(true)
   // 故事状态缓存（供 CharacterPanel 等只读展示）
   const storyState = ref<StoryState | null>(null)
   // 角色面板
@@ -52,7 +50,7 @@ export const useAgentStore = defineStore('agent', () => {
   function closeCharacterPanel() {
     characterPanelOpen.value = false
   }
-  /** 重置为 idle（保留 autoUpdateStoryState 与 storyState 缓存） */
+  /** 重置为 idle（保留 storyState 缓存） */
   function resetAgent() {
     phase.value = 'idle'
     currentPlan.value = null
@@ -67,7 +65,6 @@ export const useAgentStore = defineStore('agent', () => {
     planDialogVisible,
     statusText,
     toolCallLog,
-    autoUpdateStoryState,
     storyState,
     characterPanelOpen,
     selectedCharacterName,

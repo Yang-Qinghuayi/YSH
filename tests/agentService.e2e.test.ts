@@ -10,8 +10,9 @@
  * 因此被覆盖的是真实的状态机、工具执行、lore/story-state 落盘与合并逻辑。
  * 覆盖的关键回归：
  *   - 作者在规划面板改过的大纲必须进入生成请求（原 P0 缺陷）
- *   - update_story_state 增量合并，不静默清空未提交字段（原 P0 缺陷）
- *   - 章节摘要生成 → onChapterSummary；前情提要注入下次规划
+ *   - 人物长期记忆（Skill）+ 短期记忆（POV）+ 整体进度 + POV 规则注入写作 prompt
+ *   - 生成后不再自动更新故事状态 / 摘要（改由「本章定稿」触发，见 chapterFinalize.e2e）
+ *   - 前情提要注入下次规划
  *   - 正文被 length 截断 → 自动续写；无 PLAN 块 + 截断 → 报错
  *   - 未知工具名不中断会话，错误文本回传给模型
  *   - 上下文超预算裁剪后，assistant/tool 配对仍完整
@@ -58,8 +59,8 @@ function makeNovel(overrides: Record<string, unknown> = {}) {
     createdAt: 1,
     updatedAt: 1,
     characters: [
-      { id: 'c1', name: '李明', profile: '年轻的剑客', literaryReference: '令狐冲' },
-      { id: 'c2', name: '苏婉', profile: '医馆之女' },
+      { id: 'c1', name: '李明', skill: '年轻的剑客，洒脱重义，气质可参考令狐冲。' },
+      { id: 'c2', name: '苏婉', skill: '医馆之女，外柔内刚。' },
     ],
     chapters: [CHAPTER_1, CHAPTER_2],
     ...overrides,
@@ -69,8 +70,26 @@ function makeNovel(overrides: Record<string, unknown> = {}) {
 const CONFIG = {
   apiKey: 'sk-test',
   model: 'deepseek-chat' as const,
-  autoUpdateStoryState: true,
-  autoChapterSummary: true,
+}
+
+/** v2 故事状态夹具 */
+function storyStateV2(overrides: Record<string, unknown> = {}) {
+  return {
+    version: 2,
+    novelId: 'novel-1',
+    updatedAt: 0,
+    mainline: '李明拜入青城派，师父闭关前留下一封未拆的信。',
+    characterMemories: [
+      {
+        characterName: '李明',
+        shortTerm: '我以为师父只是闭关，还不知道那封信的内容。',
+        lastUpdatedChapterId: 'ch1',
+        updatedAt: 0,
+      },
+    ],
+    longTermLog: [],
+    ...overrides,
+  }
 }
 
 /** 让 planner 输出一份可解析的 PLAN 块 */
@@ -89,7 +108,6 @@ function recorder() {
   const phases: string[] = []
   const toolLog: { tool: string; status: string; text: string }[] = []
   const plans: unknown[] = []
-  const summaries: string[] = []
   const warns: string[] = []
   const errors: unknown[] = []
   const trimmed: { trimmed: number; estimatedTokens: number }[] = []
@@ -100,7 +118,6 @@ function recorder() {
     onPhase: (p: string) => phases.push(p),
     onToolCall: (l: { tool: string; status: string; text: string }) => toolLog.push(l),
     onPlanReady: (p: unknown) => plans.push(p),
-    onChapterSummary: (s: string) => summaries.push(s),
     onContextTrimmed: (i: { trimmed: number; estimatedTokens: number }) => trimmed.push(i),
     onWarn: (m: string) => warns.push(m),
     onError: (e: unknown) => errors.push(e),
@@ -116,7 +133,6 @@ function recorder() {
     phases,
     toolLog,
     plans,
-    summaries,
     warns,
     errors,
     trimmed,
@@ -164,26 +180,11 @@ function resetWorld() {
   resetFs()
 }
 
-// ===================== 1. 全链路：plan → 确认 → generate → finalizing =====================
+// ===================== 1. 全链路：plan → 确认 → generate → done =====================
 
-test('全链路：工具循环 → 规划 → 作者改稿 → 生成 → 状态增量更新 + 章节摘要', async () => {
+test('全链路：工具循环 → 规划（注入 Skill/短期记忆/POV）→ 作者改稿 → 生成，且不自动改故事状态', async () => {
   resetWorld()
-  seedJson('story-state.json', {
-    novelId: 'novel-1',
-    updatedAt: 0,
-    characterStates: [
-      {
-        characterName: '李明',
-        mood: '平静',
-        location: '家乡',
-        relationships: [{ target: '苏婉', relation: '青梅竹马' }],
-        lastUpdatedChapterId: 'ch1',
-        updatedAt: 0,
-      },
-    ],
-    timeline: [],
-    foreshadowings: [],
-  })
+  seedJson('story-state.json', storyStateV2())
 
   pushTurns([
     // 规划第 1 轮：调用只读工具
@@ -192,20 +193,6 @@ test('全链路：工具循环 → 规划 → 作者改稿 → 生成 → 状态
     planTurn('原始大纲：李明夜访客栈'),
     // 生成：正文
     { text: '李明推开客栈的门。', finishReason: 'stop' },
-    // finalizing 第 1 轮：更新故事状态
-    {
-      toolCalls: [
-        {
-          id: 'call_2',
-          name: 'update_story_state',
-          args: { characterStates: [{ characterName: '李明', location: '悦来客栈' }] },
-        },
-      ],
-    },
-    // finalizing 第 2 轮：无工具调用 → 退出循环
-    { text: '', finishReason: 'stop' },
-    // 章节摘要
-    { text: '「李明在悦来客栈遇袭，情绪紧张。」', finishReason: 'stop' },
   ])
 
   const plan = recorder()
@@ -231,9 +218,21 @@ test('全链路：工具循环 → 规划 → 作者改稿 → 生成 → 状态
     'read_context',
     'select_characters',
   ])
-  assert.match(requestText(1), /李明/)
+  // select_characters 回传完整 Skill + 短期记忆
+  const toolResult = requestText(1)
+  assert.match(toolResult, /洒脱重义，气质可参考令狐冲/)
+  assert.match(toolResult, /还不知道那封信的内容/)
+
+  const sys = requestText(0)
   // 前情提要（上一章摘要）已注入 system prompt
-  assert.match(requestText(0), /第一章摘要：李明拜入师门/)
+  assert.match(sys, /第一章摘要：李明拜入师门/)
+  // ★ 整体进度 + 短期记忆 + POV 规则进入写作 prompt
+  assert.match(sys, /【整体进度】/)
+  assert.match(sys, /师父闭关前留下一封未拆的信/)
+  assert.match(sys, /短期记忆（POV，截至《第一章》）：我以为师父只是闭关/)
+  assert.match(sys, /POV 认知规则/)
+  // 旧概念不应再出现
+  assert.doesNotMatch(sys, /角色档案|profile|文学形象参考/)
 
   // ---- 作者在规划面板里改稿后确认 ----
   const edited = { ...(session.plan as object), outline: '作者修订后的大纲：李明夜探客栈后院' }
@@ -242,10 +241,12 @@ test('全链路：工具循环 → 规划 → 作者改稿 → 生成 → 状态
   const gen = recorder()
   await runGeneratePhase(session, CONFIG as never, gen.cb as never)
 
-  assert.deepEqual(gen.phases, ['generating', 'finalizing', 'done'])
+  // ★ 生成后直接 done：故事状态由「本章定稿」统一更新
+  assert.deepEqual(gen.phases, ['generating', 'done'])
   assert.equal(gen.errors.length, 0, `生成不应报错：${gen.errors}`)
   assert.equal(gen.done, 1)
   assert.equal(gen.text, '李明推开客栈的门。')
+  assert.equal(model.requests.length, 3, '生成后不应再有状态更新 / 摘要请求')
 
   // ★ P0 回归：生成指令（最后一条 user 消息）必须是作者改过的大纲
   const genInstruction = lastMessageText(2)
@@ -254,26 +255,9 @@ test('全链路：工具循环 → 规划 → 作者改稿 → 生成 → 状态
   assert.match(genInstruction, /作者可能已修订/)
   assert.doesNotMatch(genInstruction, /原始大纲：李明夜访客栈/, '指令中不应再出现模型自己的旧版大纲')
 
-  // ★ P0 回归：增量合并——未提交的 mood/relationships 必须保留
-  const saved = readJson<{
-    characterStates: {
-      characterName: string
-      mood?: string
-      location?: string
-      relationships: { target: string; relation: string }[]
-      lastUpdatedChapterId: string
-    }[]
-  }>('story-state.json')
-  assert.ok(saved, '故事状态应已落盘')
-  const li = saved.characterStates.find((c) => c.characterName === '李明')
-  assert.ok(li, '李明 的状态应存在')
-  assert.equal(li.mood, '平静', '未提交的 mood 不应被清空')
-  assert.equal(li.location, '悦来客栈', '提交的 location 应被更新')
-  assert.deepEqual(li.relationships, [{ target: '苏婉', relation: '青梅竹马' }], '未提交的关系不应被清空')
-  assert.equal(li.lastUpdatedChapterId, 'ch2')
-
-  // 章节摘要：清洗掉引号后交给 UI 落盘
-  assert.deepEqual(gen.summaries, ['李明在悦来客栈遇袭，情绪紧张。'])
+  // 故事状态未被改动
+  const saved = readJson<{ characterMemories: { shortTerm: string }[] }>('story-state.json')
+  assert.equal(saved?.characterMemories[0]?.shortTerm, '我以为师父只是闭关，还不知道那封信的内容。')
 
   // 消息序列协议完整
   assertToolPairing(session.messages as never)
@@ -291,7 +275,7 @@ test('正文被 length 截断 → 自动续写一次，且续写指令进入请�
 
   const rec = recorder()
   const session = makeSession({ skipConfirmation: true })
-  await runPlanPhase(session, '概要', { ...CONFIG, autoUpdateStoryState: false, autoChapterSummary: false } as never, rec.cb as never)
+  await runPlanPhase(session, '概要', CONFIG as never, rec.cb as never)
 
   assert.equal(rec.errors.length, 0)
   assert.equal(rec.text, '第一段（被截断）第二段收尾。')
@@ -405,17 +389,16 @@ test('运行中取消 → canceled 相位，不触发 onError', async () => {
 
 // ===================== 6. 无工具模式（deepseek-reasoner 降级） =====================
 
-test('deepseek-reasoner：走无工具直读模式，请求不带 tools 且注入故事状态', async () => {
+test('deepseek-reasoner：走无工具直读模式，请求不带 tools 且注入完整 Skill 与短期记忆', async () => {
   resetWorld()
-  seedJson('story-state.json', {
-    novelId: 'novel-1',
-    updatedAt: 0,
-    characterStates: [
-      { characterName: '李明', mood: '紧张', location: '山道', relationships: [], lastUpdatedChapterId: 'ch1', updatedAt: 0 },
-    ],
-    timeline: [],
-    foreshadowings: [],
-  })
+  seedJson(
+    'story-state.json',
+    storyStateV2({
+      characterMemories: [
+        { characterName: '李明', shortTerm: '我正躲在山道旁，不知苏婉已到镇上。', lastUpdatedChapterId: 'ch1', updatedAt: 0 },
+      ],
+    }),
+  )
   seedFile('lore/entries/major.md', '世界观：此界以剑为尊。')
   seedJson('lore/lore.json', {
     id: 'novel-1',
@@ -442,7 +425,10 @@ test('deepseek-reasoner：走无工具直读模式，请求不带 tools 且注�
   assert.equal(rec.errors.length, 0, `不应报错：${rec.errors}`)
   assert.deepEqual(requestToolNames(0), [], '无工具模式不应携带 tools')
   const sys = requestText(0)
-  assert.match(sys, /无工具模式|直读|【故事状态】|山道/)
+  assert.match(sys, /不知苏婉已到镇上/)
+  // 无工具模式拿不到 select_characters，Skill 须完整注入
+  assert.match(sys, /洒脱重义，气质可参考令狐冲/)
+  assert.match(sys, /POV 认知规则/)
   assert.match(sys, /此界以剑为尊/)
   assert.equal((rec.plans[0] as { outline: string }).outline, '无工具模式大纲')
   assert.equal(rec.phases[0], 'planning')
@@ -450,7 +436,7 @@ test('deepseek-reasoner：走无工具直读模式，请求不带 tools 且注�
 
 // ===================== 7. 快速模式（跳过确认）参数一致性 =====================
 
-test('skipConfirmation + 轻量轮数：内联续写一次跑完，且落盘摘要被关闭', async () => {
+test('skipConfirmation + 轻量轮数：内联续写一次跑完，且不生成摘要、不写故事状态', async () => {
   resetWorld()
   pushTurns([planTurn('内联续写大纲'), { text: '续写的一小段。', finishReason: 'stop' }])
 
@@ -459,14 +445,14 @@ test('skipConfirmation + 轻量轮数：内联续写一次跑完，且落盘摘�
   await runPlanPhase(
     session,
     '续写一小段',
-    { ...CONFIG, autoUpdateStoryState: false, autoChapterSummary: false } as never,
+    CONFIG as never,
     rec.cb as never,
   )
 
   assert.equal(rec.errors.length, 0)
   assert.deepEqual(rec.phases, ['planning', 'awaiting_confirmation', 'generating', 'done'])
-  assert.equal(rec.summaries.length, 0, '内联续写不应生成章节摘要')
-  assert.equal(listFiles().some((f) => f.includes('story-state')), false, '关闭状态更新后不应写 story-state.json')
+  assert.equal(model.requests.length, 2, '只应有规划 + 正文两次请求')
+  assert.equal(listFiles().some((f) => f.includes('story-state')), false, '生成不应写 story-state.json')
   // 催促信息不应在这次短会话里出现（轮数上限 4 → 阈值 2/3）
   assert.doesNotMatch(requestText(0), new RegExp(NUDGE_OUTPUT_PLAN.slice(0, 12)))
 })

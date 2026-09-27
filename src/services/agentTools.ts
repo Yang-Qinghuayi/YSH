@@ -2,7 +2,7 @@
  * agentTools.ts
  * Agent 可调用的工具集（function calling）。
  * 只读工具（plan 阶段）：query_lore / search_chapters / read_story_state / read_context / select_characters
- * 副作用工具（finalizing 阶段）：update_story_state
+ * 定稿工具（本章定稿时，有副作用）：update_short_term_memory / update_long_term_memory
  *
  * 每个工具统一返回 { ok, data?, error?, text }——text 是回传 LLM 的摘要文本（控 token，不回传全文）。
  */
@@ -12,15 +12,20 @@ import type {
   ChatCompletionFunctionTool,
 } from 'openai/resources/chat/completions'
 import type { Novel, ChapterMeta } from '@/types/novel'
-import type { StoryState, CharacterState } from '@/types/storyState'
 import { loadOrCreateLore, loadEntryContent } from '@/services/loreService'
-import { searchInChapters, saveChapterContent } from '@/services/novelService'
+import {
+  searchInChapters,
+  saveChapterContent,
+  saveNovelMeta,
+} from '@/services/novelService'
 import { loadStoryState, saveStoryState } from '@/services/storyStateService'
 import { sliceContextBeforeCursor } from '@/services/deepseekService'
 import {
-  applyStoryStatePatch,
-  type StoryStatePatch,
-} from '@/services/storyStateMerge'
+  applyShortTermMemories,
+  applyLongTermChange,
+  formatStoryStateForTool,
+  type ShortTermPatch,
+} from '@/services/storyMemory'
 import {
   applyAppendToChapter,
   applyReplaceTail,
@@ -173,21 +178,26 @@ const searchChaptersTool: AgentTool = {
   },
 }
 
-/** read_story_state：读取故事状态层 */
+/** read_story_state：读取整体进度与角色短期记忆（POV） */
 const readStoryStateTool: AgentTool = {
   def: {
     type: 'function',
     function: {
       name: 'read_story_state',
       description:
-        '读取当前故事状态（角色动态状态：心情/位置/伤势/关系等；时间线/伏笔）。生成前调用以保持一致性。',
+        '读取故事状态：主线「整体进度」与角色「短期记忆」（以角色视角记录 TA 知道什么、误以为什么、此刻处境）。写角色的言行与心理前调用，确保角色只基于自己知道的信息行动。',
       parameters: {
         type: 'object',
         properties: {
           section: {
             type: 'string',
-            enum: ['characterStates', 'timeline', 'foreshadowings', 'all'],
+            enum: ['mainline', 'memories', 'all'],
             description: '读取哪一部分，默认 all',
+          },
+          characterNames: {
+            type: 'array',
+            items: { type: 'string' },
+            description: '只读取这些角色的短期记忆（不传则全部）',
           },
         },
       },
@@ -196,52 +206,18 @@ const readStoryStateTool: AgentTool = {
   async execute(args, ctx) {
     try {
       const state = await loadStoryState(ctx.novel.id)
-      const section = (args.section as string | undefined) ?? 'all'
-      const lines: string[] = []
-
-      if (section === 'characterStates' || section === 'all') {
-        if (state.characterStates.length === 0) {
-          lines.push('角色状态：暂无')
-        } else {
-          lines.push('角色状态：')
-          for (const c of state.characterStates) {
-            const parts: string[] = []
-            if (c.mood) parts.push(`心情=${c.mood}`)
-            if (c.location) parts.push(`位置=${c.location}`)
-            if (c.injuries) parts.push(`伤势=${c.injuries}`)
-            if (c.possessions?.length)
-              parts.push(`持有=${c.possessions.join('/')}`)
-            if (c.relationships?.length)
-              parts.push(
-                `关系=${c.relationships.map((r) => `${r.target}:${r.relation}`).join(',')}`,
-              )
-            if (c.notes) parts.push(`notes=${c.notes}`)
-            lines.push(
-              `- ${c.characterName}：${parts.join('；') || '无'}（最近更新于章节 ${c.lastUpdatedChapterId}）`,
-            )
-          }
-        }
-      }
-      if (
-        (section === 'timeline' || section === 'all') &&
-        state.timeline.length > 0
-      ) {
-        lines.push('时间线：')
-        for (const t of state.timeline) lines.push(`- ${t.label}`)
-      }
-      if (
-        (section === 'foreshadowings' || section === 'all') &&
-        state.foreshadowings.length > 0
-      ) {
-        lines.push('伏笔：')
-        for (const f of state.foreshadowings)
-          lines.push(`- [${f.status}] ${f.description}`)
-      }
-
+      const section = args.section as 'mainline' | 'memories' | 'all' | undefined
+      const names = Array.isArray(args.characterNames)
+        ? (args.characterNames as unknown[]).map(String)
+        : []
       return {
         ok: true,
         data: state,
-        text: lines.join('\n') || '故事状态为空。',
+        text: formatStoryStateForTool(state, {
+          section,
+          characterNames: names,
+          chapters: ctx.novel.chapters,
+        }),
       }
     } catch (e) {
       return { ok: false, error: String(e), text: `读取故事状态失败：${e}` }
@@ -283,14 +259,14 @@ const readContextTool: AgentTool = {
   },
 }
 
-/** select_characters：选定本章要调用的角色档案，返回合并写作指导 */
+/** select_characters：选定本章要写的角色，返回其长期记忆（Skill）+ 短期记忆（POV） */
 const selectCharactersTool: AgentTool = {
   def: {
     type: 'function',
     function: {
       name: 'select_characters',
       description:
-        '选定本章要调用的角色档案（按 id），返回合并后的写作指导文本。角色档案会携带角色描述、别名与文学形象参考。',
+        '选定本章要写的角色（按 id），返回每个角色完整的长期记忆（Skill：性格/出身/信念/说话方式等）与短期记忆（POV：TA 此刻知道什么、误以为什么）。',
       parameters: {
         type: 'object',
         properties: {
@@ -311,20 +287,31 @@ const selectCharactersTool: AgentTool = {
         (args.characterIds as string[] | undefined) ??
         (args.skillIds as string[] | undefined) ??
         []
+      const state = await loadStoryState(ctx.novel.id).catch(() => null)
       const lines: string[] = []
 
       for (const id of ids) {
-        const char = ctx.novel.characters.find((c) => c.id === id)
-        if (char) {
-          lines.push(`【角色 ${char.name}】`)
-          if (char.profile) lines.push(`角色描述：${char.profile}`)
-          if (char.aliases?.length)
-            lines.push(`别名：${char.aliases.join('/')}`)
-          if (char.literaryReference)
-            lines.push(`文学形象参考：${char.literaryReference}`)
+        // 容错：模型偶尔会传角色名而不是 id
+        const char =
+          ctx.novel.characters.find((c) => c.id === id) ??
+          ctx.novel.characters.find((c) => c.name === id)
+        if (!char) {
+          lines.push(`（未找到 id=${id} 的角色）`)
           continue
         }
-        lines.push(`（未找到 id=${id} 的角色）`)
+        lines.push(`【角色 ${char.name}】`)
+        lines.push(`长期记忆（Skill）：${char.skill?.trim() || '（未填写）'}`)
+        const mem = state?.characterMemories.find(
+          (m) => m.characterName === char.name,
+        )
+        lines.push(
+          `短期记忆（POV）：${mem?.shortTerm.trim() || '（暂无，按长期记忆与前文把握）'}`,
+        )
+      }
+      if (lines.length) {
+        lines.push(
+          '提醒：每个角色的言行与心理只能基于 TA 自己短期记忆里的信息与本章亲历的事。',
+        )
       }
 
       return {
@@ -338,106 +325,140 @@ const selectCharactersTool: AgentTool = {
   },
 }
 
+// ===================== 定稿工具（有副作用，仅「本章定稿」使用） =====================
+
+/** 模型偶尔会带上 @ 前缀或空白 */
+function normalizeName(v: unknown): string {
+  return String(v ?? '').trim().replace(/^@/, '').trim()
+}
+
 /**
- * update_story_state：增量更新故事状态（副作用，仅 finalizing 阶段）
- * 合并语义见 storyStateMerge.ts（纯函数，可单测）。
+ * update_short_term_memory：以角色视角整段改写短期记忆。
+ * 只改提交的角色；未提交的角色（本章未出场、也没得知新信息）保持原样 —— POV 信息差由此保留。
  */
-const updateStoryStateTool: AgentTool = {
+const updateShortTermMemoryTool: AgentTool = {
   def: {
     type: 'function',
     function: {
-      name: 'update_story_state',
+      name: 'update_short_term_memory',
       description:
-        '根据本次生成的正文，增量更新故事状态。只提交发生变化的字段（未提交的字段保持原值，不要为了占位而填空字符串）；按 characterName 匹配更新或新增角色；timeline/foreshadowings 为追加。',
+        '以角色视角（POV）整段改写本章出场或得知新信息的角色的短期记忆。只提交需要更新的角色；每条 shortTerm 是改写后的完整短期记忆（200-300 字），只写该角色能知道的信息。',
       parameters: {
         type: 'object',
         properties: {
-          characterStates: {
-            type: 'array',
-            description:
-              '受影响的角色状态增量：只需给出发生变化的字段，未给出的字段保留原值',
-            items: {
-              type: 'object',
-              properties: {
-                characterName: { type: 'string' },
-                mood: { type: 'string' },
-                location: { type: 'string' },
-                injuries: { type: 'string' },
-                possessions: { type: 'array', items: { type: 'string' } },
-                relationships: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      target: { type: 'string' },
-                      relation: { type: 'string' },
-                      sinceChapterId: { type: 'string' },
-                    },
-                    required: ['target', 'relation'],
-                  },
-                },
-                notes: { type: 'string' },
-              },
-              required: ['characterName'],
-            },
-          },
-          timeline: {
+          memories: {
             type: 'array',
             items: {
               type: 'object',
               properties: {
-                label: { type: 'string' },
-                detail: { type: 'string' },
-              },
-              required: ['label'],
-            },
-          },
-          foreshadowings: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                description: { type: 'string' },
-                status: {
+                characterName: { type: 'string', description: '角色名' },
+                shortTerm: {
                   type: 'string',
-                  enum: ['open', 'resolved', 'abandoned'],
+                  description:
+                    '改写后的完整短期记忆：TA 最近经历了什么、知道什么、误以为什么、此刻的处境与心绪',
                 },
               },
-              required: ['description'],
+              required: ['characterName', 'shortTerm'],
             },
           },
         },
+        required: ['memories'],
       },
     },
   },
   async execute(args, ctx) {
     try {
+      const raw = (Array.isArray(args.memories) ? args.memories : []) as Partial<ShortTermPatch>[]
+      const patches: ShortTermPatch[] = raw.map((p) => ({
+        characterName: normalizeName(p?.characterName),
+        shortTerm: String(p?.shortTerm ?? ''),
+      }))
+      const known = new Set(ctx.novel.characters.map((c) => c.name))
+      const unknown = patches
+        .map((p) => p.characterName)
+        .filter((n) => n && !known.has(n))
+      const valid = patches.filter((p) => known.has(p.characterName))
+
       const state = await loadStoryState(ctx.novel.id)
-      const now = Date.now()
-      const chapterId = ctx.chapter.id
-
-      const patch: StoryStatePatch = {
-        characterStates: (args.characterStates as CharacterState[]) ?? [],
-        timeline: (args.timeline as StoryStatePatch['timeline']) ?? [],
-        foreshadowings:
-          (args.foreshadowings as StoryStatePatch['foreshadowings']) ?? [],
-      }
-
-      // 增量合并：只覆盖本次「明确提交」的字段，未提交的字段保留原值
-      // （旧实现是字段级全量赋值，模型漏填时会静默清空已有状态）
-      const next = applyStoryStatePatch(state, patch, chapterId, now)
-
-      await saveStoryState(next)
-      const affected = patch.characterStates?.length ?? 0
-      const tl = patch.timeline ?? []
-      const fs = patch.foreshadowings ?? []
+      const { state: next, updated } = applyShortTermMemories(
+        state,
+        valid,
+        ctx.chapter.id,
+      )
+      if (updated.length) await saveStoryState(next)
+      const tail = unknown.length ? `；忽略未知角色：${unknown.join('、')}` : ''
       return {
         ok: true,
-        data: next,
-        text: `故事状态已更新（角色状态 ${affected} 条${tl.length ? `，时间线 ${tl.length} 条` : ''}${fs.length ? `，伏笔 ${fs.length} 条` : ''}）。`,
+        data: { updated },
+        text: updated.length
+          ? `已改写 ${updated.length} 个角色的短期记忆：${updated.join('、')}${tail}。`
+          : `没有可更新的短期记忆${tail}。`,
       }
     } catch (e) {
-      return { ok: false, error: String(e), text: `更新故事状态失败：${e}` }
+      return { ok: false, error: String(e), text: `更新短期记忆失败：${e}` }
+    }
+  },
+}
+
+/**
+ * update_long_term_memory：重大事件改变了角色时，改写其长期记忆（Skill）。
+ * 直接写入 novel.json，同时在 story-state.json 记改写日志（可在故事状态面板回滚）。
+ * 会同步修改 ctx.novel.characters，便于同一次定稿中后续调用看到最新 Skill。
+ */
+const updateLongTermMemoryTool: AgentTool = {
+  def: {
+    type: 'function',
+    function: {
+      name: 'update_long_term_memory',
+      description:
+        '当本章发生了足以改变某角色性格、信念或身份的重大事件（生死、背叛、顿悟、创伤、身份巨变等）时，改写该角色的长期记忆（Skill）。大多数章节不需要调用。revisedSkill 必须是改写后的完整 Skill 全文：保留原文未受影响的内容，只修改受影响的部分。',
+      parameters: {
+        type: 'object',
+        properties: {
+          characterName: { type: 'string', description: '角色名' },
+          reason: {
+            type: 'string',
+            description: '触发改写的重大事件（一句话）',
+          },
+          revisedSkill: {
+            type: 'string',
+            description: '改写后的完整长期记忆（Skill）全文',
+          },
+        },
+        required: ['characterName', 'reason', 'revisedSkill'],
+      },
+    },
+  },
+  async execute(args, ctx) {
+    try {
+      const name = normalizeName(args.characterName)
+      const state = await loadStoryState(ctx.novel.id)
+      const result = applyLongTermChange(
+        ctx.novel.characters,
+        state,
+        {
+          characterName: name,
+          reason: String(args.reason ?? ''),
+          revisedSkill: String(args.revisedSkill ?? ''),
+        },
+        ctx.chapter.id,
+      )
+      if (!result) {
+        return {
+          ok: false,
+          text: `未改写「${name}」的长期记忆（角色不存在、内容为空或与原文相同）。`,
+        }
+      }
+      ctx.novel.characters = result.characters
+      await saveNovelMeta(ctx.novel)
+      await saveStoryState(result.state)
+      return {
+        ok: true,
+        data: { change: result.change, characters: result.characters },
+        text: `已改写「${name}」的长期记忆（原因：${result.change.reason}）。`,
+      }
+    } catch (e) {
+      return { ok: false, error: String(e), text: `更新长期记忆失败：${e}` }
     }
   },
 }
@@ -558,8 +579,15 @@ export const READONLY_TOOLS: AgentTool[] = [
   selectCharactersTool,
 ]
 
-/** 副作用工具（finalizing 阶段） */
-export const SIDE_EFFECT_TOOLS: AgentTool[] = [updateStoryStateTool]
+/** 定稿工具：改写短期记忆 */
+export const SHORT_TERM_TOOLS: AgentTool[] = [updateShortTermMemoryTool]
+/** 定稿工具：判断并改写长期记忆 */
+export const LONG_TERM_TOOLS: AgentTool[] = [updateLongTermMemoryTool]
+/** 全部定稿工具（无工具模式下按名字查执行器用） */
+export const FINALIZE_TOOLS: AgentTool[] = [
+  updateShortTermMemoryTool,
+  updateLongTermMemoryTool,
+]
 
 /** 写章工具（交互面板 chat 模式的主循环可用） */
 export const CHAT_WRITE_TOOLS: AgentTool[] = [

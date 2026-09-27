@@ -1,5 +1,7 @@
 # YSH 小说 Agent 代码分析报告
 
+> **注（已过时的部分）**：本文分析的「角色静态档案 + 动态状态（心情/位置/伤势/关系/时间线/伏笔）」、`update_story_state` / `storyStateMerge`、生成后自动 finalizing 等设计已被替换为「人物 = 长期记忆（Skill）+ 短期记忆（POV）+ 整体进度」，由作者手动「本章定稿」触发更新。现行设计见 README「人物记忆」一节与 `src/services/chapterFinalize.ts`。
+
 > 分析对象：`Yang-Qinghuayi/YSH` @ `b53bcce`（分支 `arena/01a0dd7e-ysh`）
 > 分析日期：2026-09-26
 > 方法：通读 `src/pages/novel`、`src/pages/lore`、`src/services/*`（agent / deepseek / novel / lore / storyState / import）、`src/store/*`、`src/types/*`、`src-tauri`，并对 README 描述逐条比对实现。

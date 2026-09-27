@@ -17,6 +17,17 @@
       </v-chip>
       <v-spacer />
       <button
+        v-if="chapter"
+        class="lg-pill finalize-btn"
+        :class="{ 'finalize-btn--done': !!chapter.finalizedAt }"
+        :disabled="chatStore.busy || contentLength < 50"
+        :title="finalizeTitle"
+        @click="$emit('finalize')"
+      >
+        <v-icon :icon="mdiCheckDecagramOutline" size="14" />
+        {{ chapter.finalizedAt ? '重新定稿' : '本章定稿' }}
+      </button>
+      <button
         class="lg-icon-btn"
         title="清空对话"
         :disabled="!transcript.length"
@@ -105,7 +116,7 @@
               size="14"
               :color="msg.status === 'done' ? 'success' : 'error'"
             />
-            <span class="chat-tool__name">{{ msg.tool }}</span>
+            <span class="chat-tool__name">{{ toolLabel(msg.tool) }}</span>
             <span class="chat-tool__summary text-truncate">{{
               msg.argsSummary
             }}</span>
@@ -369,12 +380,14 @@ import {
   mdiSend,
   mdiStop,
   mdiBookPlusOutline,
+  mdiCheckDecagramOutline,
   mdiGauge,
 } from '@mdi/js'
 import { storeToRefs } from 'pinia'
 import { useChatStore } from '@/store/chatStore'
 import { useSettingStore } from '@/store/setting'
 import type { AgentPlan } from '@/services/agentService'
+import { FINALIZE_STEP_LABELS, type FinalizeStep } from '@/services/chapterFinalize'
 import type { Novel, ChapterMeta } from '@/types/novel'
 import type { ChatMsg } from '@/types/agentChat'
 import MentionTextarea from './MentionTextarea.vue'
@@ -394,6 +407,8 @@ const emit = defineEmits<{
   cancelPlan: []
   undoWrite: [msgId: string]
   clearChat: []
+  /** 本章定稿：概要 → 短期记忆 → 长期记忆 → 整体进度 */
+  finalize: []
 }>()
 
 const chatStore = useChatStore()
@@ -435,6 +450,37 @@ function onEnterKey(e: KeyboardEvent) {
   if (mentionMenuOpen.value) return
   e.preventDefault()
   sendDraft()
+}
+
+// ===== 本章定稿 =====
+const finalizeTitle = computed(() => {
+  if (!props.chapter) return ''
+  if (props.contentLength < 50) return '本章正文太短，写完后再定稿'
+  const steps = '生成本章概要 → 改写角色短期记忆 → 判断是否改写长期记忆（Skill）→ 更新整体进度'
+  return props.chapter.finalizedAt
+    ? `本章已定稿过。重新定稿会先撤回上次定稿对记忆的改动，再重新执行：${steps}`
+    : `写完本章后点击：${steps}`
+})
+
+// ===== 工具卡名称 =====
+const TOOL_LABELS: Record<string, string> = {
+  query_lore: '查询设定',
+  search_chapters: '检索章节',
+  read_story_state: '读取故事状态',
+  read_context: '读取前文',
+  select_characters: '选择出场角色',
+  update_short_term_memory: '改写短期记忆',
+  update_long_term_memory: '改写长期记忆',
+  append_to_chapter: '写入正文',
+  replace_tail: '重写结尾',
+}
+function toolLabel(tool: string): string {
+  // 定稿步骤卡：finalize:<step>
+  if (tool.startsWith('finalize:')) {
+    const step = tool.slice('finalize:'.length) as FinalizeStep
+    return `定稿 · ${FINALIZE_STEP_LABELS[step] ?? step}`
+  }
+  return TOOL_LABELS[tool] ?? tool
 }
 
 // ===== 快捷动作护栏 =====
@@ -493,6 +539,23 @@ watch([() => transcript.value.length, lastMsgLen], () => {
 </script>
 
 <style scoped>
+.finalize-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 3px 10px;
+  margin-right: 4px;
+  white-space: nowrap;
+  color: rgb(var(--v-theme-primary));
+}
+.finalize-btn--done {
+  color: rgb(var(--v-theme-success));
+}
+.finalize-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 .agent-panel {
   height: 100%;
   min-height: 0;

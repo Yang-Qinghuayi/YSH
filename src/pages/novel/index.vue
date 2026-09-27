@@ -14,8 +14,10 @@
         <NovelOverviewBar
           v-if="currentNovel"
           :novel="currentNovel"
+          :has-chapter="!!currentChapter"
           @open-folder="handleOpenFolder"
           @view-state="showStoryStateDialog = true"
+          @view-summary="showChapterSummaryDialog = true"
           @open-settings="showEditorSettings = true"
           @switch-novel="switchNovel"
         />
@@ -164,7 +166,7 @@
             v-if="sidebarTab === 'agent' && currentNovel"
             class="agent-sidebar-card lg-card flex-1"
             :novel="currentNovel"
-            :chapter="currentChapter"
+            :chapter="currentChapterMeta"
             :content-length="currentChapterContent.length"
             @send="handleChatSend"
             @quick-action="handleChatQuickAction"
@@ -173,6 +175,7 @@
             @cancel-plan="handleChatCancelPlan"
             @undo-write="handleChatUndoWrite"
             @clear-chat="handleChatClear"
+            @finalize="handleFinalizeChapter"
           />
           <div
             v-else-if="sidebarTab === 'agent'"
@@ -324,12 +327,13 @@
         @jump="handleSearchJump"
       />
 
-      <!-- 角色面板（档案 + 状态） -->
+      <!-- 角色面板（长期记忆 Skill + 短期记忆 POV） -->
       <CharacterPanel
         v-if="currentNovel"
         :characters="currentNovel.characters"
+        :chapters="currentNovel.chapters"
         @update:character="handleUpdateSingleCharacter"
-        @update:state="handleUpdateCharacterState"
+        @update:memory="handleUpdateShortTermMemory"
       />
 
       <!-- 设定资料库面板 -->
@@ -347,6 +351,18 @@
         v-model="showStoryStateDialog"
         :novel-id="currentNovel.id"
         :characters="currentNovel.characters"
+        :chapters="currentNovel.chapters"
+        @revert="handleRevertLongTerm"
+      />
+
+      <!-- 本章概要 -->
+      <ChapterSummaryDialog
+        v-model="showChapterSummaryDialog"
+        :chapter="currentChapterMeta"
+        :finalizing="finalizing"
+        :busy="chatStore.busy || isGenerating"
+        @save="handleSaveChapterSummary"
+        @finalize="handleFinalizeFromSummaryDialog"
       />
 
       <!-- 导入小说对话框 -->
@@ -441,24 +457,9 @@
               深度推理模型不支持工具调用，Agent
               将跳过资料检索循环，改为「直读上下文」模式规划（检索能力受限）。
             </div>
-            <v-switch
-              v-model="settingStore.autoChapterSummary"
-              color="primary"
-              density="compact"
-              hide-details
-              label="生成后自动写章节摘要"
-              hint="摘要会作为后续章节规划时的「前情提要」"
-              persistent-hint
-            />
-            <v-switch
-              v-model="agentStore.autoUpdateStoryState"
-              color="primary"
-              density="compact"
-              hide-details
-              label="生成后自动更新角色状态"
-              hint="关闭后，Agent 生成正文不再自动增量更新角色动态状态"
-              persistent-hint
-            />
+            <div class="settings-note">
+              章节概要、角色记忆与整体进度不会在 AI 写完后自动更新；写完一章后，在 Agent 面板点「本章定稿」统一更新。
+            </div>
           </div>
         </div>
       </v-dialog>
@@ -533,6 +534,16 @@ import {
 } from '@/services/agentChat'
 import type { ChatWriteData } from '@/types/agentChat'
 import { loadStoryState, saveStoryState } from '@/services/storyStateService'
+import {
+  revertLongTermChange,
+  setShortTermMemory,
+  renameCharactersInState,
+} from '@/services/storyMemory'
+import {
+  runChapterFinalize,
+  type FinalizeStep,
+  type FinalizeResult,
+} from '@/services/chapterFinalize'
 import { PLAN_BLOCK_PATTERN } from '@/services/agentProtocol'
 import { loadOrCreateLore } from '@/services/loreService'
 import {
@@ -543,7 +554,6 @@ import {
 import { isTauriAppPlatform } from '@/services/environment'
 import { openPath } from '@tauri-apps/plugin-opener'
 import type { Novel, ChapterMeta, Character, SearchResult } from '@/types/novel'
-import type { CharacterState } from '@/types/storyState'
 import type { EntryMeta } from '@/types/lore'
 import WorkspaceInit from '@/components/WorkspaceInit.vue'
 import ChapterList from './components/ChapterList.vue'
@@ -554,6 +564,7 @@ import AgentChatPanel from './components/AgentChatPanel.vue'
 import CharacterPanel from './components/CharacterPanel.vue'
 import LorePanel from './components/LorePanel.vue'
 import StoryStateDialog from './components/StoryStateDialog.vue'
+import ChapterSummaryDialog from './components/ChapterSummaryDialog.vue'
 import ImportNovelDialog from './components/ImportNovelDialog.vue'
 import GlobalSearch from '@/components/GlobalSearch.vue'
 import { useDialogEsc } from '@/hooks/useDialogEsc'
@@ -587,6 +598,7 @@ const showApiKey = ref(false)
 const showLorePanel = ref(false)
 const showImportDialog = ref(false)
 const showStoryStateDialog = ref(false)
+const showChapterSummaryDialog = ref(false)
 const showEditorSettings = ref(false)
 const snackColor = ref<'error' | 'warning'>('error')
 useDialogEsc(showEditorSettings)
@@ -842,11 +854,27 @@ async function trySaveCurrentChapter() {
 // ===== 角色管理 =====
 async function handleUpdateCharacters(characters: Character[]) {
   if (!currentNovel.value) return
+  // 故事状态按角色名关联：改名时同步短期记忆 / 改写日志
+  const renames: Record<string, string> = {}
+  for (const c of characters) {
+    const prev = currentNovel.value.characters.find((x) => x.id === c.id)
+    if (prev && prev.name !== c.name && c.name.trim()) renames[prev.name] = c.name
+  }
   const updated = { ...currentNovel.value, characters }
   novelStore.updateCurrentNovel(updated)
   await saveNovelMeta(updated).catch((e) =>
     showErrorMsg('保存角色失败：' + e.message),
   )
+  if (Object.keys(renames).length) {
+    try {
+      const state = await loadStoryState(updated.id)
+      agentStore.setStoryState(
+        await saveStoryState(renameCharactersInState(state, renames)),
+      )
+    } catch (e) {
+      showErrorMsg('同步角色记忆失败：' + errorText(e))
+    }
+  }
 }
 
 // ===== 全局搜索 =====
@@ -885,19 +913,6 @@ function errorText(e: unknown): string {
   return e instanceof Error ? e.message : String(e)
 }
 
-/** 章节摘要落盘（写回 ChapterMeta.summary，供后续章节的「前情提要」） */
-async function persistChapterSummary(summary: string) {
-  const novel = currentNovel.value
-  const chapter = currentChapter.value
-  if (!novel || !chapter) return
-  chapter.summary = summary
-  try {
-    await saveNovelMeta(novel)
-  } catch {
-    // 摘要写盘失败不影响正文
-  }
-}
-
 // ===== Agent 交互面板（chat）编排 =====
 
 /** 每轮 turn 的 UI 关联状态（助手气泡 / 写章预览卡 / 工具卡队列） */
@@ -906,10 +921,12 @@ interface TurnUiState {
   previewCardId: string | null
   /** onToolStart 顺序入队、onToolEnd 顺序出队，保证卡片与工具一一对应 */
   pendingCards: string[]
+  /** 本轮是否写入了正文（结束时提示「本章定稿」） */
+  wrote: boolean
 }
 
 function createTurnUi(): TurnUiState {
-  return { assistantId: null, previewCardId: null, pendingCards: [] }
+  return { assistantId: null, previewCardId: null, pendingCards: [], wrote: false }
 }
 
 /** 取当前章最新内容（编辑器里未保存的手动编辑也算） */
@@ -922,8 +939,11 @@ function ensureChatSession(): AgentSession | null {
   const novel = currentNovel.value
   const chapter = currentChapter.value
   if (!novel || !chapter) return null
-  if (chatSession.value && chatSession.value.chapterId === chapter.id)
+  if (chatSession.value && chatSession.value.chapterId === chapter.id) {
+    // 小说对象可能已被替换（定稿改写了 Skill / 概要等），让会话用最新的
+    chatSession.value.novel = novel
     return chatSession.value
+  }
   chatSession.value = createChatSession({
     novel,
     chapter,
@@ -1001,7 +1021,7 @@ function makeChatCallbacks(turnUi: TurnUiState): ChatTurnCallbacks {
     chatStore.setStatus('')
     chatStore.setPhase('idle')
     novelStore.stopGenerating()
-    // 刷新故事状态缓存（写章后角色动态状态可能已更新）
+    // 刷新故事状态缓存
     const novelId = currentNovel.value?.id
     if (novelId)
       loadStoryState(novelId)
@@ -1013,7 +1033,7 @@ function makeChatCallbacks(turnUi: TurnUiState): ChatTurnCallbacks {
   return {
     onPhase: (p) => {
       chatStore.setPhase(p)
-      if (p === 'planning' || p === 'generating' || p === 'finalizing') {
+      if (p === 'planning' || p === 'generating') {
         if (!isGenerating.value) novelStore.startGenerating()
       }
       if (p === 'canceled') {
@@ -1055,7 +1075,10 @@ function makeChatCallbacks(turnUi: TurnUiState): ChatTurnCallbacks {
           resultText,
           write,
         })
-      if (write) commitChatWrite(write)
+      if (write) {
+        turnUi.wrote = true
+        commitChatWrite(write)
+      }
     },
     onVirtualWrite: (content) => {
       const session = chatSession.value
@@ -1077,6 +1100,7 @@ function makeChatCallbacks(turnUi: TurnUiState): ChatTurnCallbacks {
         resultText: `已把 ${write.addedChars} 字正文追加到章节末尾。`,
         write,
       })
+      turnUi.wrote = true
       commitChatWrite(write)
     },
     onPlanReady: (plan) => {
@@ -1089,7 +1113,6 @@ function makeChatCallbacks(turnUi: TurnUiState): ChatTurnCallbacks {
       chatStore.pushPlan(plan)
       chatStore.setStatus('等待确认规划')
     },
-    onChapterSummary: (summary) => void persistChapterSummary(summary),
     onContextTrimmed: (info) => {
       chatStore.setContextUsage(info.estimatedTokens, info.trimmed)
       showWarnMsg(
@@ -1101,7 +1124,14 @@ function makeChatCallbacks(turnUi: TurnUiState): ChatTurnCallbacks {
       showErrorMsg(errorText(e))
       finish()
     },
-    onDone: () => finish(),
+    onDone: () => {
+      if (turnUi.wrote) {
+        chatStore.pushSystem(
+          '正文已写入。本章写完后，点顶部「本章定稿」更新章节概要、角色记忆与整体进度。',
+        )
+      }
+      finish()
+    },
   }
 }
 
@@ -1160,6 +1190,7 @@ async function handleChatQuickAction(
             chapter,
             currentChapterContent.value,
             settingStore.agentWriteLength,
+            await loadStoryState(novel.id).catch(() => agentStore.storyState),
           )
   } catch (e) {
     showErrorMsg(errorText(e))
@@ -1185,13 +1216,18 @@ async function handleChatQuickAction(
 
 /** 停止当前轮次（编辑器 Escape 也走这里） */
 function handleChatStop() {
+  if (finalizeAbort) {
+    chatStore.pushSystem('正在停止定稿…')
+    finalizeAbort.abort()
+    return
+  }
   if (chatSession.value && chatStore.busy) {
     chatStore.pushSystem('正在停止…')
     abortChatSession(chatSession.value)
   }
 }
 
-/** 确认 plan → 生成轮（写章 + finalizing） */
+/** 确认 plan → 生成轮（写章） */
 async function handleChatConfirmPlan(plan: AgentPlan) {
   const session = chatSession.value
   if (!session) return
@@ -1251,8 +1287,6 @@ function buildAgentConfig(overrides: Partial<AgentConfig> = {}): AgentConfig {
   return {
     apiKey: apiKey.value,
     model: settingStore.deepseekModel,
-    autoUpdateStoryState: agentStore.autoUpdateStoryState,
-    autoChapterSummary: settingStore.autoChapterSummary,
     lengthTarget: settingStore.agentWriteLength,
     ...overrides,
   }
@@ -1267,43 +1301,217 @@ async function handleUpdateSingleCharacter(character: Character) {
   await handleUpdateCharacters(characters)
 }
 
-async function handleUpdateCharacterState(patch: {
+/** 角色面板：手动编辑短期记忆 */
+async function handleUpdateShortTermMemory(patch: {
   characterName: string
-  data: Partial<CharacterState>
+  shortTerm: string
 }) {
   if (!currentNovel.value) return
   try {
     const state = await loadStoryState(currentNovel.value.id)
-    const idx = state.characterStates.findIndex(
-      (c) => c.characterName === patch.characterName,
+    const saved = await saveStoryState(
+      setShortTermMemory(state, patch.characterName, patch.shortTerm),
     )
-    const now = Date.now()
-    if (idx >= 0) {
-      state.characterStates[idx] = {
-        ...state.characterStates[idx],
-        ...patch.data,
-        characterName: patch.characterName,
-        relationships: state.characterStates[idx].relationships,
-        updatedAt: now,
-      }
-    } else {
-      state.characterStates.push({
-        characterName: patch.characterName,
-        mood: patch.data.mood,
-        location: patch.data.location,
-        injuries: patch.data.injuries,
-        notes: patch.data.notes,
-        relationships: [],
-        lastUpdatedChapterId: currentChapter.value?.id ?? '',
-        updatedAt: now,
-      })
-    }
-    await saveStoryState(state)
-    agentStore.setStoryState(state)
+    agentStore.setStoryState(saved)
   } catch (e) {
-    showErrorMsg(
-      '保存角色状态失败：' + (e instanceof Error ? e.message : String(e)),
+    showErrorMsg('保存短期记忆失败：' + errorText(e))
+  }
+}
+
+/** 故事状态：回滚一次长期记忆（Skill）改写 */
+async function handleRevertLongTerm(changeId: string) {
+  const novel = currentNovel.value
+  if (!novel) return
+  if (chatStore.busy) {
+    showWarnMsg('Agent 工作中，请稍后再回滚')
+    return
+  }
+  try {
+    const state = await loadStoryState(novel.id)
+    const r = revertLongTermChange(novel.characters, state, changeId)
+    if (!r) {
+      showWarnMsg('无法回滚：记录不存在、已回滚，或角色已被删除')
+      return
+    }
+    const updated = { ...novel, characters: r.characters }
+    novelStore.updateCurrentNovel(updated)
+    await saveNovelMeta(updated)
+    agentStore.setStoryState(await saveStoryState(r.state))
+    if (r.revertedIds.length > 1) {
+      showWarnMsg(`已回滚，并一并撤销了之后对该角色的 ${r.revertedIds.length - 1} 次改写`)
+    }
+  } catch (e) {
+    showErrorMsg('回滚失败：' + errorText(e))
+  }
+}
+
+// ===== 本章概要 / 本章定稿 =====
+
+/**
+ * 当前章的最新元数据：handleSave 会重建 chapters 数组，currentChapter 可能是旧对象，
+ * summary / finalizedAt 以 currentNovel.chapters 中的为准。
+ */
+const currentChapterMeta = computed<ChapterMeta | null>(() => {
+  const ch = currentChapter.value
+  if (!ch) return null
+  return currentNovel.value?.chapters.find((c) => c.id === ch.id) ?? ch
+})
+
+/** 更新当前小说中某章的元数据（同时同步 currentChapter），并落盘 */
+async function patchChapterMeta(chapterId: string, patch: Partial<ChapterMeta>) {
+  const novel = currentNovel.value
+  if (!novel) return
+  const updated: Novel = {
+    ...novel,
+    chapters: novel.chapters.map((c) => (c.id === chapterId ? { ...c, ...patch } : c)),
+  }
+  novelStore.updateCurrentNovel(updated)
+  if (currentChapter.value?.id === chapterId) Object.assign(currentChapter.value, patch)
+  await saveNovelMeta(updated)
+}
+
+async function handleSaveChapterSummary(summary: string) {
+  const ch = currentChapterMeta.value
+  if (!ch) return
+  try {
+    await patchChapterMeta(ch.id, { summary: summary || undefined })
+  } catch (e) {
+    showErrorMsg('保存概要失败：' + errorText(e))
+  }
+}
+
+const finalizing = ref(false)
+let finalizeAbort: AbortController | null = null
+
+function handleFinalizeFromSummaryDialog() {
+  sidebarCollapsed.value = false
+  sidebarTab.value = 'agent'
+  void handleFinalizeChapter()
+}
+
+/** 定稿成功：把角色 Skill 与本章概要/定稿时间合并回当前小说（保留期间的字数等变化） */
+async function applyFinalizeResult(result: FinalizeResult, chapterId: string) {
+  const novel = currentNovel.value
+  if (!novel || novel.id !== result.novel.id) return
+  const fin = result.novel.chapters.find((c) => c.id === chapterId)
+  novelStore.updateCurrentNovel({
+    ...novel,
+    characters: result.novel.characters,
+  })
+  await patchChapterMeta(chapterId, {
+    summary: fin?.summary,
+    finalizedAt: fin?.finalizedAt,
+  })
+  agentStore.setStoryState(result.state)
+}
+
+/** 定稿中断/失败：工具可能已改写部分 Skill，以磁盘为准刷新角色，避免自动保存覆盖回旧值 */
+async function syncCharactersFromDisk() {
+  const novel = currentNovel.value
+  if (!novel) return
+  try {
+    const disk = await loadCurrentNovel()
+    if (disk && disk.id === novel.id) {
+      novelStore.updateCurrentNovel({ ...novel, characters: disk.characters })
+    }
+  } catch {
+    // ignore
+  }
+}
+
+/** 本章定稿：章节概要 → 短期记忆 → 长期记忆 → 整体进度 */
+async function handleFinalizeChapter() {
+  const novel = currentNovel.value
+  const chapter = currentChapterMeta.value
+  if (!novel || !chapter) return
+  if (chatStore.busy || isGenerating.value) return
+  if (!apiKey.value) {
+    showErrorMsg('请先在「设置」中填写 DeepSeek API Key')
+    return
+  }
+  await trySaveCurrentChapter()
+  const content = currentChapterContent.value
+  if (content.trim().length < 50) {
+    showWarnMsg('本章正文太短，写完后再定稿')
+    return
+  }
+
+  const chapterId = chapter.id
+  const refinalize = !!chapter.finalizedAt
+  chatStore.pushSystem(
+    refinalize
+      ? `重新定稿《${chapter.title}》：先撤回上次定稿对记忆的改动，再重新整理`
+      : `定稿《${chapter.title}》：概要 → 短期记忆 → 长期记忆 → 整体进度`,
+  )
+  chatStore.setBusy(true)
+  chatStore.setPhase('finalizing')
+  novelStore.startGenerating()
+  finalizing.value = true
+  finalizeAbort = new AbortController()
+  const cards: Partial<Record<FinalizeStep, string>> = {}
+
+  try {
+    const result = await runChapterFinalize(
+      {
+        novel: currentNovel.value ?? novel,
+        chapter,
+        chapterContent: content,
+        config: buildAgentConfig(),
+        abortController: finalizeAbort,
+      },
+      {
+        onStatus: (s) => chatStore.setStatus(s),
+        onStepStart: (step) => {
+          cards[step] = chatStore.pushTool(`finalize:${step}`, '进行中…')
+        },
+        onStepEnd: (step, _ok, text) => {
+          const id = cards[step]
+          if (!id) return
+          const firstLine = text.split('\n')[0]
+          chatStore.updateTool(id, {
+            status: 'done',
+            argsSummary: firstLine.length > 40 ? firstLine.slice(0, 40) + '…' : firstLine,
+            resultText: text,
+          })
+          delete cards[step]
+        },
+        onContextTrimmed: (info) =>
+          showWarnMsg(`上下文接近上限，已省略 ${info.trimmed} 条早期内容。`),
+        onWarn: (m) => showWarnMsg(m),
+      },
     )
+    await applyFinalizeResult(result, chapterId)
+    const parts = [
+      `《${chapter.title}》已定稿。`,
+      result.shortTermUpdated.length
+        ? `短期记忆：${result.shortTermUpdated.join('、')}`
+        : '短期记忆：无变化',
+      result.longTermChanges.length
+        ? `长期记忆改写：${result.longTermChanges.map((c) => c.characterName).join('、')}（可在「故事状态」回滚）`
+        : '长期记忆：无需改写',
+    ]
+    chatStore.pushSystem(parts.join('\n'))
+  } catch (e) {
+    const aborted =
+      finalizeAbort?.signal.aborted ||
+      (e instanceof Error && (e.name === 'AbortError' || /abort/i.test(e.message)))
+    for (const id of Object.values(cards)) {
+      if (id) chatStore.updateTool(id, { status: 'error', argsSummary: aborted ? '已停止' : '失败' })
+    }
+    if (aborted) chatStore.pushSystem('已停止定稿（已完成的步骤会保留，可重新定稿）')
+    else showErrorMsg('定稿失败：' + errorText(e))
+    await syncCharactersFromDisk()
+    loadStoryState(novel.id)
+      .then((s) => agentStore.setStoryState(s))
+      .catch(() => {})
+  } finally {
+    finalizeAbort = null
+    finalizing.value = false
+    chatStore.setBusy(false)
+    chatStore.setStatus('')
+    chatStore.setPhase('idle')
+    novelStore.stopGenerating()
+    persistChatSession()
   }
 }
 
@@ -1679,6 +1887,14 @@ onBeforeUnmount(() => {
 .key-clear {
   flex: 0 0 auto;
   max-width: 72px;
+}
+.settings-note {
+  padding: 7px 10px;
+  border-radius: 12px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: rgba(var(--v-theme-on-surface), 0.62);
+  background: rgba(var(--v-theme-primary), 0.07);
 }
 .model-warn {
   margin-top: -6px;

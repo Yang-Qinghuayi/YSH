@@ -24,8 +24,8 @@
         @mousedown.prevent="selectCharacter(char)"
       >
         <span class="mention-name">@{{ char.name }}</span>
-        <span v-if="char.profile" class="mention-detail">{{
-          char.profile
+        <span v-if="char.skill" class="mention-detail">{{
+          char.skill
         }}</span>
       </button>
     </div>

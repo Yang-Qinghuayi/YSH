@@ -28,8 +28,6 @@ export interface SettingState {
   deepseekModel: 'deepseek-chat' | 'deepseek-reasoner'
   /** 是否把 API Key 持久化到本机（关闭则仅本次会话有效） */
   rememberApiKey: boolean
-  /** 生成后自动写章节摘要，用于后续章节的「前情提要」 */
-  autoChapterSummary: boolean
   /** Agent 交互面板：单章目标字数（500 的梯度） */
   agentWriteLength: 500 | 1000 | 1500 | 2000
   // 工作区文件夹（null = 使用 AppData 默认位置）
@@ -53,7 +51,6 @@ export const useSettingStore = defineStore('setting', {
         editorFontSize: 17,
         deepseekModel: 'deepseek-chat',
         rememberApiKey: true,
-        autoChapterSummary: true,
         agentWriteLength: 1500,
         workspaceDir: null,
       },

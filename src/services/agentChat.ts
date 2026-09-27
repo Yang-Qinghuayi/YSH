@@ -10,10 +10,12 @@
  * - 写章走工具：append_to_chapter / replace_tail（参数流式 → 实时预览），
  *   toolFree 模型（reasoner）降级为 <<<CONTENT>>>...<<<END>>> 协议
  * - 会话文件持久化：<小说文件夹>/agent-chat/<chapterId>.json
+ * - 写完不自动更新人物记忆：由作者点「本章定稿」触发（见 chapterFinalize.ts）
  */
 
 import type { ChatCompletionMessageFunctionToolCall } from 'openai/resources/chat/completions'
 import type { Novel, ChapterMeta, Mention } from '@/types/novel'
+import type { StoryState } from '@/types/storyState'
 import type { ChatMsg, ChatSessionFile, ChatWriteData } from '@/types/agentChat'
 import {
   createSession,
@@ -22,34 +24,28 @@ import {
   type AgentSession,
   type AgentPlan,
   type AgentConfig,
-  type AgentCallbacks,
   type SessionPhase,
 } from '@/services/agentService'
 import {
   buildChatSystemPrompt,
-  buildChapterSummaryInstruction,
-  summarizeStoryState,
   supportsToolCalling,
   sliceContextBeforeCursor,
 } from '@/services/deepseekService'
 import {
   CHAT_TOOLS,
-  SIDE_EFFECT_TOOLS,
   findTool,
   type AgentTool,
   type ToolContext,
   type ToolResult,
 } from '@/services/agentTools'
 import { loadStoryState } from '@/services/storyStateService'
+import { formatPovReminder } from '@/services/storyMemory'
 import { loadChapterContent } from '@/services/novelService'
 import {
   PLAN_BLOCK_PATTERN,
   parsePlan,
   parseContentBlock,
   extractPartialContent,
-  cleanChapterSummary,
-  INLINE_STATE_INSTRUCTION,
-  parseStatePatch,
   NUDGE_OUTPUT_PLAN,
   buildRoundKey,
   detectRepeatedRounds,
@@ -63,8 +59,6 @@ import { getDataBase } from '@/services/workspaceService'
 export const CHAT_TURN_MAX_TOOL_ROUNDS = 8
 /** plan 确认后的生成轮：写正文 + 少量补查 */
 const CHAT_GENERATE_MAX_TOOL_ROUNDS = 5
-/** finalizing 阶段 update_story_state 的最大轮数 */
-const CHAT_FINALIZE_MAX_TOOL_ROUNDS = 3
 
 const WRITE_TOOL_NAMES = ['append_to_chapter', 'replace_tail']
 
@@ -143,7 +137,6 @@ export interface ChatTurnCallbacks {
   /** toolFree 模型：解析到 CONTENT 块（虚拟写章，由调用方落盘） */
   onVirtualWrite?: (content: string) => void
   onPlanReady?: (plan: AgentPlan) => void
-  onChapterSummary?: (summary: string) => void
   onContextTrimmed?: (info: ContextBudgetResult) => void
   onWarn?: (message: string) => void
   onError?: (e: unknown) => void
@@ -299,17 +292,20 @@ export async function runChatTurn(
   cb: ChatTurnCallbacks,
 ): Promise<void> {
   try {
-    // 首轮：构建 system prompt（小说简介/角色/前情/故事状态/当前章/目标字数/协作规则）
-    if (session.messages.length === 0) {
-      const storyState = await loadStoryState(session.novelId)
-      const sys = buildChatSystemPrompt(session.novel, session.chapter, {
-        storyStateText: summarizeStoryState(storyState),
-        recentSummaries: recentChapterSummaries(session.novel, session.chapter),
-        lengthTarget: config.lengthTarget,
-        toolFree: !supportsToolCalling(config.model),
-        chapterContent: session.liveContent?.() ?? session.chapterContent,
-      })
-      session.messages.push({ role: 'system', content: sys })
+    // 每轮刷新 system prompt（小说简介/整体进度/人物记忆/前情/当前章/目标字数/POV 规则/协作规则）：
+    // 定稿后人物记忆、整体进度会变，恢复的旧会话也要用最新的
+    const storyState = await loadStoryState(session.novelId)
+    const sys = buildChatSystemPrompt(session.novel, session.chapter, {
+      storyState,
+      recentSummaries: recentChapterSummaries(session.novel, session.chapter),
+      lengthTarget: config.lengthTarget,
+      toolFree: !supportsToolCalling(config.model),
+      chapterContent: session.liveContent?.() ?? session.chapterContent,
+    })
+    if (session.messages[0]?.role === 'system') {
+      session.messages[0] = { role: 'system', content: sys }
+    } else {
+      session.messages.unshift({ role: 'system', content: sys })
     }
 
     const forcedNote = session.forcedMentions.length
@@ -457,8 +453,8 @@ function buildChatGenerateInstruction(
 }
 
 /**
- * plan 确认后的生成轮：模型按已确认大纲调用写章工具落笔（或 toolFree 回吐 CONTENT 块），
- * 写章成功后进入 finalizing（故事状态 + 章节摘要，沿用既有语义）。
+ * plan 确认后的生成轮：模型按已确认大纲调用写章工具落笔（或 toolFree 回吐 CONTENT 块）。
+ * 写完即结束；人物记忆与整体进度由作者点「本章定稿」时统一更新。
  */
 export async function runChatGenerateTurn(
   session: AgentSession,
@@ -550,10 +546,6 @@ export async function runChatGenerateTurn(
       break
     }
 
-    if (wrote) {
-      await runChatFinalize(session, config, cb)
-    }
-
     setPhase(session, 'done', cb)
     cb.onDone?.()
   } catch (e) {
@@ -562,93 +554,6 @@ export async function runChatGenerateTurn(
       return
     }
     cb.onError?.(e)
-  }
-}
-
-// ===================== finalizing（故事状态 + 章节摘要） =====================
-
-async function runChatFinalize(
-  session: AgentSession,
-  config: AgentConfig,
-  cb: ChatTurnCallbacks,
-): Promise<void> {
-  const needState = config.autoUpdateStoryState
-  const needSummary = config.autoChapterSummary
-  if (!needState && !needSummary) return
-
-  setPhase(session, 'finalizing', cb)
-  const toolFree = !supportsToolCalling(config.model)
-  const cbAdapter: AgentCallbacks = {
-    onContextTrimmed: cb.onContextTrimmed,
-    onStatus: cb.onStatus,
-  }
-
-  if (needState) {
-    if (!toolFree) {
-      cb.onStatus?.('正在更新故事状态…')
-      session.messages.push({
-        role: 'user',
-        content:
-          '请调用 update_story_state 工具，根据刚写入的正文以增量方式更新受影响角色的动态状态。',
-      })
-      for (let i = 0; i < CHAT_FINALIZE_MAX_TOOL_ROUNDS; i++) {
-        const { toolCalls } = await runOneTurn(
-          session,
-          config,
-          SIDE_EFFECT_TOOLS,
-          1200,
-          undefined,
-          cbAdapter,
-        )
-        if (toolCalls && toolCalls.length > 0) {
-          await executeChatToolCalls(session, toolCalls, SIDE_EFFECT_TOOLS, cb)
-          continue
-        }
-        break
-      }
-    } else {
-      // toolFree：<<<STATE>>> 协议 + 复用 update_story_state 执行器（单一合并来源）
-      cb.onStatus?.('正在更新故事状态（无工具模式）…')
-      session.messages.push({
-        role: 'user',
-        content: INLINE_STATE_INSTRUCTION,
-      })
-      const { text } = await runOneTurn(
-        session,
-        config,
-        [],
-        1200,
-        undefined,
-        cbAdapter,
-      )
-      const patch = parseStatePatch(text)
-      const tool = findTool('update_story_state', SIDE_EFFECT_TOOLS)
-      if (patch && tool) {
-        // 注意：assistant 消息已由 runOneTurn 追加；这里不 push tool 消息
-        // （无对应 assistant tool_calls 的孤立 tool 消息会被 API 拒绝）
-        cb.onToolStart?.('update_story_state', '增量更新角色状态')
-        const result = await tool.execute(patch, toolContext(session))
-        cb.onToolEnd?.('update_story_state', result.ok, result.text)
-      }
-    }
-  }
-
-  if (needSummary) {
-    cb.onStatus?.('正在生成章节摘要…')
-    session.messages.push({
-      role: 'user',
-      content: buildChapterSummaryInstruction(),
-    })
-    const { text } = await runOneTurn(
-      session,
-      config,
-      [],
-      320,
-      undefined,
-      cbAdapter,
-    )
-    const summary = cleanChapterSummary(text)
-    if (summary) cb.onChapterSummary?.(summary)
   }
 }
 
@@ -691,6 +596,9 @@ export async function buildContinuePrevTask(
   if (prev.summary?.trim())
     lines.push(`【上一章前情摘要】${prev.summary.trim()}`)
   if (tail.trim()) lines.push('【上一章结尾原文】', tail.trim())
+  const state = await loadStoryState(novel.id).catch(() => null)
+  const pov = formatPovReminder(novel.characters, state)
+  if (pov) lines.push(pov)
   lines.push(
     lengthTarget
       ? `请基于以上规划本新章（正文约 ${lengthTarget} 字），自然衔接前文，输出 PLAN。`
@@ -709,6 +617,7 @@ export function buildContinueCurrentTask(
   chapter: ChapterMeta,
   liveContent: string,
   lengthTarget?: number,
+  storyState?: StoryState | null,
 ): { visible: string; llm: string } {
   const tail = sliceContextBeforeCursor(liveContent, liveContent.length, 2000)
   const lines: string[] = [
@@ -717,6 +626,8 @@ export function buildContinueCurrentTask(
   ]
   if (tail.trim()) lines.push('【当前正文结尾】', tail.trim())
   else lines.push('（当前正文为空，按本章定位从头写起）')
+  const pov = formatPovReminder(novel.characters, storyState)
+  if (pov) lines.push(pov)
   lines.push(
     lengthTarget
       ? `请规划续写内容（正文约 ${lengthTarget} 字）并输出 PLAN。`

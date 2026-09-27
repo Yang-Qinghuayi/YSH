@@ -19,6 +19,7 @@ import {
   saveChapterContent,
 } from '@/services/novelService'
 import { loadOrCreateLore, saveLoreMeta, saveEntryContent } from '@/services/loreService'
+import { migrateCharacter } from '@/services/characterMigration'
 import type { Novel, ChapterMeta, Character } from '@/types/novel'
 import type { Lore, EntryMeta, EntryImportance } from '@/types/lore'
 
@@ -33,9 +34,8 @@ export interface SplitChapter {
 /** AI 提取出的人物（导入用，字段比 Character 少 id） */
 export interface ImportCharacter {
   name: string
-  profile?: string
-  aliases?: string[]
-  literaryReference?: string
+  /** 长期记忆（Skill） */
+  skill?: string
 }
 
 /** AI 提取出的设定条目（导入用） */
@@ -204,12 +204,12 @@ const EXTRACTION_SYSTEM_PROMPT = [
   '1. novelTitle：推断小说标题（若文本中无明显标题，给出一个贴切的名字）。',
   '2. synopsisBrief：100-200 字的精简故事简介，概括主线与当前进展（将作为小说全局简介）。',
   '3. plotProgress：300-600 字的详细情节阶段梳理，按时间顺序说明故事发展到什么阶段、关键转折（将作为一条设定条目）。',
-  '4. characters：登场人物列表。每人包含 name（必填）、profile（角色描述，综合性格/出身/外貌/爱好的自然语言叙事）、aliases（别名/称呼数组）、literaryReference（该角色参考的著名文学/影视形象，如 杨过、李寻欢）。只收录有戏份的角色，不要罗列龙套。',
+  '4. characters：登场人物列表。每人包含 name（必填）与 skill（角色的长期记忆：用一段自然语言综合写出性格、出身、外貌、信念、说话方式、别名/称呼，以及可参考的著名文学/影视形象如 杨过、李寻欢）。只收录有戏份的角色，不要罗列龙套。',
   '5. loreEntries：值得长期记忆的设定条目（世界观、势力、地点、物品、功法、组织等）。每条包含 name、importance（major/important/minor）、briefDescription（3-5 句索引简介）、keywords（别名/触发词数组）、content（详细设定正文）。',
   '',
   '输出格式必须严格为（不要输出标记外的任何内容）：',
   '<<<IMPORT>>>',
-  '{"novelTitle":"","synopsisBrief":"","plotProgress":"","characters":[{"name":"","profile":"","aliases":[],"literaryReference":""}],"loreEntries":[{"name":"","importance":"important","briefDescription":"","keywords":[],"content":""}]}',
+  '{"novelTitle":"","synopsisBrief":"","plotProgress":"","characters":[{"name":"","skill":""}],"loreEntries":[{"name":"","importance":"important","briefDescription":"","keywords":[],"content":""}]}',
   '<<<END>>>',
 ].join('\n')
 
@@ -238,13 +238,9 @@ function parseImportJson(text: string): ImportMeta {
     ? data.characters
         .filter((c) => c && typeof c === 'object' && (c as ImportCharacter).name)
         .map((c) => {
-          const ch = c as ImportCharacter
-          return {
-            name: String(ch.name),
-            profile: ch.profile || undefined,
-            aliases: Array.isArray(ch.aliases) ? ch.aliases.map(String) : undefined,
-            literaryReference: ch.literaryReference || undefined,
-          }
+          // 兼容模型沿用旧字段（profile/aliases/literaryReference）：一并并入 skill
+          const { name, skill } = migrateCharacter(c)
+          return { name: name || String((c as ImportCharacter).name), skill }
         })
     : []
 
@@ -358,9 +354,7 @@ export async function persistImport(params: PersistImportParams): Promise<Novel>
   const characters: Character[] = params.characters.map((c, i) => ({
     id: `char-${ts}-${i}`,
     name: c.name,
-    profile: c.profile,
-    aliases: c.aliases,
-    literaryReference: c.literaryReference,
+    skill: c.skill,
   }))
 
   // 4. 一次写回全部章节 meta 和角色

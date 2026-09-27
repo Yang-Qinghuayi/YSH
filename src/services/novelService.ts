@@ -8,106 +8,17 @@
 
 import { useAppService } from '@/hooks/useEnv'
 import { getDataBase } from '@/services/workspaceService'
-import type { Novel, ChapterMeta, Character, SearchResult, LegacyCharacter } from '@/types/novel'
+import type { Novel, ChapterMeta, SearchResult } from '@/types/novel'
+import { migrateCharacters } from '@/services/characterMigration'
 
 /**
- * V2 迁移：将分离的静态档案字段（personality/background/appearance/hobbies）
- * 合并为 profile（自然语言角色描述），并将旧 voice/description 转为 literaryReference。
- * 幂等：已迁移（无上述旧字段）的角色直接返回。
+ * 迁移整部小说的角色列表（任意历史版本 → { id, name, skill }），返回 { novel, changed }。
+ * 具体规则见 characterMigration.ts。幂等：已是新结构的角色不会被改动。
  */
-function migrateCharacterV2(raw: Character): Character {
-  // 访问旧字段（类型定义已移除，需 any 转型用于迁移逻辑）
-  const old = raw as any
-  const hasOldFields =
-    old.personality || old.background || old.appearance || old.hobbies || old.voice || old.description
-  if (!hasOldFields) return raw
-
-  const parts: string[] = []
-  if (old.personality) parts.push(`性格：${old.personality}`)
-  if (old.background) parts.push(`出身背景：${old.background}`)
-  if (old.appearance) parts.push(`外貌：${old.appearance}`)
-  if (old.hobbies) parts.push(`爱好：${old.hobbies}`)
-
-  const literaryRef = old.voice?.prompt || old.voice?.description || old.description || undefined
-
-  const {
-    personality: _p,
-    background: _bg,
-    appearance: _ap,
-    hobbies: _hb,
-    voice: _v,
-    description: _d,
-    ...rest
-  } = old
-
-  const migrated: Character = { ...rest } as Character
-  if (parts.length > 0) migrated.profile = parts.join('\n')
-  if (literaryRef) migrated.literaryReference = literaryRef
-  return migrated
-}
-
-/**
- * 将旧版角色（含 profile / skills）迁移为新的静态档案结构（含 voice）。
- * 幂等：已迁移（无 skills 且无 profile）的角色直接返回。
- * - profile → background（旧 profile 是"基本背景、性格、外貌"的混合，归入 background 最接近）
- * - skills → voice：把所有技能合并为一条文风指导（多条用换行拼接）
- */
-export function migrateCharacter(raw: LegacyCharacter): Character {
-  // 已无旧字段，视为已迁移
-  if (raw.profile === undefined && (!Array.isArray(raw.skills) || raw.skills.length === 0)) {
-    const { profile: _p, skills: _s, ...rest } = raw
-    return rest as Character
-  }
-
-  const voice = raw.skills && raw.skills.length > 0
-    ? {
-        prompt: raw.skills
-          .map((s) => (s.name ? `${s.name}：${s.prompt}` : s.prompt))
-          .filter(Boolean)
-          .join('\n'),
-      }
-    : undefined
-
-  const { profile, skills, ...rest } = raw
-  const migrated: Character = {
-    ...rest,
-  } as Character
-
-  // 中间态字段（将被 V2 迁移处理），需 any 转型
-  if (profile && !(migrated as any).background) {
-    (migrated as any).background = profile
-  }
-  if (voice && voice.prompt) {
-    (migrated as any).voice = voice
-  }
-  return migrated
-}
-
-/** 迁移整部小说的角色列表，返回 { novel, changed } */
 function migrateNovel(novel: Novel): { novel: Novel; changed: boolean } {
-  let changed = false
-  const characters = novel.characters.map((c) => {
-    const legacy = c as LegacyCharacter
-    // V1：旧 profile/skills → personality/background/voice
-    if (legacy.profile !== undefined || (Array.isArray(legacy.skills) && legacy.skills.length > 0)) {
-      changed = true
-      return migrateCharacter(legacy)
-    }
-    return c
-  })
-  // V2：分离静态档案字段 → profile + literaryReference
-  const v2Characters = characters.map((c) => {
-    const hasOldFields =
-      (c as any).personality || (c as any).background || (c as any).appearance ||
-      (c as any).hobbies || (c as any).voice || (c as any).description
-    if (hasOldFields) {
-      changed = true
-      return migrateCharacterV2(c)
-    }
-    return c
-  })
+  const { characters, changed } = migrateCharacters(novel.characters)
   if (!changed) return { novel, changed: false }
-  return { novel: { ...novel, characters: v2Characters }, changed: true }
+  return { novel: { ...novel, characters }, changed: true }
 }
 
 // novel.json 路径（相对于小说文件夹根）
@@ -135,7 +46,7 @@ export async function loadCurrentNovel(): Promise<Novel | null> {
 
   try {
     const novel = JSON.parse(raw) as Novel
-    // 迁移旧版角色结构（profile/skills → 静态档案 + voice），迁移后写回
+    // 迁移旧版角色结构（profile/aliases/literaryReference/skills[] 等 → skill），迁移后写回
     const { novel: migrated, changed } = migrateNovel(novel)
     if (changed) {
       await saveNovelMeta(migrated).catch(() => {})

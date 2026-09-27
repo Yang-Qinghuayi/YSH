@@ -20,17 +20,7 @@
               <div class="flex-1 mr-2">
                 <div class="font-weight-medium">{{ character.name }}</div>
                 <div class="text-caption text-medium-emphasis mt-1 line-clamp-2">
-                  {{ characterBrief(character) || '暂无档案' }}
-                </div>
-                <div v-if="character.aliases?.length" class="d-flex flex-wrap gap-1 mt-2">
-                  <v-chip
-                    v-for="alias in character.aliases"
-                    :key="alias"
-                    size="x-small"
-                    variant="tonal"
-                  >
-                    {{ alias }}
-                  </v-chip>
+                  {{ character.skill || '暂无长期记忆' }}
                 </div>
               </div>
               <div class="d-flex gap-1 flex-shrink-0">
@@ -68,43 +58,16 @@
           </label>
 
           <label class="native-label">
-            <span class="native-label-text">角色描述</span>
+            <span class="native-label-text">长期记忆（Skill）</span>
             <textarea
-              v-model="editingCharacter.profile"
+              v-model="editingCharacter.skill"
               class="native-input native-textarea"
-              placeholder="用自然语言描述角色。例如：寒门出身，师从青城派，性格坚毅重情却寡言。清瘦剑眉，常着青衫，嗜酒好弈..."
-              rows="6"
+              placeholder="用自然语言写下这个角色是谁：性格、出身、外貌、信念、说话方式、别名/称呼、可参考的文学形象……&#10;例如：寒门出身，师从青城派，性格坚毅重情却寡言。清瘦剑眉，常着青衫，嗜酒好弈。旁人唤他「青衫客」。气质可参考令狐冲。"
+              rows="9"
             ></textarea>
-          </label>
-
-          <!-- 别名标签输入 -->
-          <label class="native-label">
-            <span class="native-label-text">别名/触发词</span>
-            <div class="native-tags-wrapper" @click="focusAliasInput">
-              <span v-for="(alias, i) in editingCharacter.aliases" :key="i" class="native-tag">
-                {{ alias }}
-                <button type="button" class="native-tag-remove" @click.stop="removeAlias(i)">&times;</button>
-              </span>
-              <input
-                ref="aliasInputRef"
-                v-model="aliasInput"
-                type="text"
-                class="native-tags-input"
-                placeholder="输入后按回车添加"
-                @keydown.enter.prevent="addAlias"
-                @keydown.backspace="removeLastAlias"
-              />
-            </div>
-          </label>
-
-          <label class="native-label">
-            <span class="native-label-text">文学形象参考</span>
-            <textarea
-              v-model="editingCharacter.literaryReference"
-              class="native-input native-textarea"
-              placeholder="请填写该角色参考的著名文学/影视形象（例如：杨过、李寻欢）。大模型将自动映射这些经典形象的气质、风骨与行为模式。"
-              rows="3"
-            ></textarea>
+            <span class="native-hint">
+              发生重大事件后，「本章定稿」时 Agent 可能改写这里（改写记录可在「故事状态」里回滚）。角色此刻知道什么，记录在短期记忆里（角色面板查看）。
+            </span>
           </label>
         </div>
       </v-card-text>
@@ -147,42 +110,6 @@ const isOpen = computed({
 const editingCharacter = ref<Character | null>(null)
 const isCreating = ref(false)
 
-// 别名标签输入
-const aliasInput = ref('')
-const aliasInputRef = ref<HTMLInputElement | null>(null)
-
-function focusAliasInput() {
-  aliasInputRef.value?.focus()
-}
-
-function addAlias() {
-  const val = aliasInput.value.trim()
-  if (!val || !editingCharacter.value) return
-  if (!editingCharacter.value.aliases) {
-    editingCharacter.value.aliases = []
-  }
-  if (!editingCharacter.value.aliases.includes(val)) {
-    editingCharacter.value.aliases.push(val)
-  }
-  aliasInput.value = ''
-}
-
-function removeAlias(index: number) {
-  if (!editingCharacter.value?.aliases) return
-  editingCharacter.value.aliases.splice(index, 1)
-}
-
-function removeLastAlias(e: KeyboardEvent) {
-  if (aliasInput.value === '' && editingCharacter.value?.aliases?.length) {
-    editingCharacter.value.aliases.pop()
-    e.preventDefault()
-  }
-}
-
-function characterBrief(c: Character): string {
-  return c.profile || ''
-}
-
 function startCreate() {
   isCreating.value = true
   editingCharacter.value = {
@@ -199,7 +126,6 @@ function startEdit(character: Character) {
 function cancelEdit() {
   editingCharacter.value = null
   isCreating.value = false
-  aliasInput.value = ''
 }
 
 function saveCharacter() {
@@ -285,69 +211,11 @@ function confirmDelete(characterId: string) {
   resize: vertical;
   min-height: 80px;
 }
-
-/* ===== 原生标签输入 ===== */
-.native-tags-wrapper {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  min-height: 42px;
-  background: rgba(var(--v-theme-on-surface), 0.04);
-  border: none;
-  border-radius: 14px;
-  cursor: text;
-  transition: box-shadow 0.2s;
-}
-.native-tags-wrapper:focus-within {
-  box-shadow: 0 0 0 2px rgba(var(--v-theme-primary), 0.45);
-}
-.native-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 2px 8px;
+.native-hint {
   font-size: 12px;
-  line-height: 1.6;
-  color: rgb(var(--v-theme-primary));
-  background: rgba(var(--v-theme-primary), 0.12);
-  border-radius: 10px;
-  white-space: nowrap;
+  line-height: 1.5;
+  color: rgba(var(--v-theme-on-surface), 0.5);
+  padding-left: 4px;
 }
-.native-tag-remove {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: inherit;
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
-  border-radius: 50%;
-  opacity: 0.6;
-  transition: opacity 0.15s;
-}
-.native-tag-remove:hover {
-  opacity: 1;
-  background: rgba(var(--v-theme-primary), 0.2);
-}
-.native-tags-input {
-  flex: 1;
-  min-width: 120px;
-  padding: 2px 4px;
-  font-size: 14px;
-  font-family: inherit;
-  color: rgb(var(--v-theme-on-surface));
-  background: transparent;
-  border: none;
-  outline: none;
-}
-.native-tags-input::placeholder {
-  color: rgba(var(--v-theme-on-surface), 0.4);
-}
+
 </style>

@@ -22,82 +22,35 @@
       </div>
 
       <div class="panel-body flex-1 overflow-y-auto pa-4 d-flex flex-column gap-3">
-        <!-- ===== 档案区（静态，可编辑） ===== -->
-        <div class="panel-block lg-card--inset pa-3 d-flex flex-column gap-3">
-          <div class="lg-section-label">档案（不变的"是谁"）</div>
-
+        <!-- ===== 长期记忆（Skill） ===== -->
+        <div class="panel-block lg-card--inset pa-3 d-flex flex-column gap-2">
+          <div class="lg-section-label">长期记忆（Skill）· TA 是谁</div>
           <v-textarea
-            v-model="draft.profile"
-            label="角色描述"
-            variant="outlined" density="compact" rows="6" auto-grow hide-details rounded="xl"
-            @blur="emitCharacter"
+            v-model="skillDraft"
+            placeholder="性格、出身、外貌、信念、说话方式、别名、参考形象……"
+            variant="outlined" density="compact" rows="8" auto-grow hide-details rounded="xl"
+            @blur="emitSkill"
           />
-          <v-combobox
-            v-model="draft.aliases"
-            label="别名/触发词"
-            variant="outlined" density="compact" multiple chips closable-chips hide-details rounded="xl"
-            @update:model-value="emitCharacter"
-          />
-          <v-textarea
-            v-model="draft.literaryReference"
-            label="文学形象参考"
-            variant="outlined" density="compact" rows="3" auto-grow hide-details rounded="xl"
-            @blur="emitCharacter"
-          />
+          <div class="text-caption text-medium-emphasis">
+            重大事件后，「本章定稿」时 Agent 可能改写这里<template v-if="changeCount">
+              （已改写 {{ changeCount }} 次，可在「故事状态」回滚）</template>。
+          </div>
         </div>
 
-        <!-- ===== 状态区（动态，来自 StoryState） ===== -->
-        <div class="panel-block lg-card--inset pa-3 d-flex flex-column gap-3">
+        <!-- ===== 短期记忆（POV） ===== -->
+        <div class="panel-block lg-card--inset pa-3 d-flex flex-column gap-2">
           <div class="lg-section-label">
-            当前状态（随情节变）
-            <span v-if="stateEntry" class="text-caption text-medium-emphasis">
-              · 最近更新于章节 {{ stateEntry.lastUpdatedChapterId }}
+            短期记忆（POV）· TA 此刻知道什么
+            <span v-if="memoryChapterTitle" class="text-caption text-medium-emphasis">
+              · 截至《{{ memoryChapterTitle }}》
             </span>
           </div>
-
-          <div v-if="!stateEntry" class="text-body-2 text-medium-emphasis">
-            暂无状态记录。生成章节后由 Agent 自动更新，也可手动填写。
-          </div>
-          <template v-else>
-            <v-text-field
-              v-model="stateDraft.mood"
-              label="心情/想法"
-              variant="outlined" density="compact" hide-details rounded="xl"
-              @blur="emitState"
-            />
-            <v-text-field
-              v-model="stateDraft.location"
-              label="当前位置"
-              variant="outlined" density="compact" hide-details rounded="xl"
-              @blur="emitState"
-            />
-            <v-text-field
-              v-model="stateDraft.injuries"
-              label="伤势"
-              variant="outlined" density="compact" hide-details rounded="xl"
-              @blur="emitState"
-            />
-            <v-textarea
-              v-model="stateDraft.notes"
-              label="其他经历/想法"
-              variant="outlined" density="compact" rows="2" auto-grow hide-details rounded="xl"
-              @blur="emitState"
-            />
-            <!-- 关系（只读展示） -->
-            <div v-if="stateEntry.relationships?.length">
-              <div class="text-caption text-medium-emphasis mb-1">关系</div>
-              <div class="d-flex flex-wrap gap-1">
-                <v-chip
-                  v-for="(r, i) in stateEntry.relationships"
-                  :key="i"
-                  size="small"
-                  variant="tonal"
-                >
-                  {{ r.target }}：{{ r.relation }}
-                </v-chip>
-              </div>
-            </div>
-          </template>
+          <v-textarea
+            v-model="memoryDraft"
+            placeholder="以角色视角记录：TA 最近经历了什么、知道什么、误以为什么、此刻的处境与心绪。每章定稿后自动改写，也可手动填写。"
+            variant="outlined" density="compact" rows="6" auto-grow hide-details rounded="xl"
+            @blur="emitMemory"
+          />
         </div>
       </div>
     </div>
@@ -108,14 +61,13 @@
 import { mdiAccount, mdiClose } from '@mdi/js'
 import { storeToRefs } from 'pinia'
 import { useAgentStore } from '@/store/agentStore'
-import type { Character } from '@/types/novel'
-import type { CharacterState } from '@/types/storyState'
+import type { Character, ChapterMeta } from '@/types/novel'
 
-const props = defineProps<{ characters: Character[] }>()
+const props = defineProps<{ characters: Character[]; chapters: ChapterMeta[] }>()
 
 const emit = defineEmits<{
   'update:character': [character: Character]
-  'update:state': [patch: { characterName: string; data: Partial<CharacterState> }]
+  'update:memory': [patch: { characterName: string; shortTerm: string }]
 }>()
 
 const agentStore = useAgentStore()
@@ -125,48 +77,55 @@ const selected = computed(() =>
   props.characters.find((c) => c.name === selectedCharacterName.value) ?? null,
 )
 
-// 档案可编辑副本
-const draft = ref<Character>({ id: '', name: '' })
-
+// 长期记忆
+const skillDraft = ref('')
 watch(
   selected,
   (c) => {
-    if (c) {
-      draft.value = JSON.parse(JSON.stringify(c))
-    }
+    skillDraft.value = c?.skill ?? ''
   },
   { immediate: true },
 )
 
-// 状态区
-const stateEntry = computed(
-  () => storyState.value?.characterStates.find((s) => s.characterName === selectedCharacterName.value) ?? null,
+const changeCount = computed(
+  () =>
+    storyState.value?.longTermLog.filter(
+      (c) => c.characterName === selectedCharacterName.value && !c.revertedAt,
+    ).length ?? 0,
 )
-const stateDraft = ref<Partial<CharacterState>>({})
 
-watch(stateEntry, (s) => {
-  if (s) {
-    stateDraft.value = {
-      mood: s.mood ?? '',
-      location: s.location ?? '',
-      injuries: s.injuries ?? '',
-      notes: s.notes ?? '',
-    }
-  } else {
-    stateDraft.value = {}
-  }
-}, { immediate: true })
+// 短期记忆
+const memoryEntry = computed(
+  () =>
+    storyState.value?.characterMemories.find(
+      (m) => m.characterName === selectedCharacterName.value,
+    ) ?? null,
+)
+const memoryDraft = ref('')
+watch(
+  memoryEntry,
+  (m) => {
+    memoryDraft.value = m?.shortTerm ?? ''
+  },
+  { immediate: true },
+)
+const memoryChapterTitle = computed(() => {
+  const id = memoryEntry.value?.lastUpdatedChapterId
+  return id ? (props.chapters.find((c) => c.id === id)?.title ?? '') : ''
+})
 
-function emitCharacter() {
+function emitSkill() {
   if (!selected.value) return
-  emit('update:character', { ...draft.value })
+  if ((selected.value.skill ?? '') === skillDraft.value) return
+  emit('update:character', { ...selected.value, skill: skillDraft.value })
 }
 
-function emitState() {
+function emitMemory() {
   if (!selectedCharacterName.value) return
-  emit('update:state', {
+  if ((memoryEntry.value?.shortTerm ?? '') === memoryDraft.value) return
+  emit('update:memory', {
     characterName: selectedCharacterName.value,
-    data: { ...stateDraft.value },
+    shortTerm: memoryDraft.value,
   })
 }
 </script>
