@@ -46,52 +46,6 @@ jobs:
           prerelease: false
           args: --target aarch64-apple-darwin
 
-  # ── Linux ──────────────────────────────────────────────────────────────────
-  linux:
-    name: Linux
-    runs-on: ubuntu-22.04
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: pnpm
-
-      - uses: dtolnay/rust-toolchain@stable
-
-      - name: 安装系统依赖
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
-            librsvg2-dev \
-            patchelf
-
-      - name: 安装前端依赖
-        run: pnpm install
-
-      - name: 构建并发布
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-        with:
-          tagName: build-${{ github.run_number }}
-          releaseName: 'Build #${{ github.run_number }}'
-          releaseBody: |
-            自动构建
-            - Commit: ${{ github.sha }}
-            - 提交说明: ${{ github.event.head_commit.message }}
-          releaseDraft: false
-          prerelease: false
 
   # ── Windows ────────────────────────────────────────────────────────────────
   windows:
@@ -131,65 +85,49 @@ jobs:
           releaseDraft: false
           prerelease: false
 
-  # ── Android ────────────────────────────────────────────────────────────────
-  android:
-    name: Android
-    runs-on: ubuntu-22.04
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
+  # ── Linux ──────────────────────────────────────────────────────────────────
+  # linux:
+  #   name: Linux
+  #   runs-on: ubuntu-22.04
+  #   permissions:
+  #     contents: write
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
+  #     - uses: pnpm/action-setup@v4
+  #       with:
+  #         version: 9
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: pnpm
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '20'
+  #         cache: pnpm
 
-      - uses: dtolnay/rust-toolchain@stable
+  #     - uses: dtolnay/rust-toolchain@stable
 
-      - name: 安装 Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
+  #     - name: 安装系统依赖
+  #       run: |
+  #         sudo apt-get update
+  #         sudo apt-get install -y \
+  #           libwebkit2gtk-4.1-dev \
+  #           libappindicator3-dev \
+  #           librsvg2-dev \
+  #           patchelf
 
-      - name: 安装 Android SDK / NDK
-        uses: android-actions/setup-android@v3
+  #     - name: 安装前端依赖
+  #       run: pnpm install
 
-      - name: 安装 Android NDK & Rust 目标
-        run: |
-          sdkmanager "ndk;27.0.11902837"
-          rustup target add \
-            aarch64-linux-android \
-            armv7-linux-androideabi \
-            i686-linux-android \
-            x86_64-linux-android
+  #     - name: 构建并发布
+  #       uses: tauri-apps/tauri-action@v0
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 安装前端依赖
-        run: pnpm install
-
-      - name: 初始化 Android 工程
-        env:
-          NDK_HOME: ${{ env.ANDROID_NDK_LATEST_HOME }}
-        run: pnpm tauri android init
-
-      - name: 构建 Android
-        env:
-          NDK_HOME: ${{ env.ANDROID_NDK_LATEST_HOME }}
-        run: pnpm tauri android build
-
-      - name: 上传 APK 到 Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: build-${{ github.run_number }}
-          name: 'Build #${{ github.run_number }}'
-          files: |
-            src-tauri/gen/android/app/build/outputs/apk/universal/release/*.apk
-            src-tauri/gen/android/app/build/outputs/bundle/universalRelease/*.aab
-          fail_on_unmatched_files: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       with:
+  #         tagName: build-${{ github.run_number }}
+  #         releaseName: 'Build #${{ github.run_number }}'
+  #         releaseBody: |
+  #           自动构建
+  #           - Commit: ${{ github.sha }}
+  #           - 提交说明: ${{ github.event.head_commit.message }}
+  #         releaseDraft: false
+  #         prerelease: false
