@@ -1,0 +1,10 @@
+# 部署到 Vercel 时不需要上传的文件（只发布 Web 前端产物）
+src-tauri
+tests
+docs
+.github
+.husky
+.vscode
+*.md
+导学-YSH.md
+面经-YSH.md

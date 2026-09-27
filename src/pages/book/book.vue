@@ -2,7 +2,7 @@
   <div>
     <div :class="[lgAndUp ? 'h-[94vh]' : 'h-[94vh]']" class="flex justify-center items-center w-full">
       <!-- 桌面端目录按钮 -->
-      <v-btn v-if="lgAndUp" class="fixed right-5 top-5" icon color="secondary" variant="tonal"
+      <v-btn v-if="lgAndUp" class="toc-toggle fixed right-5 top-5" icon color="secondary" variant="tonal"
         @click="showBigCatalog = !showBigCatalog">
         <v-icon color="secondary">
           {{ mdiBookOpenVariantOutline }}
@@ -10,7 +10,7 @@
       </v-btn>
 
       <!-- 移动端目录按钮（浮于内容上方，避开底部 Tab 栏） -->
-      <v-btn v-if="isMobile" class="fixed right-4 bottom-20" icon color="secondary" variant="tonal" size="small"
+      <v-btn v-if="isMobile" class="toc-toggle fixed right-4 bottom-20" icon color="secondary" variant="tonal" size="small"
         @click="showMobileTOC = !showMobileTOC">
         <v-icon color="secondary" size="small">
           {{ mdiBookOpenVariantOutline }}
@@ -238,5 +238,16 @@ const initBook = async () => {
 .theme-border {
   border: 3px solid rgba(var(--v-theme-primary), 0.2);
   border-radius: 10px;
+}
+
+/* 目录悬浮按钮定位修复：
+   Tailwind v4 把 .fixed 放进 @layer utilities，而 Vuetify 4 的样式层
+   （@layer vuetify-components，声明在后）里存在 .v-btn { position: relative }，
+   按 CSS 级联层规则「后声明的层赢得同优先级冲突」，.fixed 会被压制。
+   这里改用未分层的更高优先级规则恢复 fixed 定位（right/top 等
+   偏移量与 Vuetify 无冲突，仍由 Tailwind 的 right-5/top-5 等类提供）。 */
+.v-btn.toc-toggle {
+  position: fixed;
+  z-index: 1000;
 }
 </style>

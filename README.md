@@ -138,6 +138,13 @@ pnpm test           # 30 个用例：协议解析 / 状态合并 / 上下文预�
 
 ## 发布
 
+### Web（Vercel）
+
+仓库根目录已带 `vercel.json` + `.vercelignore`，在 <https://vercel.com/new> 导入本仓库即可（Framework 自动识别为 Vite，构建命令 `pnpm run build`，产物目录 `dist`，Node 22）。也可用 CLI：`npx vercel --prod`。
+详细步骤与上线注意事项见 [`docs/vercel-deploy.md`](docs/vercel-deploy.md)。
+
+### 桌面端
+
 推送到 `ysh` 分支自动触发 GitHub Actions，并发布至 Releases：
 
 | 平台 | 产物 |
