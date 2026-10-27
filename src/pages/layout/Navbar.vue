@@ -12,7 +12,7 @@
         <div class="list-content d-flex flex-column justify-center">
           <v-list rounded :nav="true">
             <v-list-item v-for="item in nav" :key="item.val" class="drawer-item rounded-pill no-drag-area" :to="item.to"
-              active-class="text-primary" :style="{ minHeight: '56px' }">
+              active-class="text-primary" :style="{ minHeight: '56px' }" @click="onNavItemClick(item)">
               <template #prepend>
                 <div class="d-flex justify-center align-center" :style="{ width: '40px', height: '40px' }">
                   <v-icon size="small" :icon="item.icon" color="primary"></v-icon>
@@ -38,7 +38,7 @@ import { useSettingStore } from "@/store/setting";
 import { useNavItems } from "@/hooks/useNavItems";
 
 const { rail } = storeToRefs(useSettingStore()) as any;
-const { nav } = useNavItems();
+const { nav, onNavItemClick } = useNavItems();
 </script>
 
 <style scoped>

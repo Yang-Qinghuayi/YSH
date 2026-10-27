@@ -1,25 +1,41 @@
+import { isTauriAppPlatform } from '@/services/environment';
 import { useBookIdStore } from '@/store/bookIdStore';
 import { useReaderStore } from '@/store/readerStore';
-import { eventDispatcher } from '@/utils/event';
-import { isTauriAppPlatform } from '@/services/environment';
-import { tauriGetWindowLogicalPosition } from '@/utils/window';
+import type { ViewSettings } from '@/types/book';
+import type { AppService } from '@/types/system';
 import type { FoliateView } from '@/types/view';
-import { AppService } from '@/types/system';
+import { eventDispatcher } from '@/utils/event';
+import { tauriGetWindowLogicalPosition } from '@/utils/window';
+
+/**
+ * 是否允许「点击左右两侧翻页」。
+ *
+ * - 连续滚动（上下滑动翻页）模式下，点击翻页与滑动翻页功能冗余，直接关闭：
+ *   此时点击正文左右两侧不会有任何反应；
+ * - disableClick 是阅读器自带的「禁用点击翻页」开关，同样不响应点击。
+ *
+ * 注意：菜单不再由正文点击（原中间区域）触发，
+ * 改为在书籍页再次点击「书籍」路由项时弹出，见 useNavItems.ts。
+ */
+const canFlipByClick = (viewSettings: ViewSettings | null) =>
+  !!viewSettings && !viewSettings.scrolled && !viewSettings.disableClick;
 
 export function usePageFlip(
   viewRef: Ref<FoliateView | null>,
   containerRef: Ref<HTMLElement | null>,
-  appService: Ref<AppService | null>,
+  appService: Ref<AppService | null>
 ) {
-  const handlePageFlip = async (
-    msg: MessageEvent | CustomEvent | MouseEvent
-  ) => {
-    const { bookId: bookKey } = useBookIdStore()
+  const handlePageFlip = async (msg: MessageEvent | CustomEvent | MouseEvent) => {
+    const { bookId: bookKey } = useBookIdStore();
     const readerStore = useReaderStore();
+    const viewSettings = readerStore.getViewSettings(bookKey);
+
     if (msg instanceof MessageEvent) {
       if (msg.data && msg.data.bookKey === bookKey) {
-        const viewSettings = readerStore.getViewSettings(bookKey)!;
         if (msg.data.type === 'iframe-single-click') {
+          // 上下滑动模式（或显式禁用点击翻页）下，正文点击一律不响应
+          if (!canFlipByClick(viewSettings)) return;
+
           const viewElement = containerRef.value;
           if (viewElement) {
             const { screenX } = msg.data;
@@ -30,7 +46,10 @@ export function usePageFlip(
               if (appService.value?.isMobile) {
                 windowStartX = 0;
               } else {
-                const windowPosition = await tauriGetWindowLogicalPosition() as { x: number, y: number };
+                const windowPosition = (await tauriGetWindowLogicalPosition()) as {
+                  x: number;
+                  y: number;
+                };
                 windowStartX = windowPosition.x;
               }
             } else {
@@ -42,36 +61,21 @@ export function usePageFlip(
 
             const consumed = eventDispatcher.dispatchSync('iframe-single-click');
             if (!consumed) {
-              const centerStartX = viewStartX + viewRect.width * 0.375;
-              const centerEndX = viewStartX + viewRect.width * 0.625;
-
-              if (
-                viewSettings.disableClick ||
-                (screenX >= centerStartX && screenX <= centerEndX)
-              ) {
-                readerStore.switchShowMenu()
-              } else {
-                if (readerStore.hoveredBookKey) {
-                  readerStore.setHoveredBookKey(null);
-                  return;
-                }
-                if (!viewSettings.disableClick && screenX >= viewCenterX) {
-                  viewSettings.swapClickArea
-                    ? viewRef.value?.goLeft()
-                    : viewRef.value?.goRight();
-                } else if (!viewSettings.disableClick && screenX < viewCenterX) {
-                  viewSettings.swapClickArea
-                    ? viewRef.value?.goRight()
-                    : viewRef.value?.goLeft();
-                }
+              if (readerStore.hoveredBookKey) {
+                readerStore.setHoveredBookKey(null);
+                return;
               }
+              // 中间区域不再弹菜单，仅按屏幕中线区分上一页 / 下一页
+              const isRightSide = screenX >= viewCenterX;
+              const goNext = viewSettings!.swapClickArea ? !isRightSide : isRightSide;
+              if (goNext) viewRef.value?.goRight();
+              else viewRef.value?.goLeft();
             }
           }
-        } else if (msg.data.type === 'iframe-wheel' && !viewSettings.scrolled) {
+        } else if (msg.data.type === 'iframe-wheel' && viewSettings && !viewSettings.scrolled) {
           const { deltaY } = msg.data;
-          deltaY > 0
-            ? viewRef.value?.next(1)
-            : viewRef.value?.prev(1);
+          if (deltaY > 0) viewRef.value?.next(1);
+          else viewRef.value?.prev(1);
         } else if (msg.data.type === 'iframe-mouseup') {
           if (msg.data.button === 3) {
             viewRef.value?.history.back();
@@ -81,6 +85,8 @@ export function usePageFlip(
         }
       }
     } else {
+      // foliate-view 外层容器上的原生点击，与正文点击保持同一套规则
+      if (!canFlipByClick(viewSettings)) return;
       const { clientX } = msg as MouseEvent;
       const width = window.innerWidth;
       if (clientX < width / 2) {
@@ -91,8 +97,5 @@ export function usePageFlip(
     }
   };
 
-
-  return {
-    handlePageFlip,
-  };
+  return { handlePageFlip };
 }
