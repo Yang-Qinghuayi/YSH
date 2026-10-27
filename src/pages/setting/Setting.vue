@@ -31,6 +31,20 @@
         </v-select>
       </div>
 
+      <!-- 阅读交互 -->
+      <div>
+        <div class="font-bold mb-3">阅读</div>
+        <div
+          class="flex justify-between items-center px-3 py-3 bg-gray-300/30 shadow-md rounded-lg border border-gray-300">
+          <div>
+            <p>三击复制段落</p>
+            <p class="text-xs text-gray-400">三击正文选中一段时，静默复制到剪贴板</p>
+          </div>
+          <v-switch v-model="settingStore.copyParagraphOnClick" hide-details density="compact" color="primary" inset>
+          </v-switch>
+        </div>
+      </div>
+
 
       <!-- <app-settings-other /> -->
       <!-- <app-settings-reset /> -->
