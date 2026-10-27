@@ -11,16 +11,17 @@ import { findParagraphElement, getParagraphText } from '@/utils/paragraph';
 const doubleClickEnabled =
   !DISABLE_DOUBLE_CLICK_ON_MOBILE || !['android', 'ios'].includes(getOSPlatform());
 
-/** 按下与松开之间的位移超过该值视为拖拽/划词，不复制段落 */
-const DRAG_THRESHOLD_PX = 10;
+/** 连续点击判定：位置偏移超过该值视为新的一次点击序列 */
+const CLICK_POSITION_TOLERANCE_PX = 24;
+/** 触发复制所需的连续点击次数 */
+export const TRIPLE_CLICK_COUNT = 3;
 
 let lastClickTime = 0;
+let clickCount = 0;
+let clickX = 0;
+let clickY = 0;
+let singleClickTimer: ReturnType<typeof setTimeout> | null = null;
 let longHoldTimeout: ReturnType<typeof setTimeout> | null = null;
-let pointerDown: { x: number; y: number } | null = null;
-let dragDetected = false;
-
-/** 最近一次可复制点击命中的段落元素，用于复制成功后的短暂高亮 */
-let lastClickedParagraph: HTMLElement | null = null;
 
 export const handleKeydown = (bookKey: string, event: KeyboardEvent) => {
   if (['Backspace', 'ArrowDown', 'ArrowUp'].includes(event.key)) {
@@ -42,9 +43,9 @@ export const handleKeydown = (bookKey: string, event: KeyboardEvent) => {
 };
 
 export const handleMousedown = (bookKey: string, event: MouseEvent) => {
-  pointerDown = { x: event.clientX, y: event.clientY };
-  dragDetected = false;
-
+  // 清掉上一次的长按计时器，避免残留定时器把当前这次的句柄置空
+  // （否则快速连续点击时单击事件会被误判为长按而丢失）
+  if (longHoldTimeout) clearTimeout(longHoldTimeout);
   longHoldTimeout = setTimeout(() => {
     longHoldTimeout = null;
   }, LONG_HOLD_THRESHOLD);
@@ -66,15 +67,6 @@ export const handleMousedown = (bookKey: string, event: MouseEvent) => {
 };
 
 export const handleMouseup = (bookKey: string, event: MouseEvent) => {
-  if (
-    pointerDown &&
-    Math.hypot(event.clientX - pointerDown.x, event.clientY - pointerDown.y) > DRAG_THRESHOLD_PX
-  ) {
-    // 拖拽（滚动页面或划词）之后的 click 不应触发复制
-    dragDetected = true;
-  }
-  pointerDown = null;
-
   // we will handle mouse back and forward buttons ourselves
   if ([3, 4].includes(event.button)) {
     event.preventDefault();
@@ -115,120 +107,118 @@ export const handleWheel = (bookKey: string, event: WheelEvent) => {
   );
 };
 
-/** 存在非空选区说明用户正在划词，此时不复制 */
-const hasTextSelection = (target: EventTarget | null): boolean => {
-  const doc = (target as Element | null)?.ownerDocument;
-  const selection = doc?.getSelection?.();
-  return !!selection && !selection.isCollapsed && !!selection.toString().trim();
+/**
+ * 三击时浏览器已经把整段文字选中，直接用选区文本最准确
+ * （比从 DOM 里猜「哪一段」更可靠，段间空白的边界问题也不存在了）。
+ *
+ * 延迟一个 tick 读取，兼容在 click 之后才完成选段的浏览器；
+ * 若选区为空（点在图片 / 空白上），退回到找最近的块级段落。
+ * 开关关闭时什么都不做，只保留浏览器原生的选段行为。
+ */
+const postTripleClick = (bookKey: string, event: MouseEvent) => {
+  if (!useSettingStore().copyParagraphOnClick) return;
+
+  setTimeout(() => {
+    const doc = (event.target as Element | null)?.ownerDocument;
+    const selected = doc?.getSelection?.()?.toString().trim() ?? '';
+    const text = selected || getParagraphText(findParagraphElement(event.target));
+    if (!text) return;
+    window.postMessage({ type: 'iframe-triple-click', bookKey, text }, '*');
+  }, 0);
 };
 
-export const handleClick = (bookKey: string, event: MouseEvent) => {
-  const now = Date.now();
-
-  if (doubleClickEnabled && now - lastClickTime < DOUBLE_CLICK_INTERVAL_THRESHOLD_MS) {
-    lastClickTime = now;
-    window.postMessage(
-      {
-        type: 'iframe-double-click',
+const postSingleClick = (bookKey: string, event: MouseEvent) => {
+  let element: HTMLElement | null = event.target as HTMLElement;
+  while (element) {
+    if (['sup', 'a', 'audio', 'video'].includes(element.tagName.toLowerCase())) {
+      return;
+    }
+    if (element.classList.contains('js_readerFooterNote')) {
+      eventDispatcher.dispatch('footnote-popup', {
         bookKey,
-        screenX: event.screenX,
-        screenY: event.screenY,
-        clientX: event.clientX,
-        clientY: event.clientY,
-        offsetX: event.offsetX,
-        offsetY: event.offsetY,
-      },
-      '*'
-    );
+        element,
+        footnote: element.getAttribute('data-wr-footernote') || '',
+      });
+      return;
+    }
+    element = element.parentElement;
+  }
+
+  // if long hold is detected, we don't want to send single click event
+  if (!longHoldTimeout) {
     return;
   }
 
-  lastClickTime = now;
-
-  const postSingleClick = () => {
-    let element: HTMLElement | null = event.target as HTMLElement;
-    while (element) {
-      if (['sup', 'a', 'audio', 'video'].includes(element.tagName.toLowerCase())) {
-        return;
-      }
-      if (element.classList.contains('js_readerFooterNote')) {
-        eventDispatcher.dispatch('footnote-popup', {
-          bookKey,
-          element,
-          footnote: element.getAttribute('data-wr-footernote') || '',
-        });
-        return;
-      }
-      element = element.parentElement;
-    }
-
-    // if long hold is detected, we don't want to send single click event
-    if (!longHoldTimeout) {
-      return;
-    }
-
-    // 仅在「开关打开、非拖拽、无选区」时附带段落文本；父窗口据此判断是否复制。
-    // 不附带文本时单击事件照常发出，翻页行为完全不受影响。
-    // 开关关闭时跳过整段 DOM 遍历：读取 innerText 会触发布局，默认关闭时应零开销。
-    const canCopy =
-      useSettingStore().copyParagraphOnClick && !dragDetected && !hasTextSelection(event.target);
-    lastClickedParagraph = canCopy ? findParagraphElement(event.target) : null;
-    const paragraphText = getParagraphText(lastClickedParagraph);
-
-    window.postMessage(
-      {
-        type: 'iframe-single-click',
-        bookKey,
-        screenX: event.screenX,
-        screenY: event.screenY,
-        clientX: event.clientX,
-        clientY: event.clientY,
-        offsetX: event.offsetX,
-        offsetY: event.offsetY,
-        paragraphText,
-      },
-      '*'
-    );
-  };
-  if (doubleClickEnabled) {
-    setTimeout(() => {
-      if (Date.now() - lastClickTime >= DOUBLE_CLICK_INTERVAL_THRESHOLD_MS) {
-        postSingleClick();
-      }
-    }, DOUBLE_CLICK_INTERVAL_THRESHOLD_MS);
-  } else {
-    postSingleClick();
-  }
+  window.postMessage(
+    {
+      type: 'iframe-single-click',
+      bookKey,
+      screenX: event.screenX,
+      screenY: event.screenY,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      offsetX: event.offsetX,
+      offsetY: event.offsetY,
+    },
+    '*'
+  );
 };
 
 /**
- * 复制成功后短暂高亮被复制的段落。
- * 事件处理器运行在父 realm，但 event.target 来自 iframe realm；
- * 因为 iframe 是 allow-same-origin，父 realm 可以直接操作它的节点。
+ * 点击序列状态机。
+ *
+ * event.detail 由浏览器维护（1/2/3），部分移动 webview 的合成 click 不带
+ * detail，所以用本地点击计数兜底。三击序列里的每一次点击都不会发出单击事件，
+ * 因此不会误触发左右翻页。
  */
-export const flashLastClickedParagraph = () => {
-  const element = lastClickedParagraph;
-  if (!element) return;
+export const handleClick = (bookKey: string, event: MouseEvent) => {
+  const now = Date.now();
+  const nearLastClick =
+    now - lastClickTime < DOUBLE_CLICK_INTERVAL_THRESHOLD_MS &&
+    Math.hypot(event.clientX - clickX, event.clientY - clickY) < CLICK_POSITION_TOLERANCE_PX;
+  clickCount = nearLastClick ? clickCount + 1 : 1;
+  const count = Math.max(event.detail || 1, clickCount);
 
-  const flashColor = 'rgba(255, 193, 7, 0.55)';
-  try {
-    if (typeof element.animate === 'function') {
-      element.animate(
-        [{ backgroundColor: flashColor }, { backgroundColor: 'rgba(255, 193, 7, 0)' }],
-        { duration: 900, easing: 'ease-out' }
+  lastClickTime = now;
+  clickX = event.clientX;
+  clickY = event.clientY;
+
+  if (singleClickTimer) {
+    clearTimeout(singleClickTimer);
+    singleClickTimer = null;
+  }
+
+  if (count >= TRIPLE_CLICK_COUNT) {
+    clickCount = 0;
+    postTripleClick(bookKey, event);
+    return;
+  }
+
+  if (count >= 2) {
+    if (doubleClickEnabled) {
+      window.postMessage(
+        {
+          type: 'iframe-double-click',
+          bookKey,
+          screenX: event.screenX,
+          screenY: event.screenY,
+          clientX: event.clientX,
+          clientY: event.clientY,
+          offsetX: event.offsetX,
+          offsetY: event.offsetY,
+        },
+        '*'
       );
-      return;
     }
-  } catch {
-    // 老版本 webview 不支持 WAAPI，走下面的内联样式兜底
+    return;
   }
 
-  try {
-    element.style?.setProperty('background-color', flashColor, 'important');
-    setTimeout(() => element.style?.removeProperty('background-color'), 800);
-  } catch {
-    // 忽略样式写入失败，复制本身已经成功
-  }
+  // 单击延迟发送：确认没有后续点击后再翻页，这样三击序列也不会误翻页。
+  singleClickTimer = setTimeout(() => {
+    singleClickTimer = null;
+    if (Date.now() - lastClickTime < DOUBLE_CLICK_INTERVAL_THRESHOLD_MS) return;
+    postSingleClick(bookKey, event);
+  }, DOUBLE_CLICK_INTERVAL_THRESHOLD_MS);
 };
 
 const handleTouchEv = (bookKey: string, event: TouchEvent, type: string) => {

@@ -1,21 +1,13 @@
-import { useToast } from 'vue-toastification';
-
 import { writeTextToClipboard } from '@/utils/clipboard';
-import { flashLastClickedParagraph } from '@/utils/iframeEventHandlers';
 
-/** 点击阅读区中间时复制该段：写剪贴板 + Toast 反馈 + 短暂高亮 */
+/**
+ * 三击正文时**静默**复制该段：不弹 Toast、不做高亮。
+ * 三击本身选中整段文字，浏览器原生的选区高亮就是天然反馈。
+ */
 export function useCopyParagraph() {
-  const toast = useToast();
-
-  const copyParagraph = async (text: string) => {
+  const copyParagraph = (text: string) => {
     if (!text) return;
-    const ok = await writeTextToClipboard(text);
-    if (ok) {
-      toast.success('已复制该段');
-      flashLastClickedParagraph();
-    } else {
-      toast.error('复制失败');
-    }
+    void writeTextToClipboard(text);
   };
 
   return { copyParagraph };

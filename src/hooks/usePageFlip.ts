@@ -1,11 +1,9 @@
 import { isTauriAppPlatform } from '@/services/environment';
 import { useBookIdStore } from '@/store/bookIdStore';
 import { useReaderStore } from '@/store/readerStore';
-import { useSettingStore } from '@/store/setting';
 import type { ViewSettings } from '@/types/book';
 import type { AppService } from '@/types/system';
 import type { FoliateView } from '@/types/view';
-import { getClickRegion } from '@/utils/clickRegion';
 import { eventDispatcher } from '@/utils/event';
 import { tauriGetWindowLogicalPosition } from '@/utils/window';
 
@@ -16,9 +14,8 @@ import { tauriGetWindowLogicalPosition } from '@/utils/window';
  *   此时点击正文左右两侧不会有任何反应；
  * - disableClick 是阅读器自带的「禁用点击翻页」开关，同样不响应点击。
  *
- * 注意：菜单不再由正文点击（原中间区域）触发，
- * 改为在书籍页再次点击「书籍」路由项时弹出，见 useNavItems.ts。
- * 中间区域现在用于「点击复制该段」，是与翻页独立的分支。
+ * 注意：菜单不再由正文点击触发，改为在书籍页再次点击「书籍」路由项时弹出。
+ * 复制该段也不再占用点击区域，改为三击正文（浏览器原生选段）触发。
  */
 const canFlipByClick = (viewSettings: ViewSettings | null) =>
   !!viewSettings && !viewSettings.scrolled && !viewSettings.disableClick;
@@ -36,58 +33,49 @@ export function usePageFlip(
 
     if (msg instanceof MessageEvent) {
       if (msg.data && msg.data.bookKey === bookKey) {
-        if (msg.data.type === 'iframe-single-click') {
-          const viewElement = containerRef.value;
-          if (!viewElement) return;
-
-          const consumed = eventDispatcher.dispatchSync('iframe-single-click');
-          if (consumed) return;
-
-          const { screenX, paragraphText } = msg.data;
-          const viewRect = viewElement.getBoundingClientRect();
-          let windowStartX = 0;
-
-          if (isTauriAppPlatform()) {
-            if (appService.value?.isMobile) {
-              windowStartX = 0;
-            } else {
-              const windowPosition = (await tauriGetWindowLogicalPosition()) as {
-                x: number;
-                y: number;
-              };
-              windowStartX = windowPosition.x;
-            }
-          } else {
-            windowStartX = window.screenX;
-          }
-
-          const viewStartX = windowStartX + viewRect.left;
-          const region = getClickRegion(screenX, viewStartX, viewRect.width);
-
-          // 复用原「点中间弹菜单」的 37.5%~62.5% 区域，改为复制该段。
-          // 判定必须放在 canFlipByClick 之前：复制与翻页是两个独立功能，
-          // 连续滚动 / 禁用点击翻页模式下复制依然可用。
-          // 开关关闭时完全不进入该分支，中间点击仍按中线翻页（保持原有行为）。
-          const copyEnabled = useSettingStore().copyParagraphOnClick && !!onCopyParagraph;
-          if (region === 'center' && copyEnabled) {
-            // paragraphText 为空说明点了图片、发生了拖拽或正在划词，此时不复制也不翻页
-            if (paragraphText) onCopyParagraph!(paragraphText);
-            return;
-          }
-
-          // 上下滑动模式（或显式禁用点击翻页）下，正文点击一律不翻页
+        if (msg.data.type === 'iframe-triple-click') {
+          // 三击正文：静默复制浏览器已选中的那一段（与翻页完全无关）
+          onCopyParagraph?.(msg.data.text);
+        } else if (msg.data.type === 'iframe-single-click') {
+          // 上下滑动模式（或显式禁用点击翻页）下，正文点击一律不响应
           if (!canFlipByClick(viewSettings)) return;
 
-          if (readerStore.hoveredBookKey) {
-            readerStore.setHoveredBookKey(null);
-            return;
-          }
+          const viewElement = containerRef.value;
+          if (viewElement) {
+            const { screenX } = msg.data;
+            const viewRect = viewElement.getBoundingClientRect();
+            let windowStartX = 0;
 
-          const viewCenterX = viewStartX + viewRect.width / 2;
-          const isRightSide = screenX >= viewCenterX;
-          const goNext = viewSettings!.swapClickArea ? !isRightSide : isRightSide;
-          if (goNext) viewRef.value?.goRight();
-          else viewRef.value?.goLeft();
+            if (isTauriAppPlatform()) {
+              if (appService.value?.isMobile) {
+                windowStartX = 0;
+              } else {
+                const windowPosition = (await tauriGetWindowLogicalPosition()) as {
+                  x: number;
+                  y: number;
+                };
+                windowStartX = windowPosition.x;
+              }
+            } else {
+              windowStartX = window.screenX;
+            }
+
+            const viewStartX = windowStartX + viewRect.left;
+            const viewCenterX = viewStartX + viewRect.width / 2;
+
+            const consumed = eventDispatcher.dispatchSync('iframe-single-click');
+            if (!consumed) {
+              if (readerStore.hoveredBookKey) {
+                readerStore.setHoveredBookKey(null);
+                return;
+              }
+              // 三击不会走到这里，单击仍按屏幕中线区分上一页 / 下一页
+              const isRightSide = screenX >= viewCenterX;
+              const goNext = viewSettings!.swapClickArea ? !isRightSide : isRightSide;
+              if (goNext) viewRef.value?.goRight();
+              else viewRef.value?.goLeft();
+            }
+          }
         } else if (msg.data.type === 'iframe-wheel' && viewSettings && !viewSettings.scrolled) {
           const { deltaY } = msg.data;
           if (deltaY > 0) viewRef.value?.next(1);

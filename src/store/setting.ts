@@ -24,7 +24,7 @@ export interface SettingState {
   uiFont: string
   editorFontSize: number
   // 阅读交互
-  /** 点击阅读区中间部分时，自动复制该段正文到剪贴板 */
+  /** 三击正文（浏览器原生选中整段）时，静默复制该段到剪贴板 */
   copyParagraphOnClick: boolean
   // AI 写作（DeepSeek）
   // 注意：API Key 不在此持久化，见 @/hooks/useApiKey（区分「记住/仅本次会话」）

@@ -37,8 +37,8 @@
         <div
           class="flex justify-between items-center px-3 py-3 bg-gray-300/30 shadow-md rounded-lg border border-gray-300">
           <div>
-            <p>点击中间复制段落</p>
-            <p class="text-xs text-gray-400">点击阅读区中间部分，自动复制该段内容到剪贴板</p>
+            <p>三击复制段落</p>
+            <p class="text-xs text-gray-400">三击正文选中一段时，静默复制到剪贴板</p>
           </div>
           <v-switch v-model="settingStore.copyParagraphOnClick" hide-details density="compact" color="primary" inset>
           </v-switch>

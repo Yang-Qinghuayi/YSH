@@ -1,15 +1,10 @@
 /**
- * 「点击中间复制该段」纯函数回归测试。
+ * 「三击复制该段」纯函数回归测试。
  * 运行：pnpm test（node --test）。
  */
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import {
-  CENTER_REGION_END_RATIO,
-  CENTER_REGION_START_RATIO,
-  getClickRegion,
-} from '../src/utils/clickRegion.ts'
 import {
   findParagraphElement,
   getParagraphText,
@@ -17,29 +12,6 @@ import {
   normalizeParagraphText,
 } from '../src/utils/paragraph.ts'
 import { writeTextToClipboard } from '../src/utils/clipboard.ts'
-
-// ===================== 点击分区 =====================
-
-test('getClickRegion：沿用原「点中间弹菜单」的 37.5%~62.5% 区域', () => {
-  const width = 800
-  const start = 0
-  assert.equal(getClickRegion(100, start, width), 'left')
-  assert.equal(getClickRegion(299, start, width), 'left')
-  assert.equal(getClickRegion(300, start, width), 'center') // 800 * 0.375
-  assert.equal(getClickRegion(400, start, width), 'center')
-  assert.equal(getClickRegion(500, start, width), 'center') // 800 * 0.625
-  assert.equal(getClickRegion(501, start, width), 'right')
-  assert.equal(getClickRegion(700, start, width), 'right')
-  assert.equal(CENTER_REGION_START_RATIO, 0.375)
-  assert.equal(CENTER_REGION_END_RATIO, 0.625)
-})
-
-test('getClickRegion：支持 Tauri 窗口偏移（viewStartX 非 0）', () => {
-  const viewStartX = 120
-  assert.equal(getClickRegion(viewStartX + 400, viewStartX, 800), 'center')
-  assert.equal(getClickRegion(viewStartX + 100, viewStartX, 800), 'left')
-  assert.equal(getClickRegion(viewStartX + 700, viewStartX, 800), 'right')
-})
 
 // ===================== 段落文本 =====================
 
@@ -92,7 +64,6 @@ test('findParagraphElement：遇到 body/html 停止，不会把整章当成一�
   const html = el('html', '整本书')
   const body = el('body', '整本书', html)
   const span = el('span', '整本书', body)
-  // body 本身既不是语义段落也不在兜底集合里，向上到 html 即停止
   assert.equal(findParagraphElement(span), null)
 })
 
@@ -104,7 +75,7 @@ test('getParagraphText：innerText 优先，否则用 textContent', () => {
   assert.equal(getParagraphText(null), '')
 })
 
-// ===================== 剪贴板 =====================
+// ===================== 剪贴板（静默：只有返回值，无 UI 反馈） =====================
 
 const setGlobals = (navigatorValue: any, documentValue?: any) => {
   Object.defineProperty(globalThis, 'navigator', {
@@ -144,7 +115,7 @@ test('writeTextToClipboard：clipboard API 抛错时回退到 execCommand', asyn
   assert.deepEqual(calls, ['append', 'select', 'copy', 'remove'])
 })
 
-test('writeTextToClipboard：两条路径都不可用/失败时返回 false', async () => {
+test('writeTextToClipboard：两条路径都不可用/失败时返回 false（静默）', async () => {
   setGlobals({}, {
     createElement: () => ({
       value: '', style: {}, setAttribute: () => {}, select: () => {}, remove: () => {},

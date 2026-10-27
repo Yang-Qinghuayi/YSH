@@ -5,7 +5,7 @@
  *  1. 连续滚动（上下滑动翻页）模式下，点击正文左右两侧不再翻页；
  *  2. 分页模式下，点击左右两侧仍然上一页 / 下一页，并支持 swapClickArea；
  *  3. 正文中间点击不再弹菜单，菜单改由「书籍」路由项再次点击时弹出；
- *  4. 全局开关打开时，点击中间 25% 区域复制该段，左右两侧翻页不受影响。
+ *  4. 三击正文静默复制该段，与单击翻页互不干扰。
  *
  * 运行：pnpm test（node --test）。这里用 registerHooks 把涉及 Pinia /
  * Tauri / vue-router 的模块替换成内存替身，其余源码保持真实。
@@ -31,13 +31,11 @@ export const state = {
   bookId: 'book-1',
   routePath: '/library',
   settings: { scrolled: false, disableClick: false, swapClickArea: false },
-  copyEnabled: false,
   copied: [],
   hoveredBookKey: null,
   calls: { left: 0, right: 0, next: 0, prev: 0, menu: 0 },
 }
 export const useBookIdStore = () => ({ bookId: state.bookId })
-export const useSettingStore = () => ({ get copyParagraphOnClick() { return state.copyEnabled } })
 export const useReaderStore = () => ({
   getViewSettings: () => state.settings,
   get hoveredBookKey() { return state.hoveredBookKey },
@@ -95,14 +93,13 @@ const { useNavItems } = await import('../src/hooks/useNavItems.ts')
 const resetState = () => {
   state.routePath = '/library'
   state.settings = { scrolled: false, disableClick: false, swapClickArea: false }
-  state.copyEnabled = false
   state.copied = []
   state.hoveredBookKey = null
   state.calls = { left: 0, right: 0, next: 0, prev: 0, menu: 0 }
 }
 
 /** 构造一个 800px 宽的阅读区域，中线在 x=400 */
-function setupPageFlip() {
+function setupPageFlip(withCopyCallback = true) {
   resetState()
   const view = {
     goLeft: () => { state.calls.left++ },
@@ -116,13 +113,19 @@ function setupPageFlip() {
     { value: view },
     { value: container },
     { value: null },
-    (text) => { state.copied.push(text) },
+    withCopyCallback ? (text) => { state.copied.push(text) } : undefined,
   )
 
-  const click = (screenX: number, paragraphText = '') =>
+  const click = (screenX: number) =>
     handlePageFlip(
       new MessageEvent('message', {
-        data: { type: 'iframe-single-click', bookKey: state.bookId, screenX, paragraphText },
+        data: { type: 'iframe-single-click', bookKey: state.bookId, screenX },
+      }),
+    )
+  const tripleClick = (text: string) =>
+    handlePageFlip(
+      new MessageEvent('message', {
+        data: { type: 'iframe-triple-click', bookKey: state.bookId, text },
       }),
     )
   const wheel = (deltaY: number) =>
@@ -134,7 +137,7 @@ function setupPageFlip() {
   // foliate-view 外层容器上的原生 click（非 MessageEvent）
   const nativeClick = (clientX: number) => handlePageFlip({ clientX })
 
-  return { click, wheel, nativeClick }
+  return { click, tripleClick, wheel, nativeClick }
 }
 
 test('分页模式：点击左侧上一页、右侧下一页', async () => {
@@ -150,8 +153,8 @@ test('分页模式：点击左侧上一页、右侧下一页', async () => {
 
 test('分页模式：正文中间点击不再弹菜单，而是按中线翻页', async () => {
   const { click } = setupPageFlip()
-  await click(390) // 原中间区域（37.5%~62.5%）靠左
-  await click(410) // 原中间区域靠右
+  await click(390)
+  await click(410)
   assert.equal(state.calls.menu, 0, '正文任何位置点击都不应再弹出菜单')
   assert.deepEqual([state.calls.left, state.calls.right], [1, 1])
 })
@@ -197,61 +200,30 @@ test('swapClickArea / disableClick 依旧生效', async () => {
   assert.equal(state.calls.menu, 0)
 })
 
-test('打开复制开关：点击中间 25% 区域复制该段，且不翻页', async () => {
-  const { click } = setupPageFlip()
-  state.copyEnabled = true
-  await click(400, '这是被点击的那一段。')
-  assert.deepEqual(state.copied, ['这是被点击的那一段。'])
-  assert.deepEqual([state.calls.left, state.calls.right], [0, 0], '复制时不应翻页')
-  assert.equal(state.calls.menu, 0, '复制时不应弹菜单')
+test('三击：静默复制浏览器选中的段落，且不翻页', async () => {
+  const { tripleClick } = setupPageFlip()
+  await tripleClick('三击选中的整段文字')
+  assert.deepEqual(state.copied, ['三击选中的整段文字'])
+  assert.deepEqual([state.calls.left, state.calls.right], [0, 0], '三击不应触发翻页')
+  assert.equal(state.calls.menu, 0, '三击不应弹菜单')
 })
 
-test('打开复制开关：左右两侧仍然翻页，不会误复制', async () => {
-  const { click } = setupPageFlip()
-  state.copyEnabled = true
-  await click(100, '左侧段落')
-  await click(700, '右侧段落')
-  assert.deepEqual(state.copied, [], '左右两侧点击不复制')
-  assert.deepEqual([state.calls.left, state.calls.right], [1, 1])
-})
-
-test('关闭复制开关：中间点击仍按中线翻页（保持原有行为）', async () => {
-  const { click } = setupPageFlip()
-  await click(390, '中间段落')
-  await click(410, '中间段落')
-  assert.deepEqual(state.copied, [])
-  assert.deepEqual([state.calls.left, state.calls.right], [1, 1])
-})
-
-test('复制与翻页是独立功能：连续滚动 / disableClick 下中间点击依然能复制', async () => {
-  const { click } = setupPageFlip()
-  state.copyEnabled = true
+test('三击复制与翻页是独立功能：scrolled / disableClick 下依然生效', async () => {
+  const { tripleClick } = setupPageFlip()
   state.settings.scrolled = true
-  await click(400, '滚动模式下的一段')
+  await tripleClick('滚动模式下的一段')
   state.settings.scrolled = false
   state.settings.disableClick = true
-  await click(400, '禁用点击翻页下的一段')
+  await tripleClick('禁用点击翻页下的一段')
   assert.deepEqual(state.copied, ['滚动模式下的一段', '禁用点击翻页下的一段'])
   assert.deepEqual([state.calls.left, state.calls.right], [0, 0])
 })
 
-test('中间点击但没提取到段落（图片 / 拖拽 / 划词）时不复制也不翻页', async () => {
-  const { click } = setupPageFlip()
-  state.copyEnabled = true
-  await click(400, '')
+test('未接复制回调时三击无副作用', async () => {
+  const { tripleClick } = setupPageFlip(false)
+  await tripleClick('任意文本')
   assert.deepEqual(state.copied, [])
   assert.deepEqual([state.calls.left, state.calls.right], [0, 0])
-})
-
-test('中间区域边界：37.5% 与 62.5% 内复制，边界外翻页', async () => {
-  const { click } = setupPageFlip()
-  state.copyEnabled = true
-  await click(300, '左边界')   // 800 * 0.375 = 300
-  await click(500, '右边界')   // 800 * 0.625 = 500
-  assert.deepEqual(state.copied, ['左边界', '右边界'])
-  await click(299, '边界外')
-  await click(501, '边界外')
-  assert.deepEqual([state.calls.left, state.calls.right], [1, 1])
 })
 
 test('导航项：首次点击「书籍」只跳转，已在书籍页再次点击才弹/收菜单', () => {
