@@ -23,6 +23,9 @@ export interface SettingState {
   // 字体
   uiFont: string
   editorFontSize: number
+  // 阅读交互
+  /** 点击阅读区中间部分时，自动复制该段正文到剪贴板 */
+  copyParagraphOnClick: boolean
   // AI 写作（DeepSeek）
   // 注意：API Key 不在此持久化，见 @/hooks/useApiKey（区分「记住/仅本次会话」）
   deepseekModel: 'deepseek-chat' | 'deepseek-reasoner'
@@ -49,6 +52,7 @@ export const useSettingStore = defineStore('setting', {
         navPosition: NavPosition.left,
         uiFont: 'LXGW WenKai',
         editorFontSize: 17,
+        copyParagraphOnClick: false,
         deepseekModel: 'deepseek-chat',
         rememberApiKey: true,
         agentWriteLength: 1500,

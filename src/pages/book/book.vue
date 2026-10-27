@@ -95,6 +95,7 @@ import { useSidebarStore } from '@/store/sidebarStore';
 import { BookDoc } from "@/libs/document";
 import { AppService } from "@/types/system";
 import { usePageFlip } from "@/hooks/usePageFlip";
+import { useCopyParagraph } from "@/hooks/useCopyParagraph";
 import useBookShortcuts from "./hooks/useBookShortcuts";
 const { sideBarBookKey, setSideBarBookKey } = useSidebarStore();
 const containerRef = ref<HTMLDivElement | null>(null);
@@ -106,7 +107,8 @@ const appService = ref<AppService | null>(null)
 
 const pageInfo = ref("")
 
-const { handlePageFlip } = usePageFlip(viewRef, containerRef, appService);
+const { copyParagraph } = useCopyParagraph();
+const { handlePageFlip } = usePageFlip(viewRef, containerRef, appService, copyParagraph);
 useProgressAutoSave(bookId); // 传入 Ref<string> 而非快照，支持书籍切换后仍能正确保存
 useBookShortcuts(bookId.value)
 useTouchEvent(viewRef);
