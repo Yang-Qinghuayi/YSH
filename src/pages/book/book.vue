@@ -87,7 +87,7 @@ import { useFoliateEvents } from "@/hooks/useFoliateEvents";
 
 import { useReaderStore } from '@/store/readerStore';
 const readerStore = useReaderStore()
-const { viewStates, getProgress, getViewState, initViewState, getViewSettings, hoveredBookKey, switchShowMenu } = readerStore
+const { viewStates, getProgress, getViewState, initViewState, getViewSettings, closeMenu } = readerStore
 const { setView: setFoliateView, setProgress } = readerStore;
 const { showMenu } = storeToRefs(readerStore);
 
@@ -170,6 +170,16 @@ useFoliateEvents(viewRef, {
 
 onActivated(() => {
   initBook()
+})
+
+// 离开书籍页时收起菜单：菜单状态存在 readerStore，若不清理，
+// 下次进入书籍页会直接弹出，导致「再次点击『书籍』弹菜单」的交互错乱。
+// 同时覆盖被 keep-alive 缓存（deactivated）与直接销毁（unmounted）两种情况。
+onDeactivated(() => {
+  closeMenu()
+})
+onUnmounted(() => {
+  closeMenu()
 })
 
 useAppService().then(res => {

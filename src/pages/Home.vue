@@ -7,13 +7,14 @@
     <app-content id="v-player-content" class="v-player-content" />
 
     <!-- 移动端底部 Tab 导航 -->
-    <v-bottom-navigation v-if="isMobile" v-model="activeTab" grow color="primary" bg-color="surface" :elevation="0" class="border-t border-outline/30">
+    <v-bottom-navigation v-if="isMobile" :model-value="route.path" grow color="primary" bg-color="surface" :elevation="0" class="border-t border-outline/30">
       <v-btn
         v-for="item in nav"
         :key="item.val"
         :to="item.to"
         :value="item.to"
         stacked
+        @click="onNavItemClick(item)"
       >
         <v-icon :icon="item.icon" />
         <span class="text-xs mt-1">{{ item.title }}</span>
@@ -34,9 +35,8 @@ useMaterialYouTheme();
 
 // 用浏览器原生 matchMedia，比 Vuetify useDisplay 更可靠
 const isMobile = useMediaQuery("(max-width: 960px)");
-const { nav } = useNavItems();
+const { nav, onNavItemClick } = useNavItems();
 const route = useRoute();
-const activeTab = computed(() => route.path);
 </script>
 <style lang="scss">
 $cubic-bezier: cubic-bezier(0.55, -0.01, 0, 1.03);
