@@ -6,7 +6,6 @@ import {
 import { useSettingStore } from '@/store/setting';
 import { eventDispatcher } from '@/utils/event';
 import { getOSPlatform } from '@/utils/misc';
-import { findParagraphElement, getParagraphText } from '@/utils/paragraph';
 
 const doubleClickEnabled =
   !DISABLE_DOUBLE_CLICK_ON_MOBILE || !['android', 'ios'].includes(getOSPlatform());
@@ -108,20 +107,21 @@ export const handleWheel = (bookKey: string, event: WheelEvent) => {
 };
 
 /**
- * 三击时浏览器已经把整段文字选中，直接用选区文本最准确
- * （比从 DOM 里猜「哪一段」更可靠，段间空白的边界问题也不存在了）。
+ * 三击时浏览器已经把整段文字选中，直接复制选区文本即可：
+ * 选中多少就复制多少，不从 DOM 里猜「哪一段」，也不做截断。
  *
- * 延迟一个 tick 读取，兼容在 click 之后才完成选段的浏览器；
- * 若选区为空（点在图片 / 空白上），退回到找最近的块级段落。
- * 开关关闭时什么都不做，只保留浏览器原生的选段行为。
+ * 点击处理器运行在父 realm，但 event.target.ownerDocument 是 iframe 的文档；
+ * iframe 是 allow-same-origin，因此 getSelection() 可以直接读取。
+ * 延迟一个 tick 读取，兼容在 click 之后才完成选段的浏览器。
+ * 选区为空（点在图片 / 空白上）时什么都不复制。
+ * 开关关闭时也什么都不做，只保留浏览器原生的选段行为。
  */
 const postTripleClick = (bookKey: string, event: MouseEvent) => {
   if (!useSettingStore().copyParagraphOnClick) return;
 
   setTimeout(() => {
     const doc = (event.target as Element | null)?.ownerDocument;
-    const selected = doc?.getSelection?.()?.toString().trim() ?? '';
-    const text = selected || getParagraphText(findParagraphElement(event.target));
+    const text = doc?.getSelection?.()?.toString().trim() ?? '';
     if (!text) return;
     window.postMessage({ type: 'iframe-triple-click', bookKey, text }, '*');
   }, 0);

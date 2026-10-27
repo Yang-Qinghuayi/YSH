@@ -80,8 +80,6 @@ beforeEach(() => {
 function makeClick(detail: number, x: number) {
   const target: any = {
     tagName: 'P',
-    textContent: '兜底段落文本',
-    innerText: undefined,
     parentElement: null,
     classList: { contains: () => false },
     getAttribute: () => null,
@@ -135,7 +133,7 @@ test('开关关闭：三击只保留浏览器选段，不复制也不翻页', as
   assert.equal(messages('iframe-single-click').length, 0)
 })
 
-test('三击但选区为空（点在图片/空白）：退化到最近段落文本', async () => {
+test('三击但选区为空（点在图片/空白）：什么都不复制', async () => {
   state.selectionText = ''
   const x = 300
   handleMousedown('book-1', makeClick(1, x))
@@ -144,9 +142,24 @@ test('三击但选区为空（点在图片/空白）：退化到最近段落文�
   handleClick('book-1', makeClick(3, x))
   await flush()
 
+  assert.equal(messages('iframe-triple-click').length, 0, '没选中内容就不该复制')
+})
+
+test('三击：选区文本原样复制，不截断、不改写内部空白', async () => {
+  const longText = '  第一行  文字\n第二行\n' + '字'.repeat(3000) + '  '
+  state.selectionText = longText
+  const x = 350
+  handleMousedown('book-1', makeClick(1, x))
+  handleClick('book-1', makeClick(1, x))
+  handleClick('book-1', makeClick(2, x))
+  handleClick('book-1', makeClick(3, x))
+  await flush()
+
   const triple = messages('iframe-triple-click')
   assert.equal(triple.length, 1)
-  assert.equal(triple[0].text, '兜底段落文本')
+  assert.equal(triple[0].text, longText.trim(), '只去首尾空白，内容完全照抄选区')
+  assert.ok(triple[0].text.length > 3000, '不应有 2000 字截断')
+  assert.ok(triple[0].text.includes('\n'), '段落内换行应保留')
 })
 
 test('无 event.detail 的 webview：本地点击计数也能识别三击', async () => {
