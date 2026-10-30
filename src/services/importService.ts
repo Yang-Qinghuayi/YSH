@@ -11,14 +11,11 @@
  * 并一次性写入 meta，而非逐个调用 createChapter / createEntry。
  */
 
+import { createOpenAIClient, streamChatWithTools } from '@/services/agent/llm';
 import { migrateCharacter } from '@/services/characterMigration';
-import {
-  createOpenAIClient,
-  type DeepSeekModel,
-  streamChatWithTools,
-} from '@/services/deepseekService';
 import { loadOrCreateLore, saveEntryContent, saveLoreMeta } from '@/services/loreService';
 import { createNovel, saveChapterContent, saveNovelMeta } from '@/services/novelService';
+import type { DeepSeekModel } from '@/types/agent';
 import type { ChatCompletionMessageParam } from '@/types/llm';
 import type { EntryImportance, EntryMeta, Lore } from '@/types/lore';
 import type { ChapterMeta, Character, Novel } from '@/types/novel';

@@ -1,12 +1,13 @@
 /**
- * chatStore.ts
+ * agentChatStore.ts
  * 交互面板（Agent chat）的 UI 状态：转录消息流 / 忙碌态 / 阶段 / 状态文案。
- * 只负责 UI 状态；引擎会话对象与落盘副作用由 novel/index.vue 编排。
+ * 只负责 UI 状态；引擎会话对象与落盘副作用由 useAgentChatController 编排。
  */
 
 import { defineStore } from 'pinia';
+import { ref } from 'vue';
 
-import type { AgentPlan, SessionPhase } from '@/services/agentService';
+import type { AgentPlan, SessionPhase } from '@/types/agent';
 import type { ChatMsg, ChatWriteData } from '@/types/agentChat';
 
 let idSeq = 0;
@@ -15,7 +16,7 @@ function nextId(): string {
   return `m${Date.now().toString(36)}${idSeq.toString(36)}`;
 }
 
-export const useChatStore = defineStore('agentChat', () => {
+export const useAgentChatStore = defineStore('agentChat', () => {
   /** 转录消息流（按时间序） */
   const transcript = ref<ChatMsg[]>([]);
   /** 是否有正在进行的轮次（禁用输入/快捷动作） */

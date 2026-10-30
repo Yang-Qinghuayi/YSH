@@ -5,6 +5,8 @@
 
 YSH 由两个上游项目杂交演化而来：电子书阅读器 **Readest**（services/types/utils 骨架）和一个**网易云音乐播放器模板**（Headline/Title/CardRow、歌词、miniPlayer、虚拟滚动等）。本次清理的核心就是摘除这两条谱系留下的死组织，并修复早已断掉的工程化链路。
 
+> **后续更新（2026-10-27）**：本文 2.1 节指出的 `pages/novel/index.vue` 上帝组件问题已在 Agent 重构中处理：页面入口缩到约 34 行，业务拆到 `src/pages/novel/composables/`，Agent 服务拆到 `src/services/agent/`。详见 [`docs/agent-refactor.md`](agent-refactor.md)；本文其余历史数据仍保留作为当时基线。
+
 ---
 
 ## 一、已删除的冗余代码（净 -6700 行）

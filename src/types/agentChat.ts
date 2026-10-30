@@ -1,22 +1,14 @@
 /**
  * agentChat.ts 类型
- * 交互面板（chat 模式）的转录消息与持久化文件结构。
+ * Agent 交互面板的 UI 转录消息与会话文件结构。
+ *
+ * 领域数据结构统一放在 types/agent.ts；本文件只描述 UI 层看到的消息形状。
  */
 
-import type { AgentPlan, SessionPhase } from '@/services/agentService';
+import type { AgentPlan, ChatWriteData, SessionPhase } from '@/types/agent';
 import type { ChatCompletionMessageParam } from '@/types/llm';
 
-/** 写章工具（append_to_chapter / replace_tail）产生的写入数据 */
-export interface ChatWriteData {
-  chapterId: string;
-  chapterTitle: string;
-  /** 写入后的章节全文（用于同步编辑器） */
-  newContent: string;
-  addedChars: number;
-  removedChars?: number;
-  /** 写入前的正文快照（用于「撤销」；仅保留最近几条，防文件膨胀） */
-  snapshot?: string;
-}
+export type { ChatWriteData } from '@/types/agent';
 
 export type ChatMsg =
   | { id: string; kind: 'user'; text: string; ts: number }
@@ -59,7 +51,7 @@ export interface ChatSessionFile {
   chapterId: string;
   chapterTitle: string;
   updatedAt: number;
-  /** UI 转录（持久化前会裁剪：工具细节与快照限量） */
+  /** UI 转录（持久化前会裁剪工具细节与快照） */
   transcript: ChatMsg[];
   /** LLM 消息历史（恢复多轮上下文） */
   llmMessages: ChatCompletionMessageParam[];

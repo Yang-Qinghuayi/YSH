@@ -1,7 +1,7 @@
 /**
  * fetch.mjs — 网络边界替身（替代原来的 `openai` 包替身）
  *
- * deepseekService 现在直接用 `fetch` + SSE 调用 DeepSeek，所以测试只需替换
+ * `src/services/agent/llm.ts` 直接用 `fetch` + SSE 调用 DeepSeek，所以测试只需替换
  * 全局 `fetch`：真实的 SSE 解析、chunk 聚合、状态机、工具执行全部原样运行，
  * 覆盖的仍是真实逻辑，而不是重写的近似实现。
  *
