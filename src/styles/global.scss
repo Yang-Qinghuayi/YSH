@@ -4,7 +4,7 @@
  * ============================================================ */
 
 :root {
-  --font-sans: "LXGW WenKai", "LXGW WenKai Screen", "霞鹜文楷", "Kaiti SC", "STKaiti", serif;
+  --font-sans: 'LXGW WenKai', 'LXGW WenKai Screen', '霞鹜文楷', 'Kaiti SC', 'STKaiti', serif;
   /* 陶土缪斯（默认调色板） */
   --background: #fff4ef;
   --foreground: #341f19;
@@ -121,7 +121,6 @@
   --focus: #7c82df;
 }
 
-
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -157,4 +156,3 @@
 .rounded-lg {
   border-radius: 14px !important;
 }
-

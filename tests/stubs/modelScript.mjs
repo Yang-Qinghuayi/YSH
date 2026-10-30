@@ -11,21 +11,21 @@ export const state = {
   turns: [],
   /** 每次模型请求的入参（按顺序） */
   requests: [],
-}
+};
 
 export function resetScript() {
-  state.turns.length = 0
-  state.requests.length = 0
+  state.turns.length = 0;
+  state.requests.length = 0;
 }
 
 /** 推入一轮响应 */
 export function pushTurn(turn) {
-  state.turns.push(turn)
+  state.turns.push(turn);
 }
 
 /** 推入多轮响应 */
 export function pushTurns(turns) {
-  for (const t of turns) state.turns.push(t)
+  for (const t of turns) state.turns.push(t);
 }
 
 /**
@@ -39,41 +39,41 @@ export function nextTurn(params) {
     ...params,
     messages: (params.messages ?? []).map((m) => ({ ...m })),
     tools: params.tools ? params.tools.map((t) => ({ ...t })) : params.tools,
-  })
+  });
   if (state.turns.length === 0) {
     throw new Error(
-      `假模型脚本已用尽：收到了第 ${state.requests.length} 次请求（测试漏推了一轮响应）`,
-    )
+      `假模型脚本已用尽：收到了第 ${state.requests.length} 次请求（测试漏推了一轮响应）`
+    );
   }
-  return state.turns.shift()
+  return state.turns.shift();
 }
 
 /** 便捷断言辅助：把某次请求的 messages 拍平成文本 */
 export function requestText(index) {
-  const req = state.requests[index]
-  if (!req) return ''
+  const req = state.requests[index];
+  if (!req) return '';
   return (req.messages ?? [])
     .map((m) => {
-      if (typeof m.content === 'string') return m.content
-      if (Array.isArray(m.content)) return JSON.stringify(m.content)
-      return ''
+      if (typeof m.content === 'string') return m.content;
+      if (Array.isArray(m.content)) return JSON.stringify(m.content);
+      return '';
     })
-    .join('\n')
+    .join('\n');
 }
 
 /** 便捷断言辅助：某次请求是否带工具（tools 非空） */
 export function requestToolNames(index) {
-  const req = state.requests[index]
-  if (!req?.tools) return []
-  return req.tools.map((t) => t.function?.name)
+  const req = state.requests[index];
+  if (!req?.tools) return [];
+  return req.tools.map((t) => t.function?.name);
 }
 
 /** 便捷断言辅助：某次请求的最后一条消息内容 */
 export function lastMessageText(index) {
-  const req = state.requests[index]
-  if (!req) return ''
-  const msgs = req.messages ?? []
-  const last = msgs[msgs.length - 1]
-  if (!last) return ''
-  return typeof last.content === 'string' ? last.content : ''
+  const req = state.requests[index];
+  if (!req) return '';
+  const msgs = req.messages ?? [];
+  const last = msgs[msgs.length - 1];
+  if (!last) return '';
+  return typeof last.content === 'string' ? last.content : '';
 }

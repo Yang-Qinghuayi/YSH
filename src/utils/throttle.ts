@@ -1,6 +1,6 @@
 export const throttle = <T extends (...args: Parameters<T>) => void | Promise<void>>(
   func: T,
-  delay: number,
+  delay: number
 ): ((...args: Parameters<T>) => void) => {
   let lastCall = 0;
   let timeout: ReturnType<typeof setTimeout> | null = null;

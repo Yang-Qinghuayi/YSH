@@ -1,0 +1,23 @@
+# 第三方/vendored 代码与生成物不做格式化，避免污染上游 diff
+node_modules/
+dist/
+build/
+coverage/
+
+# 上游 vendored 阅读引擎（含压缩后的 vendor bundle），保持原样以便日后同步
+src/foliate-js/
+
+# 构建脚本自动生成
+src/auto-imports.d.ts
+src/components.d.ts
+src/styles/vuetify-utilities.css
+
+# 锁文件与二进制资源
+pnpm-lock.yaml
+src-tauri/Cargo.lock
+src-tauri/target/
+public/
+*.png
+*.jpg
+*.webp
+*.ico

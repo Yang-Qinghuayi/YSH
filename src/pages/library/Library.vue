@@ -1,28 +1,44 @@
 <template>
-  <div class="h-[88vh]">
+  <div class="library-viewport">
     <v-btn variant="tonal" class="ml-3" color="primary" @click="handleImportBooks">
       上传书籍
     </v-btn>
     <div class="mt-2 book-grid">
-      <v-card @click="goToRead(book.hash)" v-for="book in libraryBooks.filter(book => !book.deletedAt)" :flat="true">
-        <v-img class="cover-image" :cover="true" :src="book.coverImageUrl" style="aspect-ratio: 1" :aspect-ratio="1"
-          :lazy-src="placeholderUrl">
+      <v-card
+        v-for="book in libraryBooks.filter((book) => !book.deletedAt)"
+        :key="book.hash"
+        :flat="true"
+        @click="goToRead(book.hash)"
+      >
+        <v-img
+          class="cover-image"
+          :cover="true"
+          :src="book.coverImageUrl"
+          style="aspect-ratio: 1"
+          :aspect-ratio="1"
+          :lazy-src="placeholderUrl"
+        >
         </v-img>
         <!-- 名称 -->
-        <div class="flex items-center justify-between my-2">
-          <div class="font-bold text-[#555555] truncate  ml-2">
+        <div class="d-flex align-center justify-space-between my-2">
+          <div class="font-weight-bold text-high-emphasis text-truncate ml-2">
             {{ book.title }}
           </div>
-          <v-menu open-on-hover open-delay=100 close-delay="100">
-            <template v-slot:activator="{ props }">
+          <v-menu open-on-hover open-delay="100" close-delay="100">
+            <template #activator="{ props }">
               <v-btn variant="text" color="primary" icon size="small" v-bind="props">
-                <v-icon class="text-[#777c7a]">{{ mdiDotsHorizontal }}</v-icon>
+                <v-icon class="text-medium-emphasis">{{ mdiDotsHorizontal }}</v-icon>
               </v-btn>
             </template>
 
-            <v-list elevation=6 class="p-0">
-              <v-list-item class=" px-6 py-4 text-center" v-for="(item, index) in items" :key="index" :value="index"
-                @click="item.function(book)">
+            <v-list elevation="6" class="pa-0">
+              <v-list-item
+                v-for="(item, index) in items"
+                :key="index"
+                class="px-6 py-4 text-center"
+                :value="index"
+                @click="item.function(book)"
+              >
                 {{ item.title }}
               </v-list-item>
             </v-list>
@@ -35,32 +51,29 @@
 
 <script setup lang="ts">
 import { parseOpenWithFiles } from '@/helpers/openWith';
+import { initLibrary, libraryLoaded, useAppService } from '@/hooks/useEnv';
+import { toast } from '@/plugins/toast';
 import { FILE_ACCEPT_FORMATS, SUPPORTED_FILE_EXTS } from '@/services/constants';
 import { isTauriAppPlatform } from '@/services/environment';
-import { useToast } from "vue-toastification";
-const toast = useToast();
-
-import { useAppService, initLibrary, libraryLoaded } from "@/hooks/useEnv";
 import { useBookIdStore } from '@/store/bookIdStore';
-const { setBookId } = useBookIdStore()
+const { setBookId } = useBookIdStore();
 import { useTranslation } from '@/hooks/useTranslation';
 const _ = useTranslation();
-const loading = ref(false)
+const loading = ref(false);
 
-import { useLibraryStore } from "@/store/libraryStore"
-const libraryStore = useLibraryStore()
-const {
-  updateBook,
-  setLibrary,
-  checkOpenWithBooks,
-  setCheckOpenWithBooks,
-} = libraryStore
+import { useLibraryStore } from '@/store/libraryStore';
+const libraryStore = useLibraryStore();
+const { updateBook, setLibrary, checkOpenWithBooks, setCheckOpenWithBooks } = libraryStore;
 
-const { library: libraryBooks } = storeToRefs(libraryStore)
+const { library: libraryBooks } = storeToRefs(libraryStore);
 
 import { getFilename, listFormater } from '@/utils/book';
 
-const processOpenWithFiles = async (appService: AppService, openWithFiles: string[], libraryBooks: Book[]) => {
+const processOpenWithFiles = async (
+  appService: AppService,
+  openWithFiles: string[],
+  libraryBooks: Book[]
+) => {
   const settings = await appService.loadSettings();
   const bookIds: string[] = [];
 
@@ -89,7 +102,6 @@ const processOpenWithFiles = async (appService: AppService, openWithFiles: strin
   }
 };
 
-
 const handleOpenWithBooks = async (appService: AppService, libraryBooks: Book[]) => {
   const openWithFiles = (await parseOpenWithFiles()) || [];
 
@@ -101,15 +113,13 @@ const handleOpenWithBooks = async (appService: AppService, libraryBooks: Book[])
   }
 };
 
-
 onMounted(async () => {
-  const appService = await useAppService()
-  await initLibrary()
+  const appService = await useAppService();
+  await initLibrary();
 
   if (checkOpenWithBooks && isTauriAppPlatform()) {
     await handleOpenWithBooks(appService, libraryBooks.value);
   }
-
 });
 
 onBeforeUnmount(() => {
@@ -117,7 +127,7 @@ onBeforeUnmount(() => {
 });
 
 const importBooks = async (files: (string | File)[]) => {
-  const appService = await useAppService()
+  const appService = await useAppService();
   loading.value = true;
   const failedFiles = [];
   const errorMap: [string, string][] = [
@@ -127,9 +137,9 @@ const importBooks = async (files: (string | File)[]) => {
   ];
   for (const file of files) {
     try {
-      const books = libraryBooks.value
+      const books = libraryBooks.value;
       await appService.importBook(file, books);
-      libraryBooks.value = books
+      libraryBooks.value = books;
     } catch (error: any) {
       const filename = typeof file === 'string' ? file : file.name;
       const baseFilename = getFilename(filename);
@@ -141,7 +151,7 @@ const importBooks = async (files: (string | File)[]) => {
       toast.error(
         _('Failed to import book(s): {{filenames}}', {
           filenames: listFormater(false).format(failedFiles),
-        }) + (errorMessage ? `\n${errorMessage}` : ''),
+        }) + (errorMessage ? `\n${errorMessage}` : '')
       );
       console.error('Failed to import book:', filename, error);
     }
@@ -151,7 +161,7 @@ const importBooks = async (files: (string | File)[]) => {
 };
 
 const selectFilesTauri = async () => {
-  const appService = await useAppService()
+  const appService = await useAppService();
   const exts = appService.isAndroidApp ? [] : SUPPORTED_FILE_EXTS;
   const files = (await appService.selectFiles(_('Select Books'), exts)) || [];
   // Cannot filter out files on Android since some content providers may not return the file name
@@ -173,7 +183,7 @@ const selectFilesWeb = () => {
 };
 
 const handleImportBooks = async () => {
-  const appService = await useAppService()
+  const appService = await useAppService();
   let files;
   if (isTauriAppPlatform()) {
     if (appService.isIOSApp) {
@@ -187,36 +197,34 @@ const handleImportBooks = async () => {
   importBooks(files);
 };
 
-
-
 const items = [
   {
-    title: '删除', function: async (book: Book) => {
-      const appService = await useAppService()
-      await appService.deleteBook(book)
+    title: '删除',
+    function: async (book: Book) => {
+      const appService = await useAppService();
+      await appService.deleteBook(book);
       // updateBook(book)
-      toast.success(`成功删除${book.title}`)
-    }
+      toast.success(`成功删除${book.title}`);
+    },
   },
-]
+];
 
 // goto read
 const router = useRouter();
 const goToRead = (id: string) => {
-  console.log(id)
-  setBookId(id)
+  console.log(id);
+  setBookId(id);
   router.push({
-    path: "/book",
+    path: '/book',
   });
 };
 
-// @ts-ignore
-import placeholderUrl from "@/assets/placeholder.png";
-import { mdiDotsHorizontal } from "@mdi/js";
-import { AppService } from '@/types/system';
-import { Book } from '@/types/book';
+import { mdiDotsHorizontal } from '@mdi/js';
 import { storeToRefs } from 'pinia';
 
+import placeholderUrl from '@/assets/placeholder.png';
+import type { Book } from '@/types/book';
+import type { AppService } from '@/types/system';
 </script>
 
 <style scoped>
@@ -259,5 +267,11 @@ import { storeToRefs } from 'pinia';
    （原 CardRow 组件内的同款修正） */
 .book-grid :deep(.v-responsive__content) {
   width: inherit !important;
+}
+</style>
+
+<style scoped>
+.library-viewport {
+  height: 88vh;
 }
 </style>

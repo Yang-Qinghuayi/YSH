@@ -1,5 +1,6 @@
-import { isWebAppPlatform, hasCli } from '@/services/environment';
 import { getCurrent } from '@tauri-apps/plugin-deep-link';
+
+import { hasCli, isWebAppPlatform } from '@/services/environment';
 
 declare global {
   interface Window {

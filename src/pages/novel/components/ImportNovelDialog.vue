@@ -20,11 +20,12 @@
       </div>
 
       <!-- 主体 -->
-      <div class="import-body flex-1 overflow-y-auto px-4 py-3">
+      <div class="import-body flex-1-1 overflow-y-auto px-4 py-3">
         <!-- ===== Step 1：输入 ===== -->
         <template v-if="step === 'input'">
-          <div class="text-body-2 text-medium-emphasis mb-2">
-            粘贴小说全文，或上传 .txt / .md 文件。会先按章节标题自动切分，再由 AI 提取人物、情节与设定。
+          <div class="text-body-medium text-medium-emphasis mb-2">
+            粘贴小说全文，或上传 .txt / .md 文件。会先按章节标题自动切分，再由 AI
+            提取人物、情节与设定。
           </div>
 
           <textarea
@@ -34,7 +35,7 @@
             rows="14"
           ></textarea>
 
-          <div class="d-flex align-center gap-2 mt-3 flex-wrap">
+          <div class="d-flex align-center ga-2 mt-3 flex-wrap">
             <label class="lg-pill import-file-btn">
               <v-icon :icon="mdiFileUploadOutline" size="15" start />
               上传文件
@@ -46,9 +47,9 @@
                 @change="onFileChange"
               />
             </label>
-            <span v-if="fileName" class="text-caption text-medium-emphasis">{{ fileName }}</span>
+            <span v-if="fileName" class="text-body-small text-medium-emphasis">{{ fileName }}</span>
             <v-spacer />
-            <span class="text-caption text-medium-emphasis">{{ rawCharCount }} 字</span>
+            <span class="text-body-small text-medium-emphasis">{{ rawCharCount }} 字</span>
           </div>
 
           <v-alert
@@ -60,7 +61,14 @@
             closable
           >
             检测到 {{ splitPreview.length }} 个章节
-            <span class="text-medium-emphasis ml-1">（示例：{{ splitPreview.slice(0, 3).map((c) => c.title).join('、') }}{{ splitPreview.length > 3 ? '…' : '' }}）</span>
+            <span class="text-medium-emphasis ml-1"
+              >（示例：{{
+                splitPreview
+                  .slice(0, 3)
+                  .map((c) => c.title)
+                  .join('、')
+              }}{{ splitPreview.length > 3 ? '…' : '' }}）</span
+            >
           </v-alert>
         </template>
 
@@ -74,7 +82,11 @@
             </label>
             <label class="native-label">
               <span class="native-label-text">故事简介（精简）</span>
-              <textarea v-model="form.synopsis" class="native-input native-textarea-sm" rows="2"></textarea>
+              <textarea
+                v-model="form.synopsis"
+                class="native-input native-textarea-sm"
+                rows="2"
+              ></textarea>
             </label>
           </div>
 
@@ -105,14 +117,20 @@
           <div class="preview-section lg-card--inset pa-3 mb-3">
             <label class="native-label">
               <span class="native-label-text">情节梗概（详细，将作为设定条目）</span>
-              <textarea v-model="form.plotProgress" class="native-input native-textarea-sm" rows="3"></textarea>
+              <textarea
+                v-model="form.plotProgress"
+                class="native-input native-textarea-sm"
+                rows="3"
+              ></textarea>
             </label>
           </div>
 
           <!-- 人物 -->
           <div class="preview-section lg-card--inset pa-3 mb-3">
             <div class="d-flex align-center mb-2">
-              <div class="lg-section-label">人物（{{ selectedCharacters.length }}/{{ form.characters.length }}）</div>
+              <div class="lg-section-label">
+                人物（{{ selectedCharacters.length }}/{{ form.characters.length }}）
+              </div>
               <v-spacer />
               <button class="lg-pill import-mini-btn" @click="addCharacter">
                 <v-icon :icon="mdiPlus" size="13" start />新增
@@ -126,20 +144,38 @@
             >
               <input v-model="c.selected" type="checkbox" class="chapter-check-box mt-2" />
               <div class="char-row__fields">
-                <input v-model="c.name" type="text" class="native-input native-input-sm mb-1" placeholder="姓名" />
-                <textarea v-model="c.skill" class="native-input native-input-sm native-textarea-xs" rows="3" placeholder="长期记忆（Skill）：性格、出身、外貌、信念、说话方式、别名、参考形象……"></textarea>
+                <input
+                  v-model="c.name"
+                  type="text"
+                  class="native-input native-input-sm mb-1"
+                  placeholder="姓名"
+                />
+                <textarea
+                  v-model="c.skill"
+                  class="native-input native-input-sm native-textarea-xs"
+                  rows="3"
+                  placeholder="长期记忆（Skill）：性格、出身、外貌、信念、说话方式、别名、参考形象……"
+                ></textarea>
               </div>
-              <button class="lg-icon-btn char-row__del" title="删除" @click="form.characters.splice(i, 1)">
+              <button
+                class="lg-icon-btn char-row__del"
+                title="删除"
+                @click="form.characters.splice(i, 1)"
+              >
                 <v-icon :icon="mdiClose" size="15" />
               </button>
             </div>
-            <div v-if="!form.characters.length" class="text-caption text-medium-emphasis pa-2">暂无人物</div>
+            <div v-if="!form.characters.length" class="text-body-small text-medium-emphasis pa-2">
+              暂无人物
+            </div>
           </div>
 
           <!-- 设定 -->
           <div class="preview-section lg-card--inset pa-3 mb-3">
             <div class="d-flex align-center mb-2">
-              <div class="lg-section-label">设定条目（{{ selectedLoreEntries.length }}/{{ form.loreEntries.length }}）</div>
+              <div class="lg-section-label">
+                设定条目（{{ selectedLoreEntries.length }}/{{ form.loreEntries.length }}）
+              </div>
               <v-spacer />
               <button class="lg-pill import-mini-btn" @click="addLoreEntry">
                 <v-icon :icon="mdiPlus" size="13" start />新增
@@ -153,41 +189,70 @@
             >
               <input v-model="e.selected" type="checkbox" class="chapter-check-box mt-2" />
               <div class="char-row__fields">
-                <div class="d-flex gap-2 mb-1">
-                  <input v-model="e.name" type="text" class="native-input native-input-sm flex-1" placeholder="名称" />
+                <div class="d-flex ga-2 mb-1">
+                  <input
+                    v-model="e.name"
+                    type="text"
+                    class="native-input native-input-sm flex-1-1"
+                    placeholder="名称"
+                  />
                   <select v-model="e.importance" class="native-input native-input-sm native-select">
-                    <option v-for="it in importanceItems" :key="it.value" :value="it.value">{{ it.title }}</option>
+                    <option v-for="it in importanceItems" :key="it.value" :value="it.value">
+                      {{ it.title }}
+                    </option>
                   </select>
                 </div>
-                <input v-model="e.keywordsText" type="text" class="native-input native-input-sm mb-1" placeholder="别名/触发词（逗号分隔）" />
-                <input v-model="e.briefDescription" type="text" class="native-input native-input-sm mb-1" placeholder="索引简介" />
-                <textarea v-model="e.content" class="native-input native-input-sm native-textarea-xs" rows="2" placeholder="详细正文"></textarea>
+                <input
+                  v-model="e.keywordsText"
+                  type="text"
+                  class="native-input native-input-sm mb-1"
+                  placeholder="别名/触发词（逗号分隔）"
+                />
+                <input
+                  v-model="e.briefDescription"
+                  type="text"
+                  class="native-input native-input-sm mb-1"
+                  placeholder="索引简介"
+                />
+                <textarea
+                  v-model="e.content"
+                  class="native-input native-input-sm native-textarea-xs"
+                  rows="2"
+                  placeholder="详细正文"
+                ></textarea>
               </div>
-              <button class="lg-icon-btn char-row__del" title="删除" @click="form.loreEntries.splice(i, 1)">
+              <button
+                class="lg-icon-btn char-row__del"
+                title="删除"
+                @click="form.loreEntries.splice(i, 1)"
+              >
                 <v-icon :icon="mdiClose" size="15" />
               </button>
             </div>
-            <div v-if="!form.loreEntries.length" class="text-caption text-medium-emphasis pa-2">暂无设定</div>
+            <div v-if="!form.loreEntries.length" class="text-body-small text-medium-emphasis pa-2">
+              暂无设定
+            </div>
           </div>
         </template>
 
         <!-- ===== Step 3：完成 ===== -->
         <template v-else>
-          <div class="import-done d-flex flex-column align-center justify-center h-100 gap-3 pa-6">
+          <div class="import-done d-flex flex-column align-center justify-center h-100 ga-3 pa-6">
             <div class="import-done-icon lg-card--inset">
               <v-icon :icon="mdiCheckCircleOutline" size="44" color="success" />
             </div>
             <div class="import-done-title">导入成功</div>
             <div class="import-done-sub text-center">
               《{{ importedNovel?.title }}》已导入<br />
-              {{ importedNovel?.chapters.length }} 章 · {{ importedNovel?.characters.length }} 个人物 · {{ loreCount }} 条设定
+              {{ importedNovel?.chapters.length }} 章 ·
+              {{ importedNovel?.characters.length }} 个人物 · {{ loreCount }} 条设定
             </div>
           </div>
         </template>
       </div>
 
       <!-- 底部操作栏 -->
-      <div class="import-footer d-flex align-center px-4 py-3 flex-shrink-0 gap-2">
+      <div class="import-footer d-flex align-center px-4 py-3 flex-shrink-0 ga-2">
         <v-btn
           v-if="step === 'preview'"
           variant="text"
@@ -199,7 +264,9 @@
         </v-btn>
         <v-spacer />
         <template v-if="step === 'input'">
-          <span v-if="statusText" class="text-caption text-medium-emphasis mr-2">{{ statusText }}</span>
+          <span v-if="statusText" class="text-body-small text-medium-emphasis mr-2">{{
+            statusText
+          }}</span>
           <v-btn
             color="primary"
             variant="tonal"
@@ -214,7 +281,9 @@
           </v-btn>
         </template>
         <template v-else-if="step === 'preview'">
-          <span v-if="statusText" class="text-caption text-medium-emphasis mr-2">{{ statusText }}</span>
+          <span v-if="statusText" class="text-body-small text-medium-emphasis mr-2">{{
+            statusText
+          }}</span>
           <v-btn
             color="primary"
             size="small"
@@ -241,73 +310,84 @@
 
 <script setup lang="ts">
 import {
-  mdiImport,
-  mdiClose,
   mdiAutoFix,
-  mdiFileUploadOutline,
-  mdiPlus,
   mdiCheckCircleOutline,
-} from '@mdi/js'
-import { useSettingStore } from '@/store/setting'
+  mdiClose,
+  mdiFileUploadOutline,
+  mdiImport,
+  mdiPlus,
+} from '@mdi/js';
+
+import { useApiKey } from '@/hooks/useApiKey';
+import { isTauriAppPlatform } from '@/services/environment';
 import {
-  splitChapters,
   extractImportMeta,
-  persistImport,
-  type SplitChapter,
   type ImportCharacter,
   type ImportLoreEntry,
   type ImportMeta,
-} from '@/services/importService'
-import { countWords } from '@/services/novelService'
-import { pickWorkspaceDir, createNovelFolder } from '@/services/workspaceService'
-import { isTauriAppPlatform } from '@/services/environment'
-import { useApiKey } from '@/hooks/useApiKey'
-import type { EntryImportance } from '@/types/lore'
-import type { Novel } from '@/types/novel'
+  persistImport,
+  type SplitChapter,
+  splitChapters,
+} from '@/services/importService';
+import { countWords } from '@/services/novelService';
+import { createNovelFolder, pickWorkspaceDir } from '@/services/workspaceService';
+import { useSettingStore } from '@/store/setting';
+import type { EntryImportance } from '@/types/lore';
+import type { Novel } from '@/types/novel';
 
-const props = defineProps<{ visible: boolean }>()
+const props = defineProps<{ visible: boolean }>();
 const emit = defineEmits<{
-  'update:visible': [v: boolean]
-  imported: [novel: Novel]
-}>()
+  'update:visible': [v: boolean];
+  imported: [novel: Novel];
+}>();
 
-const settingStore = useSettingStore()
-const { apiKey } = useApiKey()
+const settingStore = useSettingStore();
+const { apiKey } = useApiKey();
 
-type Step = 'input' | 'preview' | 'done'
-const step = ref<Step>('input')
+type Step = 'input' | 'preview' | 'done';
+const step = ref<Step>('input');
 
-const rawText = ref('')
-const fileName = ref('')
-const fileInputRef = ref<HTMLInputElement | null>(null)
+const rawText = ref('');
+const fileName = ref('');
+const fileInputRef = ref<HTMLInputElement | null>(null);
 
-const parsing = ref(false)
-const persisting = ref(false)
-const statusText = ref('')
-const showError = ref(false)
-const errorMessage = ref('')
+const parsing = ref(false);
+const persisting = ref(false);
+const statusText = ref('');
+const showError = ref(false);
+const errorMessage = ref('');
 
-const importedNovel = ref<Novel | null>(null)
-const loreCount = ref(0)
+const importedNovel = ref<Novel | null>(null);
+const loreCount = ref(0);
 
 const importanceItems: { title: string; value: EntryImportance }[] = [
   { title: '主要', value: 'major' },
   { title: '重要', value: 'important' },
   { title: '次要', value: 'minor' },
-]
+];
 
 // ===== 表单模型 =====
-interface ChapterForm { title: string; content: string; wordCount: number; selected: boolean }
-interface CharacterForm extends ImportCharacter { selected: boolean }
-interface LoreEntryForm extends ImportLoreEntry { keywordsText: string; selected: boolean }
+interface ChapterForm {
+  title: string;
+  content: string;
+  wordCount: number;
+  selected: boolean;
+}
+interface CharacterForm extends ImportCharacter {
+  selected: boolean;
+}
+interface LoreEntryForm extends ImportLoreEntry {
+  keywordsText: string;
+  selected: boolean;
+}
 
 const form = reactive<{
-  title: string
-  synopsis: string
-  plotProgress: string
-  chapters: ChapterForm[]
-  characters: CharacterForm[]
-  loreEntries: LoreEntryForm[]
+  title: string;
+  synopsis: string;
+  plotProgress: string;
+  chapters: ChapterForm[];
+  characters: CharacterForm[];
+  loreEntries: LoreEntryForm[];
 }>({
   title: '',
   synopsis: '',
@@ -315,61 +395,61 @@ const form = reactive<{
   chapters: [],
   characters: [],
   loreEntries: [],
-})
+});
 
-const rawCharCount = computed(() => rawText.value.length)
+const rawCharCount = computed(() => rawText.value.length);
 
 const splitPreview = computed<SplitChapter[]>(() => {
-  if (!rawText.value.trim()) return []
-  return splitChapters(rawText.value)
-})
+  if (!rawText.value.trim()) return [];
+  return splitChapters(rawText.value);
+});
 
-const allChaptersSelected = computed(() =>
-  form.chapters.length > 0 && form.chapters.every((c) => c.selected),
-)
+const allChaptersSelected = computed(
+  () => form.chapters.length > 0 && form.chapters.every((c) => c.selected)
+);
 
-const selectedCharacters = computed(() => form.characters.filter((c) => c.selected))
-const selectedLoreEntries = computed(() => form.loreEntries.filter((e) => e.selected))
+const selectedCharacters = computed(() => form.characters.filter((c) => c.selected));
+const selectedLoreEntries = computed(() => form.loreEntries.filter((e) => e.selected));
 
 const stepSubtitle = computed(() => {
-  if (step.value === 'input') return '· 输入文本'
-  if (step.value === 'preview') return '· 预览确认'
-  return '· 完成'
-})
+  if (step.value === 'input') return '· 输入文本';
+  if (step.value === 'preview') return '· 预览确认';
+  return '· 完成';
+});
 
 // ===== 文件上传 =====
 function onFileChange(e: Event) {
-  const input = e.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file) return
-  fileName.value = file.name
-  const reader = new FileReader()
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  fileName.value = file.name;
+  const reader = new FileReader();
   reader.onload = () => {
-    rawText.value = String(reader.result ?? '')
-  }
-  reader.onerror = () => showErrorMsg('读取文件失败')
-  reader.readAsText(file, 'utf-8')
+    rawText.value = String(reader.result ?? '');
+  };
+  reader.onerror = () => showErrorMsg('读取文件失败');
+  reader.readAsText(file, 'utf-8');
   // 允许重复选同一文件
-  input.value = ''
+  input.value = '';
 }
 
 // ===== 解析 =====
-let abortCtrl: AbortController | null = null
+let abortCtrl: AbortController | null = null;
 
 async function startParse() {
   if (!apiKey.value) {
-    showErrorMsg('请先在「设置」中填写 DeepSeek API Key')
-    return
+    showErrorMsg('请先在「设置」中填写 DeepSeek API Key');
+    return;
   }
-  const chapters = splitChapters(rawText.value)
+  const chapters = splitChapters(rawText.value);
   if (!chapters.length) {
-    showErrorMsg('未识别到任何内容，请检查输入')
-    return
+    showErrorMsg('未识别到任何内容，请检查输入');
+    return;
   }
 
-  parsing.value = true
-  statusText.value = '正在切分章节…'
-  abortCtrl = new AbortController()
+  parsing.value = true;
+  statusText.value = '正在切分章节…';
+  abortCtrl = new AbortController();
   try {
     const meta: ImportMeta = await extractImportMeta(
       {
@@ -378,51 +458,51 @@ async function startParse() {
         chapters,
         signal: abortCtrl.signal,
       },
-      { onStatus: (s) => (statusText.value = s) },
-    )
-    fillForm(meta, chapters)
-    step.value = 'preview'
+      { onStatus: (s) => (statusText.value = s) }
+    );
+    fillForm(meta, chapters);
+    step.value = 'preview';
   } catch (e) {
     if (e instanceof DOMException && e.name === 'AbortError') {
       // 取消，静默
     } else {
-      showErrorMsg('解析失败：' + (e instanceof Error ? e.message : String(e)))
+      showErrorMsg('解析失败：' + (e instanceof Error ? e.message : String(e)));
     }
   } finally {
-    parsing.value = false
-    statusText.value = ''
-    abortCtrl = null
+    parsing.value = false;
+    statusText.value = '';
+    abortCtrl = null;
   }
 }
 
 function fillForm(meta: ImportMeta, chapters: SplitChapter[]) {
-  form.title = meta.novelTitle || '导入的小说'
-  form.synopsis = meta.synopsisBrief
-  form.plotProgress = meta.plotProgress
+  form.title = meta.novelTitle || '导入的小说';
+  form.synopsis = meta.synopsisBrief;
+  form.plotProgress = meta.plotProgress;
   form.chapters = chapters.map((c) => ({
     title: c.title,
     content: c.content,
     wordCount: countWords(c.content),
     selected: true,
-  }))
+  }));
   form.characters = meta.characters.map((c) => ({
     ...c,
     selected: true,
-  }))
+  }));
   form.loreEntries = meta.loreEntries.map((e) => ({
     ...e,
     keywordsText: (e.keywords ?? []).join(', '),
     selected: true,
-  }))
+  }));
 }
 
 function backToInput() {
-  step.value = 'input'
+  step.value = 'input';
 }
 
 function toggleAllChapters() {
-  const target = !allChaptersSelected.value
-  form.chapters.forEach((c) => (c.selected = target))
+  const target = !allChaptersSelected.value;
+  form.chapters.forEach((c) => (c.selected = target));
 }
 
 function addCharacter() {
@@ -430,7 +510,7 @@ function addCharacter() {
     name: '',
     skill: '',
     selected: true,
-  })
+  });
 }
 
 function addLoreEntry() {
@@ -442,33 +522,33 @@ function addLoreEntry() {
     keywordsText: '',
     content: '',
     selected: true,
-  })
+  });
 }
 
 // ===== 确认导入 =====
 async function confirmImport() {
-  const chapters = form.chapters.filter((c) => c.selected)
+  const chapters = form.chapters.filter((c) => c.selected);
   if (!chapters.length) {
-    showErrorMsg('请至少选择一个章节')
-    return
+    showErrorMsg('请至少选择一个章节');
+    return;
   }
   if (!form.title.trim()) {
-    showErrorMsg('请填写小说标题')
-    return
+    showErrorMsg('请填写小说标题');
+    return;
   }
 
-  persisting.value = true
-  statusText.value = '正在写入…'
+  persisting.value = true;
+  statusText.value = '正在写入…';
   try {
     // Tauri 下：先选父目录，以标题创建独立小说文件夹并切换为当前工作区
     if (isTauriAppPlatform()) {
-      const parent = await pickWorkspaceDir()
+      const parent = await pickWorkspaceDir();
       if (!parent) {
-        persisting.value = false
-        statusText.value = ''
-        return
+        persisting.value = false;
+        statusText.value = '';
+        return;
       }
-      await createNovelFolder(parent, form.title.trim())
+      await createNovelFolder(parent, form.title.trim());
     }
 
     const novel = await persistImport({
@@ -478,15 +558,15 @@ async function confirmImport() {
       characters: selectedCharacters.value.map(toImportCharacter),
       loreEntries: selectedLoreEntries.value.map(toImportLoreEntry),
       plotProgress: form.plotProgress.trim(),
-    })
-    importedNovel.value = novel
-    loreCount.value = 1 + selectedLoreEntries.value.length // 含情节梗概
-    step.value = 'done'
+    });
+    importedNovel.value = novel;
+    loreCount.value = 1 + selectedLoreEntries.value.length; // 含情节梗概
+    step.value = 'done';
   } catch (e) {
-    showErrorMsg('导入失败：' + (e instanceof Error ? e.message : String(e)))
+    showErrorMsg('导入失败：' + (e instanceof Error ? e.message : String(e)));
   } finally {
-    persisting.value = false
-    statusText.value = ''
+    persisting.value = false;
+    statusText.value = '';
   }
 }
 
@@ -494,63 +574,63 @@ function toImportCharacter(c: CharacterForm): ImportCharacter {
   return {
     name: c.name.trim() || '未命名',
     skill: c.skill?.trim() || undefined,
-  }
+  };
 }
 
 function toImportLoreEntry(e: LoreEntryForm): ImportLoreEntry {
   const keywords = e.keywordsText
     .split(/[,，、]/)
     .map((s) => s.trim())
-    .filter(Boolean)
+    .filter(Boolean);
   return {
     name: e.name.trim() || '未命名条目',
     importance: e.importance,
     briefDescription: e.briefDescription || '',
     keywords,
     content: e.content || '',
-  }
+  };
 }
 
 function finish() {
-  emit('update:visible', false)
-  resetState()
+  emit('update:visible', false);
+  resetState();
 }
 
 function resetState() {
-  step.value = 'input'
-  rawText.value = ''
-  fileName.value = ''
-  statusText.value = ''
-  importedNovel.value = null
-  loreCount.value = 0
-  form.title = ''
-  form.synopsis = ''
-  form.plotProgress = ''
-  form.chapters = []
-  form.characters = []
-  form.loreEntries = []
+  step.value = 'input';
+  rawText.value = '';
+  fileName.value = '';
+  statusText.value = '';
+  importedNovel.value = null;
+  loreCount.value = 0;
+  form.title = '';
+  form.synopsis = '';
+  form.plotProgress = '';
+  form.chapters = [];
+  form.characters = [];
+  form.loreEntries = [];
 }
 
 function onToggle(v: boolean) {
-  emit('update:visible', v)
+  emit('update:visible', v);
   if (!v) {
     // 关闭时取消进行中的解析
-    abortCtrl?.abort()
-    if (!parsing.value && !persisting.value) resetState()
+    abortCtrl?.abort();
+    if (!parsing.value && !persisting.value) resetState();
   }
 }
 
 function showErrorMsg(msg: string) {
-  errorMessage.value = msg
-  showError.value = true
+  errorMessage.value = msg;
+  showError.value = true;
 }
 
 // 持久化成功后通知父组件打开新小说（完成页展示期间即触发，无需等点「完成」）
 watch(step, (s) => {
   if (s === 'done' && importedNovel.value) {
-    emit('imported', importedNovel.value)
+    emit('imported', importedNovel.value);
   }
-})
+});
 </script>
 
 <style scoped>

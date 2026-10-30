@@ -12,17 +12,18 @@
  * 受限/限额的 Key。（桌面端可接受）
  */
 
-import { useLocalStorage, useSessionStorage } from '@vueuse/core'
-import { useSettingStore } from '@/store/setting'
+import { useLocalStorage, useSessionStorage } from '@vueuse/core';
 
-const LOCAL_KEY = 'deepseek.apiKey'
-const SESSION_KEY = 'deepseek.apiKey.session'
-const LEGACY_SETTING_KEY = 'setting'
+import { useSettingStore } from '@/store/setting';
+
+const LOCAL_KEY = 'deepseek.apiKey';
+const SESSION_KEY = 'deepseek.apiKey.session';
+const LEGACY_SETTING_KEY = 'setting';
 
 /** 持久化存储的 Key */
-const rememberedKey = useLocalStorage(LOCAL_KEY, '')
+const rememberedKey = useLocalStorage(LOCAL_KEY, '');
 /** 仅本次会话有效的 Key */
-const sessionKey = useSessionStorage(SESSION_KEY, '')
+const sessionKey = useSessionStorage(SESSION_KEY, '');
 
 /**
  * 一次性迁移：把旧的 setting.deepseekApiKey 搬到新的存储位置，
@@ -30,28 +31,28 @@ const sessionKey = useSessionStorage(SESSION_KEY, '')
  */
 function migrateLegacyApiKey(): void {
   try {
-    if (typeof localStorage === 'undefined') return
-    const raw = localStorage.getItem(LEGACY_SETTING_KEY)
-    if (!raw) return
-    const parsed = JSON.parse(raw) as Record<string, unknown> | null
-    if (!parsed || typeof parsed !== 'object') return
-    if (!('deepseekApiKey' in parsed)) return
+    if (typeof localStorage === 'undefined') return;
+    const raw = localStorage.getItem(LEGACY_SETTING_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as Record<string, unknown> | null;
+    if (!parsed || typeof parsed !== 'object') return;
+    if (!('deepseekApiKey' in parsed)) return;
 
-    const legacy = parsed['deepseekApiKey']
+    const legacy = parsed['deepseekApiKey'];
     if (typeof legacy === 'string' && legacy.trim() && !rememberedKey.value) {
-      rememberedKey.value = legacy
+      rememberedKey.value = legacy;
     }
-    delete parsed['deepseekApiKey']
-    localStorage.setItem(LEGACY_SETTING_KEY, JSON.stringify(parsed))
+    delete parsed['deepseekApiKey'];
+    localStorage.setItem(LEGACY_SETTING_KEY, JSON.stringify(parsed));
   } catch {
     // 迁移失败不影响使用（用户重新填写即可）
   }
 }
 
-migrateLegacyApiKey()
+migrateLegacyApiKey();
 
 export function useApiKey() {
-  const settingStore = useSettingStore()
+  const settingStore = useSettingStore();
 
   /** 是否「记住」（持久化到 localStorage）；关闭后只在本次会话有效 */
   const remember = computed<boolean>({
@@ -59,28 +60,28 @@ export function useApiKey() {
     set: (v) => {
       // 切换时把已有 Key 迁移到目标存储，避免用户重填
       if (v) {
-        if (sessionKey.value && !rememberedKey.value) rememberedKey.value = sessionKey.value
+        if (sessionKey.value && !rememberedKey.value) rememberedKey.value = sessionKey.value;
       } else if (rememberedKey.value) {
-        sessionKey.value = rememberedKey.value
-        rememberedKey.value = ''
+        sessionKey.value = rememberedKey.value;
+        rememberedKey.value = '';
       }
-      settingStore.rememberApiKey = v
+      settingStore.rememberApiKey = v;
     },
-  })
+  });
 
   const apiKey = computed<string>({
     get: () => (remember.value ? rememberedKey.value || sessionKey.value : sessionKey.value),
     set: (v) => {
-      if (remember.value) rememberedKey.value = v
-      else sessionKey.value = v
+      if (remember.value) rememberedKey.value = v;
+      else sessionKey.value = v;
     },
-  })
+  });
 
   /** 清除两处存储的 Key */
   function clear(): void {
-    rememberedKey.value = ''
-    sessionKey.value = ''
+    rememberedKey.value = '';
+    sessionKey.value = '';
   }
 
-  return { apiKey, remember, clear, hasKey: computed(() => !!apiKey.value) }
+  return { apiKey, remember, clear, hasKey: computed(() => !!apiKey.value) };
 }

@@ -7,7 +7,15 @@
     <app-content id="v-player-content" class="v-player-content" />
 
     <!-- 移动端底部 Tab 导航 -->
-    <v-bottom-navigation v-if="isMobile" :model-value="route.path" grow color="primary" bg-color="surface" :elevation="0" class="border-t border-outline/30">
+    <v-bottom-navigation
+      v-if="isMobile"
+      :model-value="route.path"
+      grow
+      color="primary"
+      bg-color="surface"
+      :elevation="0"
+      class="border-t border-outline/30"
+    >
       <v-btn
         v-for="item in nav"
         :key="item.val"
@@ -17,24 +25,25 @@
         @click="onNavItemClick(item)"
       >
         <v-icon :icon="item.icon" />
-        <span class="text-xs mt-1">{{ item.title }}</span>
+        <span class="text-body-small mt-1">{{ item.title }}</span>
       </v-btn>
     </v-bottom-navigation>
-
   </v-app>
 </template>
 
 <script setup lang="ts">
-import { useMediaQuery } from "@vueuse/core";
-import { useMaterialYouTheme } from "@/hooks/useMaterialYouTheme";
-import { useNavItems } from "@/hooks/useNavItems";
-import AppNav from "./layout/Navbar.vue";
-import AppContent from "./layout/View.vue";
+import { useMediaQuery } from '@vueuse/core';
+
+import { useMaterialYouTheme } from '@/hooks/useMaterialYouTheme';
+import { useNavItems } from '@/hooks/useNavItems';
+
+import AppNav from './layout/Navbar.vue';
+import AppContent from './layout/View.vue';
 
 useMaterialYouTheme();
 
 // 用浏览器原生 matchMedia，比 Vuetify useDisplay 更可靠
-const isMobile = useMediaQuery("(max-width: 960px)");
+const isMobile = useMediaQuery('(max-width: 960px)');
 const { nav, onNavItemClick } = useNavItems();
 const route = useRoute();
 </script>
@@ -94,5 +103,12 @@ $transition-time: 350ms;
   .v-application__wrap {
     min-height: initial !important;
   }
+}
+</style>
+
+<style scoped>
+/* 移动端底部导航：细描边 + 半透明分隔 */
+.nav-bottom-border {
+  border-top: 1px solid rgb(var(--v-theme-outline) / 30%);
 }
 </style>

@@ -1,12 +1,12 @@
-import { Book } from '@/types/book';
-import { FileSystem, BaseDir, AppPlatform } from '@/types/system';
+import type { Book } from '@/types/book';
+import type { AppPlatform, BaseDir, FileSystem } from '@/types/system';
 import { getCoverFilename } from '@/utils/book';
-import { getOSPlatform, isValidURL } from '@/utils/misc';
 import { RemoteFile } from '@/utils/file';
+import { getOSPlatform, isValidURL } from '@/utils/misc';
 
-import { isPWA } from './environment';
 import { BaseAppService } from './appService';
 import { LOCAL_BOOKS_SUBDIR } from './constants';
+import { isPWA } from './environment';
 
 const resolvePath = (fp: string, base: BaseDir): { baseDir: number; base: BaseDir; fp: string } => {
   switch (base) {
@@ -163,7 +163,7 @@ const indexedDBFileSystem: FileSystem = {
         resolve(
           files
             .filter((file) => file.path.startsWith(path))
-            .map((file) => ({ path: file.path, isDir: false })),
+            .map((file) => ({ path: file.path, isDir: false }))
         );
       };
 

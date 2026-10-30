@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [ysh]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # 与 package.json 的 packageManager 保持一致，pnpm/action-setup 会自动读取
+  NODE_VERSION: '22'
+
+jobs:
+  frontend:
+    name: 前端检查
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: ESLint
+        run: pnpm run lint:eslint
+
+      - name: Prettier（只检查，不改写）
+        run: pnpm exec prettier --check "src/**/*.{js,tsx,css,scss,vue,md,json,html}" "tests/**/*.{ts,mjs}" "scripts/**/*.mjs"
+
+      - name: 类型检查（vue-tsc）
+        run: pnpm run typecheck
+
+      - name: 单元测试（node --test）
+        run: pnpm test
+
+      - name: 生产构建（web）
+        run: pnpm run build
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-web
+          path: dist
+          retention-days: 7

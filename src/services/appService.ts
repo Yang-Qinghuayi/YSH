@@ -1,42 +1,41 @@
-import { AppPlatform, AppService, OsPlatform } from '@/types/system';
-
-import { SystemSettings } from '@/types/settings';
-import { FileSystem, BaseDir } from '@/types/system';
-import { Book, BookConfig, BookContent, BookFormat } from '@/types/book';
+import type { BookDoc } from '@/libs/document';
+import { DocumentLoader } from '@/libs/document';
+import type { Book, BookConfig, BookContent, BookFormat } from '@/types/book';
+import type { SystemSettings } from '@/types/settings';
+import type { AppPlatform, AppService, OsPlatform } from '@/types/system';
+import type { BaseDir, FileSystem } from '@/types/system';
 import {
-  getDir,
-  getLocalBookFilename,
-  getBaseFilename,
-  getCoverFilename,
-  getConfigFilename,
-  getLibraryFilename,
-  INIT_BOOK_CONFIG,
-  formatTitle,
   formatAuthors,
+  formatTitle,
+  getBaseFilename,
+  getConfigFilename,
+  getCoverFilename,
+  getDir,
   getFilename,
+  getLibraryFilename,
+  getLocalBookFilename,
   getPrimaryLanguage,
+  INIT_BOOK_CONFIG,
 } from '@/utils/book';
+import type { ClosableFile } from '@/utils/file';
 import { partialMD5 } from '@/utils/md5';
-import { BookDoc, DocumentLoader } from '@/libs/document';
-import {
-  DEFAULT_BOOK_LAYOUT,
-  DEFAULT_BOOK_STYLE,
-  DEFAULT_BOOK_FONT,
-  DEFAULT_VIEW_CONFIG,
-  DEFAULT_READSETTINGS,
-  SYSTEM_SETTINGS_VERSION,
-  DEFAULT_BOOK_SEARCH_CONFIG,
-  CLOUD_BOOKS_SUBDIR,
-  DEFAULT_MOBILE_VIEW_SETTINGS,
-  DEFAULT_SYSTEM_SETTINGS,
-  DEFAULT_CJK_VIEW_SETTINGS,
-  DEFAULT_MOBILE_READSETTINGS,
-} from './constants';
 import { getOSPlatform, isCJKEnv, isContentURI, isValidURL } from '@/utils/misc';
 import { deserializeConfig, serializeConfig } from '@/utils/serializer';
-import { ClosableFile } from '@/utils/file';
-import { ProgressHandler } from '@/utils/transfer';
 import { TxtToEpubConverter } from '@/utils/txt';
+
+import {
+  DEFAULT_BOOK_FONT,
+  DEFAULT_BOOK_LAYOUT,
+  DEFAULT_BOOK_SEARCH_CONFIG,
+  DEFAULT_BOOK_STYLE,
+  DEFAULT_CJK_VIEW_SETTINGS,
+  DEFAULT_MOBILE_READSETTINGS,
+  DEFAULT_MOBILE_VIEW_SETTINGS,
+  DEFAULT_READSETTINGS,
+  DEFAULT_SYSTEM_SETTINGS,
+  DEFAULT_VIEW_CONFIG,
+  SYSTEM_SETTINGS_VERSION,
+} from './constants';
 import { BOOK_FILE_NOT_FOUND_ERROR } from './errors';
 
 export abstract class BaseAppService implements AppService {
@@ -148,118 +147,116 @@ export abstract class BaseAppService implements AppService {
     saveBook: boolean = true,
     saveCover: boolean = true,
     overwrite: boolean = false,
-    transient: boolean = false,
+    transient: boolean = false
   ): Promise<Book | null> {
-    try {
-      let loadedBook: BookDoc;
-      let format: BookFormat;
-      let filename: string;
-      let fileobj: File;
+    let loadedBook: BookDoc;
+    let format: BookFormat;
+    let filename: string;
+    let fileobj: File;
 
-      if (transient && typeof file !== 'string') {
-        throw new Error('Transient import is only supported for file paths');
-      }
-
-      try {
-        if (typeof file === 'string') {
-          fileobj = await this.fs.openFile(file, 'None');
-          filename = fileobj.name || getFilename(file);
-        } else {
-          fileobj = file;
-          filename = file.name;
-        }
-        if (filename.endsWith('.txt')) {
-          const txt2epub = new TxtToEpubConverter();
-          ({ file: fileobj } = await txt2epub.convert({ file: fileobj }));
-        }
-        ({ book: loadedBook, format } = await new DocumentLoader(fileobj).open());
-        if (!loadedBook.metadata.title) {
-          loadedBook.metadata.title = getBaseFilename(filename);
-        }
-      } catch (error) {
-        console.error(error);
-        throw new Error(`Failed to open the book: ${(error as Error).message || error}`);
-      }
-
-      const hash = await partialMD5(fileobj);
-      const existingBook = books.filter((b) => b.hash === hash)[0];
-      if (existingBook) {
-        if (!transient) {
-          existingBook.deletedAt = null;
-        }
-        existingBook.updatedAt = Date.now();
-      }
-
-      const book: Book = {
-        hash,
-        format,
-        title: formatTitle(loadedBook.metadata.title),
-        author: formatAuthors(loadedBook.metadata.author, loadedBook.metadata.language),
-        primaryLanguage: getPrimaryLanguage(loadedBook.metadata.language),
-        createdAt: existingBook ? existingBook.createdAt : Date.now(),
-        uploadedAt: existingBook ? existingBook.uploadedAt : null,
-        deletedAt: transient ? Date.now() : null,
-        downloadedAt: Date.now(),
-        updatedAt: Date.now(),
-      };
-      // update book metadata when reimporting the same book
-      if (existingBook) {
-        existingBook.title = book.title;
-        existingBook.author = book.author;
-        existingBook.primaryLanguage = existingBook.primaryLanguage ?? book.primaryLanguage;
-      }
-
-      if (!(await this.fs.exists(getDir(book), 'Books'))) {
-        await this.fs.createDir(getDir(book), 'Books');
-      }
-      if (
-        saveBook &&
-        !transient &&
-        (!(await this.fs.exists(getLocalBookFilename(book), 'Books')) || overwrite)
-      ) {
-        if (filename.endsWith('.txt')) {
-          await this.fs.writeFile(getLocalBookFilename(book), 'Books', fileobj);
-        } else if (typeof file === 'string' && isContentURI(file)) {
-          await this.fs.copyFile(file, getLocalBookFilename(book), 'Books');
-        } else if (typeof file === 'string' && !isValidURL(file)) {
-          await this.fs.copyFile(file, getLocalBookFilename(book), 'Books');
-        } else {
-          await this.fs.writeFile(getLocalBookFilename(book), 'Books', fileobj);
-        }
-      }
-      if (saveCover && (!(await this.fs.exists(getCoverFilename(book), 'Books')) || overwrite)) {
-        const cover = await loadedBook.getCover();
-        if (cover) {
-          await this.fs.writeFile(getCoverFilename(book), 'Books', await cover.arrayBuffer());
-        }
-      }
-      // Never overwrite the config file only when it's not existed
-      if (!existingBook) {
-        await this.saveBookConfig(book, INIT_BOOK_CONFIG);
-        books.splice(0, 0, book);
-      }
-
-      // update file links with url or path or content uri
-      if (typeof file === 'string') {
-        if (isValidURL(file)) {
-          book.url = file;
-          if (existingBook) existingBook.url = file;
-        }
-        if (transient) {
-          book.filePath = file;
-          if (existingBook) existingBook.filePath = file;
-        }
-      }
-      book.coverImageUrl = await this.generateCoverImageUrl(book);
-      const f = file as ClosableFile;
-      if (f && f.close) {
-        await f.close();
-      }
-
-      return book;
-    } catch (error) {
-      throw error;
+    if (transient && typeof file !== 'string') {
+      throw new Error('Transient import is only supported for file paths');
     }
+
+    try {
+      if (typeof file === 'string') {
+        fileobj = await this.fs.openFile(file, 'None');
+        filename = fileobj.name || getFilename(file);
+      } else {
+        fileobj = file;
+        filename = file.name;
+      }
+      if (filename.endsWith('.txt')) {
+        const txt2epub = new TxtToEpubConverter();
+        ({ file: fileobj } = await txt2epub.convert({ file: fileobj }));
+      }
+      ({ book: loadedBook, format } = await new DocumentLoader(fileobj).open());
+      if (!loadedBook.metadata.title) {
+        loadedBook.metadata.title = getBaseFilename(filename);
+      }
+    } catch (error) {
+      console.error(error);
+      throw new Error(`Failed to open the book: ${(error as Error).message || error}`, {
+        cause: error,
+      });
+    }
+
+    const hash = await partialMD5(fileobj);
+    const existingBook = books.filter((b) => b.hash === hash)[0];
+    if (existingBook) {
+      if (!transient) {
+        existingBook.deletedAt = null;
+      }
+      existingBook.updatedAt = Date.now();
+    }
+
+    const book: Book = {
+      hash,
+      format,
+      title: formatTitle(loadedBook.metadata.title),
+      author: formatAuthors(loadedBook.metadata.author, loadedBook.metadata.language),
+      primaryLanguage: getPrimaryLanguage(loadedBook.metadata.language),
+      createdAt: existingBook ? existingBook.createdAt : Date.now(),
+      uploadedAt: existingBook ? existingBook.uploadedAt : null,
+      deletedAt: transient ? Date.now() : null,
+      downloadedAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    // update book metadata when reimporting the same book
+    if (existingBook) {
+      existingBook.title = book.title;
+      existingBook.author = book.author;
+      existingBook.primaryLanguage = existingBook.primaryLanguage ?? book.primaryLanguage;
+    }
+
+    if (!(await this.fs.exists(getDir(book), 'Books'))) {
+      await this.fs.createDir(getDir(book), 'Books');
+    }
+    if (
+      saveBook &&
+      !transient &&
+      (!(await this.fs.exists(getLocalBookFilename(book), 'Books')) || overwrite)
+    ) {
+      if (filename.endsWith('.txt')) {
+        await this.fs.writeFile(getLocalBookFilename(book), 'Books', fileobj);
+      } else if (typeof file === 'string' && isContentURI(file)) {
+        await this.fs.copyFile(file, getLocalBookFilename(book), 'Books');
+      } else if (typeof file === 'string' && !isValidURL(file)) {
+        await this.fs.copyFile(file, getLocalBookFilename(book), 'Books');
+      } else {
+        await this.fs.writeFile(getLocalBookFilename(book), 'Books', fileobj);
+      }
+    }
+    if (saveCover && (!(await this.fs.exists(getCoverFilename(book), 'Books')) || overwrite)) {
+      const cover = await loadedBook.getCover();
+      if (cover) {
+        await this.fs.writeFile(getCoverFilename(book), 'Books', await cover.arrayBuffer());
+      }
+    }
+    // Never overwrite the config file only when it's not existed
+    if (!existingBook) {
+      await this.saveBookConfig(book, INIT_BOOK_CONFIG);
+      books.splice(0, 0, book);
+    }
+
+    // update file links with url or path or content uri
+    if (typeof file === 'string') {
+      if (isValidURL(file)) {
+        book.url = file;
+        if (existingBook) existingBook.url = file;
+      }
+      if (transient) {
+        book.filePath = file;
+        if (existingBook) existingBook.filePath = file;
+      }
+    }
+    book.coverImageUrl = await this.generateCoverImageUrl(book);
+    const f = file as ClosableFile;
+    if (f && f.close) {
+      await f.close();
+    }
+
+    return book;
   }
 
   async deleteBook(book: Book, includingUploaded = false): Promise<void> {
@@ -274,42 +271,6 @@ export abstract class BaseAppService implements AppService {
     if (includingUploaded) {
       book.uploadedAt = null;
     }
-  }
-
-  async uploadFileToCloud(lfp: string, cfp: string, handleProgress: ProgressHandler, hash: string) {
-    console.log('Uploading file:', lfp, 'to', cfp);
-    const file = await this.fs.openFile(lfp, 'Books', cfp);
-    const localFullpath = `${this.localBooksDir}/${lfp}`;
-    const f = file as ClosableFile;
-    if (f && f.close) {
-      await f.close();
-    }
-  }
-
-  async uploadBook(book: Book, onProgress?: ProgressHandler): Promise<void> {
-    let uploaded = false;
-    const completedFiles = { count: 0 };
-    let toUploadFpCount = 0;
-    const coverExist = await this.fs.exists(getCoverFilename(book), 'Books');
-    let bookFileExist = await this.fs.exists(getLocalBookFilename(book), 'Books');
-    if (coverExist) {
-      toUploadFpCount++;
-    }
-    if (bookFileExist) {
-      toUploadFpCount++;
-    }
-    if (!bookFileExist && book.url) {
-      // download the book from the URL
-      const fileobj = await this.fs.openFile(book.url, 'None');
-      await this.fs.writeFile(getLocalBookFilename(book), 'Books', await fileobj.arrayBuffer());
-      bookFileExist = true;
-    }
-  }
-
-  async downloadCloudFile(lfp: string, cfp: string, handleProgress: ProgressHandler) {
-  }
-
-  async downloadBook(book: Book, onlyCover = false, onProgress?: ProgressHandler): Promise<void> {
   }
 
   async loadBookContent(book: Book, settings: SystemSettings): Promise<BookContent> {
@@ -341,10 +302,6 @@ export abstract class BaseAppService implements AppService {
   }
 
   async fetchBookDetails(book: Book, settings: SystemSettings) {
-    const fp = getLocalBookFilename(book);
-    if (!(await this.fs.exists(fp, 'Books')) && book.uploadedAt) {
-      await this.downloadBook(book);
-    }
     const { file } = (await this.loadBookContent(book, settings)) as BookContent;
     const bookDoc = (await new DocumentLoader(file).open()).book as BookDoc;
     const f = file as ClosableFile;
@@ -379,7 +336,7 @@ export abstract class BaseAppService implements AppService {
     try {
       const txt = await this.fs.readFile(libraryFilename, 'Books', 'text');
       books = JSON.parse(txt as string);
-      console.log(books)
+      console.log(books);
     } catch {
       await this.fs.createDir('', 'Books', true);
       await this.fs.writeFile(libraryFilename, 'Books', '[]');
@@ -390,15 +347,15 @@ export abstract class BaseAppService implements AppService {
         book.coverImageUrl = await this.generateCoverImageUrl(book);
         book.updatedAt ??= book.lastUpdated || Date.now();
         return book;
-      }),
+      })
     );
 
     return books;
   }
 
   async saveLibraryBooks(books: Book[]): Promise<void> {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const libraryBooks = books.map(({ coverImageUrl, ...rest }) => rest);
+    // 去掉封面字段再落盘（`ignoreRestSiblings` 让解构出来的 coverImageUrl 合法）
+    const libraryBooks = books.map(({ coverImageUrl: _coverImageUrl, ...rest }) => rest);
     await this.fs.writeFile(getLibraryFilename(), 'Books', JSON.stringify(libraryBooks));
   }
 }

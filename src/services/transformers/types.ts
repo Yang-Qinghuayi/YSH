@@ -1,14 +1,14 @@
-import { ViewSettings } from '@/types/book';
+import type { ViewSettings } from '@/types/book';
 
-export type TransformContext = {
+export interface TransformContext {
   bookKey: string;
   viewSettings: ViewSettings;
   content: string;
   transformers: string[];
   reversePunctuationTransform?: boolean;
-};
+}
 
-export type Transformer = {
+export interface Transformer {
   name: string;
   transform: (ctx: TransformContext) => Promise<string>;
-};
+}

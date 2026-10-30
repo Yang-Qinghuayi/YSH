@@ -1,8 +1,8 @@
-import { useLocalStorage } from '@vueuse/core'
-import { defineStore } from 'pinia'
+import { useLocalStorage } from '@vueuse/core';
+import { defineStore } from 'pinia';
 
-import type { PaletteId } from '@/utils/paletteConfig'
-import { paletteSeedMap } from '@/utils/paletteConfig'
+import type { PaletteId } from '@/utils/paletteConfig';
+import { paletteSeedMap } from '@/utils/paletteConfig';
 
 export enum NavPosition {
   left,
@@ -10,34 +10,36 @@ export enum NavPosition {
 }
 
 export interface SettingState {
-  locale: string
+  locale: string;
   // Material You 主题系统（从 Noctua 移植）
-  palette: PaletteId
-  materialSeed: string
-  seedEnabled: boolean
+  palette: PaletteId;
+  materialSeed: string;
+  seedEnabled: boolean;
   // 布局
-  rail: boolean
-  showBigCatalog: boolean
-  miniPlayer: boolean
-  navPosition: NavPosition
+  rail: boolean;
+  showBigCatalog: boolean;
+  miniPlayer: boolean;
+  navPosition: NavPosition;
   // 字体
-  uiFont: string
-  editorFontSize: number
+  uiFont: string;
+  editorFontSize: number;
   // 阅读交互
   /** 三击正文（浏览器原生选中整段）时，静默复制该段到剪贴板 */
-  copyParagraphOnClick: boolean
+  copyParagraphOnClick: boolean;
   // AI 写作（DeepSeek）
   // 注意：API Key 不在此持久化，见 @/hooks/useApiKey（区分「记住/仅本次会话」）
-  deepseekModel: 'deepseek-chat' | 'deepseek-reasoner'
+  deepseekModel: 'deepseek-chat' | 'deepseek-reasoner';
   /** 是否把 API Key 持久化到本机（关闭则仅本次会话有效） */
-  rememberApiKey: boolean
+  rememberApiKey: boolean;
   /** Agent 交互面板：单章目标字数（500 的梯度） */
-  agentWriteLength: 500 | 1000 | 1500 | 2000
+  agentWriteLength: 500 | 1000 | 1500 | 2000;
   // 工作区文件夹（null = 使用 AppData 默认位置）
-  workspaceDir: string | null
+  workspaceDir: string | null;
 }
 
 export const useSettingStore = defineStore('setting', {
+  // 说明：useLocalStorage 返回 Ref，Pinia 在写入 pinia.state 时会自动解包，
+  // 运行时行为不变；这里把类型断言成 SettingState，store / storeToRefs 才能正确推导。
   state: () => {
     return useLocalStorage<SettingState>(
       'setting',
@@ -58,7 +60,7 @@ export const useSettingStore = defineStore('setting', {
         agentWriteLength: 1500,
         workspaceDir: null,
       },
-      { mergeDefaults: true },
-    )
+      { mergeDefaults: true }
+    ) as unknown as SettingState;
   },
-})
+});

@@ -3,13 +3,15 @@
     <!-- 顶部元数据表单 -->
     <div class="entry-meta-form flex-shrink-0">
       <!-- 重要度 + 启用 -->
-      <div class="d-flex align-center flex-wrap gap-2 mb-2">
+      <div class="d-flex align-center flex-wrap ga-2 mb-2">
         <select
           :value="entry.importance"
           class="native-input native-input-sm native-select"
           @change="handleMetaChange('importance', ($event.target as HTMLSelectElement).value)"
         >
-          <option v-for="opt in importanceOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          <option v-for="opt in importanceOptions" :key="opt.value" :value="opt.value">
+            {{ opt.label }}
+          </option>
         </select>
         <!-- 自定义启用切换，确保 off 状态清晰可见 -->
         <button
@@ -30,7 +32,9 @@
           class="native-input native-input-sm native-textarea-xs"
           rows="2"
           placeholder="简短描述这个条目…"
-          @input="handleMetaChange('briefDescription', ($event.target as HTMLTextAreaElement).value)"
+          @input="
+            handleMetaChange('briefDescription', ($event.target as HTMLTextAreaElement).value)
+          "
         ></textarea>
       </label>
 
@@ -40,7 +44,9 @@
         <div class="native-tags-wrapper native-tags-sm" @click="focusKeywordInput">
           <span v-for="(kw, i) in entry.keywords" :key="i" class="native-tag">
             {{ kw }}
-            <button type="button" class="native-tag-remove" @click.stop="removeKeyword(i)">&times;</button>
+            <button type="button" class="native-tag-remove" @click.stop="removeKeyword(i)">
+              &times;
+            </button>
           </span>
           <input
             ref="keywordInputRef"
@@ -70,60 +76,62 @@
 </template>
 
 <script setup lang="ts">
-import type { EntryMeta } from '@/types/lore'
-import { ENTRY_IMPORTANCE_LABELS } from '@/types/lore'
+import type { EntryMeta } from '@/types/lore';
+import { ENTRY_IMPORTANCE_LABELS } from '@/types/lore';
 
 const props = defineProps<{
-  entry: EntryMeta
-  content: string
-}>()
+  entry: EntryMeta;
+  content: string;
+}>();
 
 const emit = defineEmits<{
-  'update:content': [content: string]
-  'update:meta': [patch: Partial<EntryMeta>]
-}>()
+  'update:content': [content: string];
+  'update:meta': [patch: Partial<EntryMeta>];
+}>();
 
-const importanceOptions = Object.entries(ENTRY_IMPORTANCE_LABELS).map(([value, label]) => ({ value, label }))
+const importanceOptions = Object.entries(ENTRY_IMPORTANCE_LABELS).map(([value, label]) => ({
+  value,
+  label,
+}));
 
 // 元数据变更（表单字段）
 function handleMetaChange(field: keyof EntryMeta, value: unknown) {
-  emit('update:meta', { [field]: value } as Partial<EntryMeta>)
+  emit('update:meta', { [field]: value } as Partial<EntryMeta>);
 }
 
 // 关键词标签输入
-const keywordInput = ref('')
-const keywordInputRef = ref<HTMLInputElement | null>(null)
+const keywordInput = ref('');
+const keywordInputRef = ref<HTMLInputElement | null>(null);
 
 function focusKeywordInput() {
-  keywordInputRef.value?.focus()
+  keywordInputRef.value?.focus();
 }
 
 function addKeyword() {
-  const val = keywordInput.value.trim()
-  if (!val) return
-  const keywords = [...(props.entry.keywords ?? [])]
+  const val = keywordInput.value.trim();
+  if (!val) return;
+  const keywords = [...(props.entry.keywords ?? [])];
   if (!keywords.includes(val)) {
-    keywords.push(val)
-    emit('update:meta', { keywords } as Partial<EntryMeta>)
+    keywords.push(val);
+    emit('update:meta', { keywords } as Partial<EntryMeta>);
   }
-  keywordInput.value = ''
+  keywordInput.value = '';
 }
 
 function removeKeyword(index: number) {
-  const keywords = [...(props.entry.keywords ?? [])]
-  keywords.splice(index, 1)
-  emit('update:meta', { keywords } as Partial<EntryMeta>)
+  const keywords = [...(props.entry.keywords ?? [])];
+  keywords.splice(index, 1);
+  emit('update:meta', { keywords } as Partial<EntryMeta>);
 }
 
 function removeLastKeyword(e: KeyboardEvent) {
   if (keywordInput.value === '' && props.entry.keywords?.length) {
-    const keywords = [...props.entry.keywords]
-    keywords.pop()
-    emit('update:meta', { keywords } as Partial<EntryMeta>)
-    e.preventDefault()
+    const keywords = [...props.entry.keywords];
+    keywords.pop();
+    emit('update:meta', { keywords } as Partial<EntryMeta>);
+    e.preventDefault();
   }
 }
-
 </script>
 
 <style scoped>
@@ -275,7 +283,9 @@ function removeLastKeyword(e: KeyboardEvent) {
   background: rgba(var(--v-theme-on-surface), 0.07);
   position: relative;
   flex-shrink: 0;
-  transition: background 0.22s ease, border-color 0.22s ease;
+  transition:
+    background 0.22s ease,
+    border-color 0.22s ease;
 }
 .is-on .et-track {
   background: rgb(var(--v-theme-primary));
@@ -290,7 +300,9 @@ function removeLastKeyword(e: KeyboardEvent) {
   height: 13px;
   border-radius: 50%;
   background: rgba(var(--v-theme-on-surface), 0.4);
-  transition: left 0.22s ease, background 0.22s ease;
+  transition:
+    left 0.22s ease,
+    background 0.22s ease;
 }
 .is-on .et-thumb {
   left: 19px;
@@ -306,5 +318,4 @@ function removeLastKeyword(e: KeyboardEvent) {
 .is-on .et-label {
   color: rgb(var(--v-theme-primary));
 }
-
 </style>

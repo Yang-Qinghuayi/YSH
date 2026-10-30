@@ -11,11 +11,7 @@
       <span class="list-item__order">{{ String(chapter.order).padStart(2, '0') }}</span>
       <span class="list-item__title">{{ chapter.title }}</span>
       <span class="list-item__wc">{{ formatWC(chapter.wordCount) }}</span>
-      <button
-        class="list-item__del"
-        @click.stop="emit('delete', chapter.id)"
-        tabindex="-1"
-      >
+      <button class="list-item__del" tabindex="-1" @click.stop="emit('delete', chapter.id)">
         <v-icon :icon="mdiClose" size="13" />
       </button>
     </div>
@@ -51,43 +47,42 @@
 </template>
 
 <script setup lang="ts">
-import { mdiClose, mdiPlus } from '@mdi/js'
-import { formatWordCount as formatWC } from '@/services/novelService'
-import type { ChapterMeta } from '@/types/novel'
+import { mdiClose, mdiPlus } from '@mdi/js';
+
+import { formatWordCount as formatWC } from '@/services/novelService';
+import type { ChapterMeta } from '@/types/novel';
 
 const props = defineProps<{
-  chapters: ChapterMeta[]
-  currentChapterId?: string
-}>()
+  chapters: ChapterMeta[];
+  currentChapterId?: string;
+}>();
 
 const emit = defineEmits<{
-  select: [chapter: ChapterMeta]
-  delete: [chapterId: string]
-  create: [title: string]
-}>()
+  select: [chapter: ChapterMeta];
+  delete: [chapterId: string];
+  create: [title: string];
+}>();
 
-const sortedChapters = computed(() =>
-  [...props.chapters].sort((a, b) => a.order - b.order),
-)
+const sortedChapters = computed(() => [...props.chapters].sort((a, b) => a.order - b.order));
 
-const showNewChapterInput = ref(false)
-const newChapterTitle = ref('')
+const showNewChapterInput = ref(false);
+const newChapterTitle = ref('');
 
 function openCreate() {
-  showNewChapterInput.value = true
+  showNewChapterInput.value = true;
 }
-defineExpose({ openCreate })
+defineExpose({ openCreate });
 
 function confirmNewChapter() {
-  const title = newChapterTitle.value.trim()
-  if (!title) return
-  emit('create', title)
-  cancelNewChapter()
+  const title = newChapterTitle.value.trim();
+  if (!title) return;
+  emit('create', title);
+  cancelNewChapter();
 }
 
 function cancelNewChapter() {
-  showNewChapterInput.value = false
-  newChapterTitle.value = ''
+  showNewChapterInput.value = false;
+  newChapterTitle.value = '';
 }
 </script>
 
@@ -106,7 +101,9 @@ function cancelNewChapter() {
   padding: 6px 10px 6px 8px;
   cursor: pointer;
   user-select: none;
-  transition: background 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    background 0.2s ease,
+    box-shadow 0.2s ease;
   gap: 7px;
 }
 
@@ -131,7 +128,9 @@ function cancelNewChapter() {
   text-align: center;
   border-radius: 6px;
   padding: 2px 0;
-  transition: color 0.18s ease, background 0.18s ease;
+  transition:
+    color 0.18s ease,
+    background 0.18s ease;
 }
 .list-item--active .list-item__order {
   color: rgb(var(--v-theme-primary));
@@ -184,7 +183,9 @@ function cancelNewChapter() {
   cursor: pointer;
   padding: 0;
   color: rgba(var(--v-theme-error), 0.7);
-  transition: opacity 0.18s ease, background 0.15s ease;
+  transition:
+    opacity 0.18s ease,
+    background 0.15s ease;
   flex-shrink: 0;
 }
 .list-item:hover .list-item__del {
