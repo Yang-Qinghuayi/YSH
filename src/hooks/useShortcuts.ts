@@ -1,4 +1,5 @@
-import { loadShortcuts, ShortcutConfig } from '@/utils/shortcuts';
+import type { ShortcutConfig } from '@/utils/shortcuts';
+import { loadShortcuts } from '@/utils/shortcuts';
 
 export type KeyActionHandlers = {
   [K in keyof ShortcutConfig]?: () => void;
@@ -6,7 +7,7 @@ export type KeyActionHandlers = {
 
 // Vue 3 Composable
 export default function useShortcuts(
-  actions: Ref<KeyActionHandlers> | KeyActionHandlers, // 可以是 ref 或普通对象
+  actions: Ref<KeyActionHandlers> | KeyActionHandlers // 可以是 ref 或普通对象
   // Vue 中，依赖通常通过 watch unref(actions) 或直接 watch actions (如果它是 ref) 来处理
   // 为了更接近原始 hook 的 dependencies 参数，我们可以保留它，但其用法会略有不同
   // 或者，让调用者确保 actions 是响应式的，或在 actions 改变时重新调用 useShortcuts
@@ -43,7 +44,7 @@ export default function useShortcuts(
     ctrlKey: boolean,
     altKey: boolean,
     metaKey: boolean,
-    shiftKey: boolean,
+    shiftKey: boolean
   ): boolean => {
     const parsedShortcut = parseShortcut(shortcut);
     return (
@@ -60,7 +61,7 @@ export default function useShortcuts(
     ctrlKey: boolean,
     altKey: boolean,
     metaKey: boolean,
-    shiftKey: boolean,
+    shiftKey: boolean
   ): boolean => {
     // FIXME: This is a temporary fix to disable Back button navigation
     if (key === 'backspace') return true;
@@ -75,7 +76,7 @@ export default function useShortcuts(
       if (
         handler &&
         shortcutList?.some((shortcutStr) =>
-          isShortcutMatch(shortcutStr, key, ctrlKey, altKey, metaKey, shiftKey),
+          isShortcutMatch(shortcutStr, key, ctrlKey, altKey, metaKey, shiftKey)
         )
       ) {
         handler();
@@ -88,11 +89,10 @@ export default function useShortcuts(
   const unifiedHandleKeyDown = (event: KeyboardEvent | MessageEvent) => {
     const activeElement = document.activeElement as HTMLElement;
     const isInteractiveElement =
-      activeElement && (
-        activeElement.tagName === 'INPUT' ||
+      activeElement &&
+      (activeElement.tagName === 'INPUT' ||
         activeElement.tagName === 'TEXTAREA' ||
-        activeElement.isContentEditable
-      );
+        activeElement.isContentEditable);
 
     const isNoteEditor =
       activeElement &&

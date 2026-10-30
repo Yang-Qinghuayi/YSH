@@ -1,28 +1,28 @@
+import { convertFileSrc } from '@tauri-apps/api/core';
+import { appCacheDir, appDataDir, basename, join } from '@tauri-apps/api/path';
+import { open as openDialog } from '@tauri-apps/plugin-dialog';
+import type { WriteFileOptions } from '@tauri-apps/plugin-fs';
 import {
+  BaseDirectory,
+  copyFile,
   exists,
   mkdir,
   open as openFile,
-  readTextFile,
-  readFile,
-  writeTextFile,
-  writeFile,
   readDir,
+  readFile,
+  readTextFile,
   remove,
-  copyFile,
-  BaseDirectory,
-  WriteFileOptions,
+  writeFile,
+  writeTextFile,
 } from '@tauri-apps/plugin-fs';
-import { convertFileSrc } from '@tauri-apps/api/core';
-import { open as openDialog } from '@tauri-apps/plugin-dialog';
-import { join, basename, appDataDir, appCacheDir } from '@tauri-apps/api/path';
 import { type as osType } from '@tauri-apps/plugin-os';
 
-import { Book } from '@/types/book';
-import { FileSystem, BaseDir, AppPlatform } from '@/types/system';
-import { isContentURI, isValidURL } from '@/utils/misc';
+import type { Book } from '@/types/book';
+import type { AppPlatform, BaseDir, FileSystem } from '@/types/system';
 import { getCoverFilename, getFilename } from '@/utils/book';
 import { copyURIToPath } from '@/utils/bridge';
 import { NativeFile, RemoteFile } from '@/utils/file';
+import { isContentURI, isValidURL } from '@/utils/misc';
 
 import { BaseAppService } from './appService';
 import { LOCAL_BOOKS_SUBDIR } from './constants';
@@ -53,7 +53,7 @@ const resolvePath = (fp: string, base: BaseDir): { baseDir: number; base: BaseDi
       };
     case 'None':
       return {
-        baseDir: 0, 
+        baseDir: 0,
         fp,
         base,
       };

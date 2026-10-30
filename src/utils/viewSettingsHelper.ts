@@ -1,10 +1,10 @@
-import { type FoliateView } from '@/types/view';
-import { type ViewSettings } from '@/types/book';
 import { useBookDataStore } from '@/store/bookDataStore';
 import { useReaderStore } from '@/store/readerStore';
 import { useSettingsStore } from '@/store/settingsStore';
-import { getStyles } from '@/utils/style';
+import { type ViewSettings } from '@/types/book';
+import { type FoliateView } from '@/types/view';
 import { getMaxInlineSize } from '@/utils/config';
+import { getStyles } from '@/utils/style';
 
 /**
  * 将所有渲染器布局属性一次性应用到 foliate-view。
@@ -45,7 +45,7 @@ export const saveViewSettings = async <K extends keyof ViewSettings>(
   key: K,
   value: ViewSettings[K],
   skipGlobal = false,
-  applyStyles = true,
+  applyStyles = true
 ) => {
   const settingsStore = useSettingsStore();
   const readerStore = useReaderStore();
@@ -63,13 +63,11 @@ export const saveViewSettings = async <K extends keyof ViewSettings>(
       const view = readerStore.getView(bookKey);
       view?.renderer.setStyles?.(getStyles(viewSettings));
       // 同步需要单独 setAttribute 的布局属性
-      if (key === 'maxColumnCount')
-        view?.renderer.setAttribute('max-column-count', value);
-      if (key === 'scrolled')
-        view?.renderer.setAttribute('flow', value ? 'scrolled' : 'paginated');
+      if (key === 'maxColumnCount') view?.renderer.setAttribute('max-column-count', String(value));
+      if (key === 'scrolled') view?.renderer.setAttribute('flow', value ? 'scrolled' : 'paginated');
       // scrolled 或 continuousScroll 任一变化都需重新同步 no-continuous-scroll
-      if (key === 'scrolled' || key === 'continuousScroll') {
-        view && applyContinuousScroll(view, viewSettings);
+      if ((key === 'scrolled' || key === 'continuousScroll') && view) {
+        applyContinuousScroll(view, viewSettings);
       }
     }
   }

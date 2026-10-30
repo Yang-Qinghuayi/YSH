@@ -1,10 +1,12 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { useLibraryStore } from './libraryStore';
-import { SystemSettings } from '@/types/settings';
-import { Book, BookConfig, BookNote } from '@/types/book';
-import { BookDoc } from '@/libs/document';
+
 import { useAppService } from '@/hooks/useEnv';
+import type { BookDoc } from '@/libs/document';
+import type { Book, BookConfig, BookNote } from '@/types/book';
+import type { SystemSettings } from '@/types/settings';
+
+import { useLibraryStore } from './libraryStore';
 
 interface BookData {
   id: string;
@@ -36,12 +38,8 @@ export const useBookDataStore = defineStore('bookData', () => {
     }
   }
 
-  async function saveConfig(
-    bookKey: string,
-    config: BookConfig,
-    settings: SystemSettings,
-  ) {
-    const appService = await useAppService()
+  async function saveConfig(bookKey: string, config: BookConfig, settings: SystemSettings) {
+    const appService = await useAppService();
     const libraryStore = useLibraryStore();
     const { library } = libraryStore;
     const id = bookKey.split('-')[0];

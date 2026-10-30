@@ -1,120 +1,155 @@
 <template>
   <div>
-    <div :class="[lgAndUp ? 'h-[94vh]' : 'h-[94vh]']" class="flex justify-center items-center w-full">
+    <div class="book-viewport d-flex justify-center align-center w-100">
       <!-- 桌面端目录按钮 -->
-      <v-btn v-if="lgAndUp" class="toc-toggle fixed right-5 top-5" icon color="secondary" variant="tonal"
-        @click="showBigCatalog = !showBigCatalog">
+      <v-btn
+        v-if="lgAndUp"
+        class="toc-toggle toc-toggle--desktop"
+        icon
+        color="secondary"
+        variant="tonal"
+        @click="showBigCatalog = !showBigCatalog"
+      >
         <v-icon color="secondary">
           {{ mdiBookOpenVariantOutline }}
         </v-icon>
       </v-btn>
 
       <!-- 移动端目录按钮（浮于内容上方，避开底部 Tab 栏） -->
-      <v-btn v-if="isMobile" class="toc-toggle fixed right-4 bottom-20" icon color="secondary" variant="tonal" size="small"
-        @click="showMobileTOC = !showMobileTOC">
+      <v-btn
+        v-if="isMobile"
+        class="toc-toggle toc-toggle--mobile"
+        icon
+        color="secondary"
+        variant="tonal"
+        size="small"
+        @click="showMobileTOC = !showMobileTOC"
+      >
         <v-icon color="secondary" size="small">
           {{ mdiBookOpenVariantOutline }}
         </v-icon>
       </v-btn>
 
-      <div @click="handlePageFlip" class="relative w-full h-full" ref="containerRef">
-        <div class="absolute bottom-2 left-1/2 -translate-x-1/2 font-semibold text-sm text-gray-500">{{ pageInfo }}</div>
+      <div ref="containerRef" class="position-relative w-100 h-100" @click="handlePageFlip">
+        <div class="page-info">{{ pageInfo }}</div>
       </div>
 
       <!-- 桌面端：侧边目录面板 -->
-      <transition name="fade" enter-active-class="transition ease-out duration-300"
-        leave-active-class="transition ease-in duration-300">
-        <TOCView v-if="bookDoc && showBigCatalog && lgAndUp" :bookId :doc="bookDoc" class="theme-border">
+      <transition
+        name="fade"
+        enter-active-class="fade-enter-active"
+        leave-active-class="fade-leave-active"
+      >
+        <TOCView
+          v-if="bookDoc && showBigCatalog && lgAndUp"
+          :book-id
+          :doc="bookDoc"
+          class="theme-border"
+        >
         </TOCView>
       </transition>
-
     </div>
 
     <!-- 移动端：底部抽屉目录 -->
     <v-bottom-sheet v-if="isMobile" v-model="showMobileTOC" max-height="75vh">
-      <v-sheet class="rounded-t-2xl overflow-hidden">
-        <div class="flex justify-center pt-2 pb-1">
-          <div class="w-10 h-1 rounded-full bg-outline/40"></div>
+      <v-sheet class="rounded-t-xl overflow-hidden">
+        <div class="d-flex justify-center pt-2 pb-1">
+          <div class="sheet-grabber"></div>
         </div>
-        <TOCView v-if="bookDoc" :bookId :doc="bookDoc" :inSheet="true" class="pb-4" />
+        <TOCView v-if="bookDoc" :book-id :doc="bookDoc" :in-sheet="true" class="pb-4" />
       </v-sheet>
     </v-bottom-sheet>
 
-    <Menu v-model:showMenu="showMenu" />
+    <Menu v-model:show-menu="showMenu" />
   </div>
 </template>
 
 <script setup lang="ts">
-import Menu from "./components/Menu.vue";
-import TOCView from "./components/TOCView.vue"
+import '@/foliate-js/view.js';
+
+import { useMediaQuery } from '@vueuse/core';
+import { useDisplay } from 'vuetify';
+
+import { transformContent } from '@/services/transformService';
+import type { FoliateView } from '@/types/view';
+import { wrappedFoliateView } from '@/types/view';
 import {
+  handleClick,
   handleKeydown,
   handleMousedown,
   handleMouseup,
-  handleClick,
-  handleWheel,
-  handleTouchStart,
-  handleTouchMove,
   handleTouchEnd,
+  handleTouchMove,
+  handleTouchStart,
+  handleWheel,
 } from '@/utils/iframeEventHandlers';
 import { mountAdditionalFonts, transformStylesheet } from '@/utils/style';
 import { applyRendererSettings } from '@/utils/viewSettingsHelper';
-import { FoliateView, wrappedFoliateView } from '@/types/view';
-import { transformContent } from '@/services/transformService';
-import "@/foliate-js/view.js";
-import { useDisplay } from "vuetify";
-import { useMediaQuery } from "@vueuse/core";
+
+import Menu from './components/Menu.vue';
+import TOCView from './components/TOCView.vue';
 const { lgAndUp, smAndUp } = useDisplay();
-const isMobile = useMediaQuery("(max-width: 960px)");
+const isMobile = useMediaQuery('(max-width: 960px)');
 const showMobileTOC = ref(false);
-import { useAppService, initLibrary, libraryLoaded } from "@/hooks/useEnv";
+import { storeToRefs } from 'pinia';
+
+import { initLibrary, libraryLoaded, useAppService } from '@/hooks/useEnv';
 import { useClickEvent, useTouchEvent } from '@/hooks/useIframeEvents';
-import { storeToRefs } from "pinia";
-import { useSettingStore } from "@/store/setting";
-const { showBigCatalog } = storeToRefs(useSettingStore()) as any
+import { useSettingStore } from '@/store/setting';
+const { showBigCatalog } = storeToRefs(useSettingStore()) as any;
 
 import { useBookDataStore } from '@/store/bookDataStore';
-const bookDataStore = useBookDataStore()
+const bookDataStore = useBookDataStore();
 const { getConfig, getBookData } = bookDataStore;
 
 import { useBookIdStore } from '@/store/bookIdStore';
-const { bookId } = storeToRefs(useBookIdStore())
+const { bookId } = storeToRefs(useBookIdStore());
 
+import { mdiBookOpenVariantOutline } from '@mdi/js';
+
+import { useFoliateEvents } from '@/hooks/useFoliateEvents';
 import { useProgressAutoSave } from '@/hooks/useProgressAutoSave';
-
-import { mdiBookOpenVariantOutline } from "@mdi/js";
-import { useFoliateEvents } from "@/hooks/useFoliateEvents";
-
 import { useReaderStore } from '@/store/readerStore';
-const readerStore = useReaderStore()
-const { viewStates, getProgress, getViewState, initViewState, getViewSettings, closeMenu } = readerStore
+const readerStore = useReaderStore();
+const { viewStates, getProgress, getViewState, initViewState, getViewSettings, closeMenu } =
+  readerStore;
 const { setView: setFoliateView, setProgress } = readerStore;
 const { showMenu } = storeToRefs(readerStore);
 
+import { useCopyParagraph } from '@/hooks/useCopyParagraph';
+import { usePageFlip } from '@/hooks/usePageFlip';
+import type { BookDoc } from '@/libs/document';
 import { useSidebarStore } from '@/store/sidebarStore';
-import { BookDoc } from "@/libs/document";
-import { AppService } from "@/types/system";
-import { usePageFlip } from "@/hooks/usePageFlip";
-import useBookShortcuts from "./hooks/useBookShortcuts";
+import type { AppService } from '@/types/system';
+
+import useBookShortcuts from './hooks/useBookShortcuts';
 const { sideBarBookKey, setSideBarBookKey } = useSidebarStore();
 const containerRef = ref<HTMLDivElement | null>(null);
 const viewRef = ref<FoliateView | null>(null);
 
-const bookDoc = ref<BookDoc | null>()
+const bookDoc = ref<BookDoc | null>();
 
-const appService = ref<AppService | null>(null)
+const appService = ref<AppService | null>(null);
 
-const pageInfo = ref("")
+const pageInfo = ref('');
 
-const { handlePageFlip } = usePageFlip(viewRef, containerRef, appService);
+const { copyParagraph } = useCopyParagraph();
+const { handlePageFlip } = usePageFlip(viewRef, containerRef, appService, copyParagraph);
 useProgressAutoSave(bookId); // 传入 Ref<string> 而非快照，支持书籍切换后仍能正确保存
-useBookShortcuts(bookId.value)
+useBookShortcuts(bookId.value);
 useTouchEvent(viewRef);
 useClickEvent(handlePageFlip);
 
 const progressRelocateHandler = (event: Event) => {
   const detail = (event as CustomEvent).detail;
-  setProgress(bookId.value, detail.cfi, detail.tocItem, detail.section, detail.location, detail.range);
+  setProgress(
+    bookId.value,
+    detail.cfi,
+    detail.tocItem,
+    detail.section,
+    detail.location,
+    detail.range
+  );
 };
 
 const docLoadHandler = (event: Event) => {
@@ -169,23 +204,22 @@ useFoliateEvents(viewRef, {
 });
 
 onActivated(() => {
-  initBook()
-})
+  initBook();
+});
 
 // 离开书籍页时收起菜单：菜单状态存在 readerStore，若不清理，
 // 下次进入书籍页会直接弹出，导致「再次点击『书籍』弹菜单」的交互错乱。
 // 同时覆盖被 keep-alive 缓存（deactivated）与直接销毁（unmounted）两种情况。
 onDeactivated(() => {
-  closeMenu()
-})
+  closeMenu();
+});
 onUnmounted(() => {
-  closeMenu()
-})
+  closeMenu();
+});
 
-useAppService().then(res => {
-  appService.value = res
-})
-
+useAppService().then((res) => {
+  appService.value = res;
+});
 
 watch(viewStates, () => {
   const progress = getProgress(bookId.value);
@@ -193,22 +227,21 @@ watch(viewStates, () => {
   const sectionInfo = section ? `${section.current + 1} / ${section.total}` : '';
   const pageInfoLoc = pageinfo ? ` ${pageinfo.next ?? pageinfo.current} / ${pageinfo.total}` : '';
   pageInfo.value = pageInfoLoc ? pageInfoLoc : sectionInfo;
-})
-
+});
 
 onMounted(async () => {
   const view = wrappedFoliateView(document.createElement('foliate-view') as FoliateView);
-  containerRef.value && containerRef.value.appendChild(view);
-  viewRef.value = view
-  await initBook()
-})
+  if (containerRef.value) containerRef.value.appendChild(view);
+  viewRef.value = view;
+  await initBook();
+});
 
 const initBook = async () => {
   const view = viewRef.value;
   if (!view) return;
   if (!bookId.value) return;
 
-  await initLibrary()
+  await initLibrary();
 
   if (!getViewState(bookId.value)) {
     try {
@@ -223,12 +256,12 @@ const initBook = async () => {
   const bookData = getBookData(bookId.value);
   const config = getConfig(bookId.value);
   const viewSettings = getViewSettings(bookId.value);
-  bookDoc.value = bookData?.bookDoc
+  bookDoc.value = bookData?.bookDoc;
 
-  view.close()
-  bookDoc.value && await view.open(bookDoc.value);
+  view.close();
+  if (bookDoc.value) await view.open(bookDoc.value);
 
-  setFoliateView(bookId.value, view)
+  setFoliateView(bookId.value, view);
   const { book } = view;
 
   book?.transformTarget?.addEventListener('data', docTransformHandler);
@@ -241,10 +274,10 @@ const initBook = async () => {
   } else {
     view.goToFraction(0);
   }
-}
+};
 </script>
 
-<style >
+<style>
 .theme-border {
   border: 3px solid rgba(var(--v-theme-primary), 0.2);
   border-radius: 10px;
@@ -259,5 +292,50 @@ const initBook = async () => {
 .v-btn.toc-toggle {
   position: fixed;
   z-index: 1000;
+}
+
+.book-viewport {
+  height: 94vh;
+}
+
+/* 悬浮目录按钮定位：
+   Tailwind 已移除，这里用未分层规则，避免被 Vuetify 的 .v-btn 组件层覆盖。 */
+.toc-toggle--desktop {
+  top: 20px;
+  right: 20px;
+}
+
+.toc-toggle--mobile {
+  bottom: 80px;
+  right: 16px;
+}
+
+/* 右下角页码 */
+.page-info {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: rgb(var(--v-theme-on-surface-variant));
+}
+
+/* 底部抽屉的拖拽指示条 */
+.sheet-grabber {
+  width: 40px;
+  height: 4px;
+  border-radius: 9999px;
+  background: rgb(var(--v-theme-outline) / 40%);
+}
+
+/* 目录面板淡入淡出 */
+.fade-enter-active {
+  transition: opacity 0.3s ease-out;
+}
+
+.fade-leave-active {
+  transition: opacity 0.3s ease-in;
 }
 </style>

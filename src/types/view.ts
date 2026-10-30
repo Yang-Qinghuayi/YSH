@@ -1,5 +1,5 @@
-import { BookDoc } from '@/libs/document';
-import { BookNote, BookSearchConfig, BookSearchResult } from '@/types/book';
+import type { BookDoc } from '@/libs/document';
+import type { BookNote, BookSearchConfig, BookSearchResult } from '@/types/book';
 
 export interface FoliateView extends HTMLElement {
   open: (book: BookDoc | Blob) => Promise<void>;

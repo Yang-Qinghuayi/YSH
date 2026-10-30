@@ -23,16 +23,19 @@
 .slide-fade-x-leave-to {
   // transform: translateX(20px);
   opacity: 0;
-
 }
 
 .slide-down-enter-active {
   position: absolute;
-  transition: opacity 0.2s ease, transform 0.5s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.5s ease;
 }
 
 .slide-down-leave-active {
-  transition: opacity 0.3s ease, transform 0.5s cubic-bezier(1, 0.5, 0.8, 1);
+  transition:
+    opacity 0.3s ease,
+    transform 0.5s cubic-bezier(1, 0.5, 0.8, 1);
 }
 
 .slide-down-enter-from,

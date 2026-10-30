@@ -1,62 +1,63 @@
-import { defineStore } from 'pinia'
-import type { AgentPlan, SessionPhase } from '@/services/agentService'
-import type { StoryState } from '@/types/storyState'
+import { defineStore } from 'pinia';
+
+import type { AgentPlan, SessionPhase } from '@/services/agentService';
+import type { StoryState } from '@/types/storyState';
 
 export interface ToolLogEntry {
-  tool: string
-  status: 'running' | 'done'
-  text: string
+  tool: string;
+  status: 'running' | 'done';
+  text: string;
 }
 
 export const useAgentStore = defineStore('agent', () => {
   // Agent 阶段
-  const phase = ref<SessionPhase>('idle')
+  const phase = ref<SessionPhase>('idle');
   // 当前 plan
-  const currentPlan = ref<AgentPlan | null>(null)
+  const currentPlan = ref<AgentPlan | null>(null);
   // plan 确认面板是否可见
-  const planDialogVisible = ref(false)
+  const planDialogVisible = ref(false);
   // 状态文案
-  const statusText = ref('')
+  const statusText = ref('');
   // 工具调用日志
-  const toolCallLog = ref<ToolLogEntry[]>([])
+  const toolCallLog = ref<ToolLogEntry[]>([]);
   // 故事状态缓存（供 CharacterPanel 等只读展示）
-  const storyState = ref<StoryState | null>(null)
+  const storyState = ref<StoryState | null>(null);
   // 角色面板
-  const characterPanelOpen = ref(false)
-  const selectedCharacterName = ref<string | null>(null)
+  const characterPanelOpen = ref(false);
+  const selectedCharacterName = ref<string | null>(null);
 
   function setPhase(p: SessionPhase) {
-    phase.value = p
+    phase.value = p;
   }
   function setPlan(p: AgentPlan | null) {
-    currentPlan.value = p
+    currentPlan.value = p;
   }
   function setStatus(s: string) {
-    statusText.value = s
+    statusText.value = s;
   }
   function addToolLog(entry: ToolLogEntry) {
-    toolCallLog.value.push(entry)
+    toolCallLog.value.push(entry);
   }
   function clearToolLog() {
-    toolCallLog.value = []
+    toolCallLog.value = [];
   }
   function setStoryState(s: StoryState | null) {
-    storyState.value = s
+    storyState.value = s;
   }
   function openCharacterPanel(name: string | null) {
-    selectedCharacterName.value = name
-    characterPanelOpen.value = true
+    selectedCharacterName.value = name;
+    characterPanelOpen.value = true;
   }
   function closeCharacterPanel() {
-    characterPanelOpen.value = false
+    characterPanelOpen.value = false;
   }
   /** 重置为 idle（保留 storyState 缓存） */
   function resetAgent() {
-    phase.value = 'idle'
-    currentPlan.value = null
-    planDialogVisible.value = false
-    statusText.value = ''
-    toolCallLog.value = []
+    phase.value = 'idle';
+    currentPlan.value = null;
+    planDialogVisible.value = false;
+    statusText.value = '';
+    toolCallLog.value = [];
   }
 
   return {
@@ -77,5 +78,5 @@ export const useAgentStore = defineStore('agent', () => {
     openCharacterPanel,
     closeCharacterPanel,
     resetAgent,
-  }
-})
+  };
+});

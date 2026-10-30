@@ -1,15 +1,11 @@
 <template>
   <div class="novel-root">
     <!-- 未选择工作区时：显示选择界面 -->
-    <WorkspaceInit
-      v-if="!workspaceReady"
-      @done="handleWorkspaceReady"
-      class="h-100"
-    />
+    <WorkspaceInit v-if="!workspaceReady" class="h-100" @done="handleWorkspaceReady" />
 
     <div v-else class="novel-page d-flex h-100">
       <!-- ===== 主编辑区 ===== -->
-      <div class="editor-main flex-1 d-flex flex-column overflow-hidden">
+      <div class="editor-main flex-1-1 d-flex flex-column overflow-hidden">
         <!-- 顶部小说概览栏 -->
         <NovelOverviewBar
           v-if="currentNovel"
@@ -26,10 +22,7 @@
         <div v-if="!currentChapter" class="empty-stage">
           <div class="empty-card lg-card">
             <div class="empty-icon">
-              <v-icon
-                :icon="currentNovel ? mdiPenPlus : mdiBookPlus"
-                size="44"
-              />
+              <v-icon :icon="currentNovel ? mdiPenPlus : mdiBookPlus" size="44" />
             </div>
             <div class="empty-title">
               {{ currentNovel ? '开始创作新章节' : '开启你的第一部小说' }}
@@ -46,10 +39,7 @@
                 <v-icon :icon="mdiPlus" size="16" />
                 新建 / 打开小说
               </button>
-              <button
-                class="lg-pill empty-btn empty-btn--ghost"
-                @click="showImportDialog = true"
-              >
+              <button class="lg-pill empty-btn empty-btn--ghost" @click="showImportDialog = true">
                 <v-icon :icon="mdiImport" size="16" />
                 导入小说
               </button>
@@ -61,7 +51,7 @@
           <!-- 编辑器 -->
           <NovelEditor
             ref="editorRef"
-            class="flex-1"
+            class="flex-1-1"
             style="min-height: 0"
             :chapter="currentChapter"
             :content="currentChapterContent"
@@ -124,12 +114,7 @@
           >
             <v-icon :icon="mdiAccountGroupOutline" size="18" />
           </button>
-          <button
-            class="lg-icon-btn"
-            title="设定"
-            :disabled="!currentNovel"
-            @click="onOpenLore"
-          >
+          <button class="lg-icon-btn" title="设定" :disabled="!currentNovel" @click="onOpenLore">
             <v-icon :icon="mdiBookshelf" size="18" />
           </button>
         </div>
@@ -164,7 +149,7 @@
           <!-- ===== Agent 交互面板 ===== -->
           <AgentChatPanel
             v-if="sidebarTab === 'agent' && currentNovel"
-            class="agent-sidebar-card lg-card flex-1"
+            class="agent-sidebar-card lg-card flex-1-1"
             :novel="currentNovel"
             :chapter="currentChapterMeta"
             :content-length="currentChapterContent.length"
@@ -179,7 +164,7 @@
           />
           <div
             v-else-if="sidebarTab === 'agent'"
-            class="agent-sidebar-card lg-card d-flex align-center justify-center flex-1"
+            class="agent-sidebar-card lg-card d-flex align-center justify-center flex-1-1"
           >
             <span class="empty-hint">未打开小说</span>
           </div>
@@ -189,26 +174,14 @@
             <!-- 当前小说区：标题 + 切换/导入入口 -->
             <div class="sidebar-card lg-card">
               <div class="sidebar-card__head">
-                <v-icon
-                  :icon="mdiBookOpenVariant"
-                  size="14"
-                  class="lg-section-label"
-                />
+                <v-icon :icon="mdiBookOpenVariant" size="14" class="lg-section-label" />
                 <span class="lg-section-label">当前小说</span>
               </div>
               <div class="current-novel-box">
-                <div
-                  v-if="currentNovel"
-                  class="current-novel-title text-truncate"
-                >
+                <div v-if="currentNovel" class="current-novel-title text-truncate">
                   {{ currentNovel.title }}
                 </div>
-                <div
-                  v-else
-                  class="current-novel-title current-novel-title--empty"
-                >
-                  未打开小说
-                </div>
+                <div v-else class="current-novel-title current-novel-title--empty">未打开小说</div>
                 <div class="current-novel-actions">
                   <button class="lg-pill mini-action" @click="switchNovel">
                     <v-icon :icon="mdiSwapHorizontal" size="13" /> 切换
@@ -226,11 +199,7 @@
             <!-- 章节区 -->
             <div v-if="currentNovel" class="sidebar-card lg-card">
               <div class="sidebar-card__head">
-                <v-icon
-                  :icon="mdiFormatListBulleted"
-                  size="14"
-                  class="lg-section-label"
-                />
+                <v-icon :icon="mdiFormatListBulleted" size="14" class="lg-section-label" />
                 <span class="lg-section-label">章节</span>
               </div>
               <ChapterList
@@ -250,11 +219,7 @@
               @click="showCharacterDialog = true"
             >
               <div class="sidebar-card__head">
-                <v-icon
-                  :icon="mdiAccountGroupOutline"
-                  size="14"
-                  class="lg-section-label"
-                />
+                <v-icon :icon="mdiAccountGroupOutline" size="14" class="lg-section-label" />
                 <span class="lg-section-label">角色</span>
               </div>
               <div class="chip-wrap">
@@ -269,9 +234,7 @@
                 >
                   {{ char.name }}
                 </v-chip>
-                <span v-if="!currentNovel.characters.length" class="empty-hint"
-                  >暂无角色</span
-                >
+                <span v-if="!currentNovel.characters.length" class="empty-hint">暂无角色</span>
               </div>
             </div>
 
@@ -282,11 +245,7 @@
               @click="showLorePanel = true"
             >
               <div class="sidebar-card__head">
-                <v-icon
-                  :icon="mdiBookshelf"
-                  size="14"
-                  class="lg-section-label"
-                />
+                <v-icon :icon="mdiBookshelf" size="14" class="lg-section-label" />
                 <span class="lg-section-label">设定</span>
               </div>
               <div class="chip-wrap">
@@ -301,9 +260,7 @@
                 >
                   {{ entry.name }}
                 </v-chip>
-                <span v-if="!loreEntries.length" class="empty-hint"
-                  >暂无设定</span
-                >
+                <span v-if="!loreEntries.length" class="empty-hint">暂无设定</span>
               </div>
             </div>
           </template>
@@ -366,10 +323,7 @@
       />
 
       <!-- 导入小说对话框 -->
-      <ImportNovelDialog
-        v-model:visible="showImportDialog"
-        @imported="handleImported"
-      />
+      <ImportNovelDialog v-model:visible="showImportDialog" @imported="handleImported" />
 
       <!-- 编辑器设置弹窗 -->
       <v-dialog v-model="showEditorSettings" max-width="420">
@@ -385,9 +339,7 @@
             <div class="setting-row">
               <div class="setting-label">
                 <span class="setting-name">编辑区字号</span>
-                <span class="setting-value"
-                  >{{ settingStore.editorFontSize }}px</span
-                >
+                <span class="setting-value">{{ settingStore.editorFontSize }}px</span>
               </div>
               <v-slider
                 :model-value="settingStore.editorFontSize"
@@ -430,18 +382,13 @@
                 label="记住 API Key"
                 class="key-switch"
               />
-              <button
-                v-if="apiKey"
-                class="lg-pill mini-action key-clear"
-                @click="clearApiKey"
-              >
+              <button v-if="apiKey" class="lg-pill mini-action key-clear" @click="clearApiKey">
                 清除
               </button>
             </div>
             <div class="model-warn">
-              关闭「记住」后 Key 只保存在本次会话，关闭窗口即失效。Key
-              存储在浏览器/本机存储中（Web 部署请使用受限或限额 Key），除
-              api.deepseek.com 外不会发往任何服务。
+              关闭「记住」后 Key 只保存在本次会话，关闭窗口即失效。Key 存储在浏览器/本机存储中（Web
+              部署请使用受限或限额 Key），除 api.deepseek.com 外不会发往任何服务。
             </div>
             <v-select
               v-model="settingStore.deepseekModel"
@@ -450,27 +397,20 @@
               variant="outlined"
               density="compact"
             />
-            <div
-              v-if="settingStore.deepseekModel === 'deepseek-reasoner'"
-              class="model-warn"
-            >
+            <div v-if="settingStore.deepseekModel === 'deepseek-reasoner'" class="model-warn">
               深度推理模型不支持工具调用，Agent
               将跳过资料检索循环，改为「直读上下文」模式规划（检索能力受限）。
             </div>
             <div class="settings-note">
-              章节概要、角色记忆与整体进度不会在 AI 写完后自动更新；写完一章后，在 Agent 面板点「本章定稿」统一更新。
+              章节概要、角色记忆与整体进度不会在 AI 写完后自动更新；写完一章后，在 Agent
+              面板点「本章定稿」统一更新。
             </div>
           </div>
         </div>
       </v-dialog>
 
       <!-- 错误提示 -->
-      <v-snackbar
-        v-model="showError"
-        :color="snackColor"
-        timeout="6000"
-        location="top"
-      >
+      <v-snackbar v-model="showError" :color="snackColor" timeout="6000" location="top">
         {{ errorMessage }}
       </v-snackbar>
     </div>
@@ -478,206 +418,193 @@
 </template>
 
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
 import {
-  mdiPenPlus,
-  mdiBookPlus,
-  mdiPlus,
-  mdiMenuOpen,
-  mdiMenuClose,
-  mdiBookOpenVariant,
-  mdiFormatListBulleted,
   mdiAccountGroupOutline,
+  mdiBookOpenVariant,
+  mdiBookPlus,
   mdiBookshelf,
-  mdiImport,
-  mdiSwapHorizontal,
   mdiClose,
   mdiEye,
   mdiEyeOff,
+  mdiFormatListBulleted,
+  mdiImport,
+  mdiMenuClose,
+  mdiMenuOpen,
+  mdiPenPlus,
+  mdiPlus,
   mdiRobotOutline,
-} from '@mdi/js'
-import { useNovelStore } from '@/store/novelStore'
-import { useSettingStore } from '@/store/setting'
-import { useAgentStore } from '@/store/agentStore'
-import { useChatStore } from '@/store/chatStore'
+  mdiSwapHorizontal,
+} from '@mdi/js';
+import { openPath } from '@tauri-apps/plugin-opener';
+import { storeToRefs } from 'pinia';
+
+import GlobalSearch from '@/components/GlobalSearch.vue';
+import WorkspaceInit from '@/components/WorkspaceInit.vue';
+import { useApiKey } from '@/hooks/useApiKey';
+import { useDialogEsc } from '@/hooks/useDialogEsc';
 import {
-  loadCurrentNovel,
-  createNovel,
-  saveNovelMeta,
-  loadChapterContent,
-  saveChapterContent,
-  createChapter,
-  deleteChapter,
-  countWords,
-  loadAllChapterWordCounts,
-  searchInChapters,
-} from '@/services/novelService'
-import { parseMentions } from '@/services/deepseekService'
-import type {
-  AgentSession,
-  AgentPlan,
-  AgentConfig,
-} from '@/services/agentService'
-import {
-  createChatSession,
   abortChatSession,
-  runChatTurn,
-  runChatGenerateTurn,
-  buildContinuePrevTask,
   buildContinueCurrentTask,
+  buildContinuePrevTask,
   buildVirtualWrite,
-  restoreSessionMessages,
-  loadChatSessionFile,
-  saveChatSessionFile,
-  deleteChatSessionFile,
   type ChatTurnCallbacks,
-} from '@/services/agentChat'
-import type { ChatWriteData } from '@/types/agentChat'
-import { loadStoryState, saveStoryState } from '@/services/storyStateService'
+  createChatSession,
+  deleteChatSessionFile,
+  loadChatSessionFile,
+  restoreSessionMessages,
+  runChatGenerateTurn,
+  runChatTurn,
+  saveChatSessionFile,
+} from '@/services/agentChat';
+import { PLAN_BLOCK_PATTERN } from '@/services/agentProtocol';
+import type { AgentConfig, AgentPlan, AgentSession } from '@/services/agentService';
 import {
+  type FinalizeResult,
+  type FinalizeStep,
+  runChapterFinalize,
+} from '@/services/chapterFinalize';
+import { parseMentions } from '@/services/deepseekService';
+import { isTauriAppPlatform } from '@/services/environment';
+import { loadOrCreateLore } from '@/services/loreService';
+import {
+  countWords,
+  createChapter,
+  createNovel,
+  deleteChapter,
+  loadAllChapterWordCounts,
+  loadChapterContent,
+  loadCurrentNovel,
+  saveChapterContent,
+  saveNovelMeta,
+  searchInChapters,
+} from '@/services/novelService';
+import {
+  renameCharactersInState,
   revertLongTermChange,
   setShortTermMemory,
-  renameCharactersInState,
-} from '@/services/storyMemory'
-import {
-  runChapterFinalize,
-  type FinalizeStep,
-  type FinalizeResult,
-} from '@/services/chapterFinalize'
-import { PLAN_BLOCK_PATTERN } from '@/services/agentProtocol'
-import { loadOrCreateLore } from '@/services/loreService'
-import {
-  isWorkspaceInitialized,
-  getWorkspaceDir,
-  getDirName,
-} from '@/services/workspaceService'
-import { isTauriAppPlatform } from '@/services/environment'
-import { openPath } from '@tauri-apps/plugin-opener'
-import type { Novel, ChapterMeta, Character, SearchResult } from '@/types/novel'
-import type { EntryMeta } from '@/types/lore'
-import WorkspaceInit from '@/components/WorkspaceInit.vue'
-import ChapterList from './components/ChapterList.vue'
-import NovelEditor from './components/NovelEditor.vue'
-import NovelOverviewBar from './components/NovelOverviewBar.vue'
-import CharacterDialog from './components/CharacterDialog.vue'
-import AgentChatPanel from './components/AgentChatPanel.vue'
-import CharacterPanel from './components/CharacterPanel.vue'
-import LorePanel from './components/LorePanel.vue'
-import StoryStateDialog from './components/StoryStateDialog.vue'
-import ChapterSummaryDialog from './components/ChapterSummaryDialog.vue'
-import ImportNovelDialog from './components/ImportNovelDialog.vue'
-import GlobalSearch from '@/components/GlobalSearch.vue'
-import { useDialogEsc } from '@/hooks/useDialogEsc'
-import { useApiKey } from '@/hooks/useApiKey'
+} from '@/services/storyMemory';
+import { loadStoryState, saveStoryState } from '@/services/storyStateService';
+import { getDirName, getWorkspaceDir, isWorkspaceInitialized } from '@/services/workspaceService';
+import { useAgentStore } from '@/store/agentStore';
+import { useChatStore } from '@/store/chatStore';
+import { useNovelStore } from '@/store/novelStore';
+import { useSettingStore } from '@/store/setting';
+import type { ChatWriteData } from '@/types/agentChat';
+import type { EntryMeta } from '@/types/lore';
+import type { ChapterMeta, Character, Novel, SearchResult } from '@/types/novel';
+
+import AgentChatPanel from './components/AgentChatPanel.vue';
+import ChapterList from './components/ChapterList.vue';
+import ChapterSummaryDialog from './components/ChapterSummaryDialog.vue';
+import CharacterDialog from './components/CharacterDialog.vue';
+import CharacterPanel from './components/CharacterPanel.vue';
+import ImportNovelDialog from './components/ImportNovelDialog.vue';
+import LorePanel from './components/LorePanel.vue';
+import NovelEditor from './components/NovelEditor.vue';
+import NovelOverviewBar from './components/NovelOverviewBar.vue';
+import StoryStateDialog from './components/StoryStateDialog.vue';
 
 // ===== Store =====
-const novelStore = useNovelStore()
-const settingStore = useSettingStore()
-const agentStore = useAgentStore()
-const chatStore = useChatStore()
-const { apiKey, remember: rememberApiKey, clear: clearApiKey } = useApiKey()
+const novelStore = useNovelStore();
+const settingStore = useSettingStore();
+const agentStore = useAgentStore();
+const chatStore = useChatStore();
+const { apiKey, remember: rememberApiKey, clear: clearApiKey } = useApiKey();
 
-const {
-  currentNovel,
-  currentChapter,
-  currentChapterContent,
-  isDirty,
-  isGenerating,
-} = storeToRefs(novelStore)
+const { currentNovel, currentChapter, currentChapterContent, isDirty, isGenerating } =
+  storeToRefs(novelStore);
 
 // ===== 工作区状态 =====
-const workspaceReady = ref(isWorkspaceInitialized())
-const isTauri = isTauriAppPlatform()
+const workspaceReady = ref(isWorkspaceInitialized());
+const isTauri = isTauriAppPlatform();
 
 // ===== 本地状态 =====
-const showCharacterDialog = ref(false)
-const showError = ref(false)
-const errorMessage = ref('')
-const showGlobalSearch = ref(false)
-const showApiKey = ref(false)
-const showLorePanel = ref(false)
-const showImportDialog = ref(false)
-const showStoryStateDialog = ref(false)
-const showChapterSummaryDialog = ref(false)
-const showEditorSettings = ref(false)
-const snackColor = ref<'error' | 'warning'>('error')
-useDialogEsc(showEditorSettings)
-const loreEntries = ref<EntryMeta[]>([])
-const pendingLoreEntryId = ref<string | null>(null)
+const showCharacterDialog = ref(false);
+const showError = ref(false);
+const errorMessage = ref('');
+const showGlobalSearch = ref(false);
+const showApiKey = ref(false);
+const showLorePanel = ref(false);
+const showImportDialog = ref(false);
+const showStoryStateDialog = ref(false);
+const showChapterSummaryDialog = ref(false);
+const showEditorSettings = ref(false);
+const snackColor = ref<'error' | 'warning'>('error');
+useDialogEsc(showEditorSettings);
+const loreEntries = ref<EntryMeta[]>([]);
+const pendingLoreEntryId = ref<string | null>(null);
 
-const editorRef = ref<InstanceType<typeof NovelEditor> | null>(null)
-const chapterListRef = ref<InstanceType<typeof ChapterList> | null>(null)
+const editorRef = ref<InstanceType<typeof NovelEditor> | null>(null);
+const chapterListRef = ref<InstanceType<typeof ChapterList> | null>(null);
 
 // ===== 侧栏折叠 =====
-const sidebarCollapsed = ref(false)
+const sidebarCollapsed = ref(false);
 
 const modelOptions = [
   { title: 'deepseek-chat（通用，速度快）', value: 'deepseek-chat' },
   { title: 'deepseek-reasoner（深度推理，更慢）', value: 'deepseek-reasoner' },
-]
+];
 
 function onOpenCharacters() {
-  sidebarCollapsed.value = false
-  showCharacterDialog.value = true
+  sidebarCollapsed.value = false;
+  showCharacterDialog.value = true;
 }
 function onOpenLore() {
-  sidebarCollapsed.value = false
-  showLorePanel.value = true
+  sidebarCollapsed.value = false;
+  showLorePanel.value = true;
 }
 
 /** 点击侧栏设定 chip：打开面板并定位到该条目 */
 function openLoreAt(entryId: string) {
-  pendingLoreEntryId.value = entryId
-  showLorePanel.value = true
+  pendingLoreEntryId.value = entryId;
+  showLorePanel.value = true;
 }
 
 /** 加载当前小说的 lore 条目列表缓存（供侧栏 chip 展示） */
 async function loadLoreEntries(novel: Novel) {
   try {
-    const lore = await loadOrCreateLore(novel)
-    loreEntries.value = lore.entries
+    const lore = await loadOrCreateLore(novel);
+    loreEntries.value = lore.entries;
   } catch {
-    loreEntries.value = []
+    loreEntries.value = [];
   }
 }
 
 /** LorePanel 保存后刷新侧栏 chip */
 function reloadLoreEntries() {
-  if (currentNovel.value) loadLoreEntries(currentNovel.value)
+  if (currentNovel.value) loadLoreEntries(currentNovel.value);
 }
 
 // ===== 侧栏视图（目录 / Agent） =====
-const sidebarTab = ref<'menu' | 'agent'>('menu')
+const sidebarTab = ref<'menu' | 'agent'>('menu');
 
 /** rail 的 🤖 按钮：展开侧栏并切到 Agent 视图 */
 function openAgentTab() {
-  sidebarCollapsed.value = false
-  sidebarTab.value = 'agent'
+  sidebarCollapsed.value = false;
+  sidebarTab.value = 'agent';
 }
 
 // ===== Agent 交互面板（chat）状态 =====
-const chatSession = ref<AgentSession | null>(null)
+const chatSession = ref<AgentSession | null>(null);
 
-let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
+let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
 // ===== 初始化 =====
 onMounted(async () => {
   if (workspaceReady.value) {
-    await loadCurrentNovelData()
+    await loadCurrentNovelData();
   }
 
   // Cmd+Shift+F / Ctrl+Shift+F 唤起全局搜索（独立监听，绕过 useShortcuts 的 contentEditable 过滤）
   function handleGlobalSearchKey(e: KeyboardEvent) {
     if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'F') {
-      e.preventDefault()
-      if (currentNovel.value) showGlobalSearch.value = true
+      e.preventDefault();
+      if (currentNovel.value) showGlobalSearch.value = true;
     }
   }
-  window.addEventListener('keydown', handleGlobalSearchKey)
-  onBeforeUnmount(() =>
-    window.removeEventListener('keydown', handleGlobalSearchKey),
-  )
-})
+  window.addEventListener('keydown', handleGlobalSearchKey);
+  onBeforeUnmount(() => window.removeEventListener('keydown', handleGlobalSearchKey));
+});
 
 /**
  * 加载当前小说文件夹的数据。
@@ -687,77 +614,72 @@ onMounted(async () => {
  */
 async function loadCurrentNovelData(title?: string) {
   try {
-    let novel = await loadCurrentNovel()
+    let novel = await loadCurrentNovel();
     if (!novel) {
-      const dir = getWorkspaceDir()
+      const dir = getWorkspaceDir();
       const fallbackTitle =
-        title ||
-        (dir ? await getDirName(dir).catch(() => '未命名小说') : '未命名小说')
-      novel = await createNovel(fallbackTitle, '')
+        title || (dir ? await getDirName(dir).catch(() => '未命名小说') : '未命名小说');
+      novel = await createNovel(fallbackTitle, '');
     }
-    novelStore.openNovel(novel)
+    novelStore.openNovel(novel);
     // 加载故事状态到缓存（供角色面板展示）
     loadStoryState(novel.id)
       .then((s) => agentStore.setStoryState(s))
-      .catch(() => {})
+      .catch(() => {});
     // 加载设定资料库条目缓存（供侧栏 chip 展示）
-    loadLoreEntries(novel)
+    loadLoreEntries(novel);
     // 后台异步加载尚未计算字数的章节
-    loadMissingWordCounts(novel)
+    loadMissingWordCounts(novel);
   } catch (e) {
-    showErrorMsg(
-      '加载小说失败：' + (e instanceof Error ? e.message : String(e)),
-    )
+    showErrorMsg('加载小说失败：' + (e instanceof Error ? e.message : String(e)));
   }
 }
 
 /** WorkspaceInit 完成（选/建好小说文件夹）后加载该小说 */
 async function handleWorkspaceReady(title?: string) {
-  workspaceReady.value = true
-  await loadCurrentNovelData(title)
+  workspaceReady.value = true;
+  await loadCurrentNovelData(title);
 }
 
 /** 切换小说：保存当前章节后回到选择界面 */
 async function switchNovel() {
-  await trySaveCurrentChapter()
-  if (chatStore.busy && chatSession.value) abortChatSession(chatSession.value)
-  chatStore.resetForChapter(null)
-  chatSession.value = null
-  novelStore.openNovel(null)
-  loreEntries.value = []
-  workspaceReady.value = false
+  await trySaveCurrentChapter();
+  if (chatStore.busy && chatSession.value) abortChatSession(chatSession.value);
+  chatStore.resetForChapter(null);
+  chatSession.value = null;
+  novelStore.openNovel(null);
+  loreEntries.value = [];
+  workspaceReady.value = false;
 }
 
 /** 在系统文件管理器中打开当前小说文件夹（仅 Tauri） */
 async function handleOpenFolder() {
-  const dir = getWorkspaceDir()
-  if (!dir) return
+  const dir = getWorkspaceDir();
+  if (!dir) return;
   try {
-    await openPath(dir)
+    await openPath(dir);
   } catch (e) {
-    showErrorMsg(
-      '打开文件夹失败：' + (e instanceof Error ? e.message : String(e)),
-    )
+    showErrorMsg('打开文件夹失败：' + (e instanceof Error ? e.message : String(e)));
   }
 }
 
 /** 后台读取未计算字数的章节，填充 wordCount 并持久化到 novel.json */
 async function loadMissingWordCounts(novel: Novel) {
-  const missing = novel.chapters.filter((c) => c.wordCount === undefined)
-  if (!missing.length) return
+  const missing = novel.chapters.filter((c) => c.wordCount === undefined);
+  if (!missing.length) return;
   try {
-    const wcMap = await loadAllChapterWordCounts(missing)
+    const wcMap = await loadAllChapterWordCounts(missing);
     // 确保用户没有切换到其他小说
-    if (!currentNovel.value || currentNovel.value.id !== novel.id) return
+    if (!currentNovel.value || currentNovel.value.id !== novel.id) return;
     const updatedNovel: Novel = {
       ...currentNovel.value,
       chapters: currentNovel.value.chapters.map((c) => ({
         ...c,
         wordCount: wcMap.has(c.id) ? wcMap.get(c.id) : c.wordCount,
       })),
-    }
-    novelStore.updateCurrentNovel(updatedNovel)
-    await saveNovelMeta(updatedNovel)
+    };
+    novelStore.updateCurrentNovel(updatedNovel);
+    await saveNovelMeta(updatedNovel);
   } catch {
     // 字数加载失败不影响主流程
   }
@@ -765,213 +687,196 @@ async function loadMissingWordCounts(novel: Novel) {
 
 /** 导入小说完成：导入流程已切换到新小说文件夹，直接加载当前小说 */
 async function handleImported(_novel: Novel) {
-  showImportDialog.value = false
-  await loadCurrentNovelData()
+  showImportDialog.value = false;
+  await loadCurrentNovelData();
 }
 
 // ===== 章节操作 =====
 async function handleSelectChapter(chapter: ChapterMeta) {
-  if (currentChapter.value?.id === chapter.id) return
-  await trySaveCurrentChapter()
+  if (currentChapter.value?.id === chapter.id) return;
+  await trySaveCurrentChapter();
   try {
-    const content = await loadChapterContent(chapter.filename)
-    novelStore.openChapter(chapter, content)
-    void loadChatSessionForChapter()
+    const content = await loadChapterContent(chapter.filename);
+    novelStore.openChapter(chapter, content);
+    void loadChatSessionForChapter();
   } catch (e) {
-    showErrorMsg(
-      '加载章节失败：' + (e instanceof Error ? e.message : String(e)),
-    )
+    showErrorMsg('加载章节失败：' + (e instanceof Error ? e.message : String(e)));
   }
 }
 
 async function handleCreateChapter(title: string) {
-  if (!currentNovel.value) return
+  if (!currentNovel.value) return;
   try {
-    const { novel, chapter } = await createChapter(currentNovel.value, title)
-    novelStore.updateCurrentNovel(novel)
-    novelStore.openChapter(chapter, '')
-    void loadChatSessionForChapter()
+    const { novel, chapter } = await createChapter(currentNovel.value, title);
+    novelStore.updateCurrentNovel(novel);
+    novelStore.openChapter(chapter, '');
+    void loadChatSessionForChapter();
   } catch (e) {
-    showErrorMsg(
-      '创建章节失败：' + (e instanceof Error ? e.message : String(e)),
-    )
+    showErrorMsg('创建章节失败：' + (e instanceof Error ? e.message : String(e)));
   }
 }
 
 async function handleDeleteChapter(chapterId: string) {
-  if (!currentNovel.value) return
+  if (!currentNovel.value) return;
   try {
-    const updatedNovel = await deleteChapter(currentNovel.value, chapterId)
-    novelStore.updateCurrentNovel(updatedNovel)
+    const updatedNovel = await deleteChapter(currentNovel.value, chapterId);
+    novelStore.updateCurrentNovel(updatedNovel);
     if (currentChapter.value?.id === chapterId) {
-      novelStore.openChapter(null as unknown as ChapterMeta, '')
-      void loadChatSessionForChapter()
+      novelStore.openChapter(null as unknown as ChapterMeta, '');
+      void loadChatSessionForChapter();
     }
   } catch (e) {
-    showErrorMsg(
-      '删除章节失败：' + (e instanceof Error ? e.message : String(e)),
-    )
+    showErrorMsg('删除章节失败：' + (e instanceof Error ? e.message : String(e)));
   }
 }
 
 // ===== 内容编辑 =====
 function handleContentChange(content: string) {
-  novelStore.updateContent(content)
-  if (autoSaveTimer) clearTimeout(autoSaveTimer)
-  autoSaveTimer = setTimeout(() => handleSave(), 2000)
+  novelStore.updateContent(content);
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => handleSave(), 2000);
 }
 
 async function handleSave() {
-  if (!currentNovel.value || !currentChapter.value) return
+  if (!currentNovel.value || !currentChapter.value) return;
   try {
-    await saveChapterContent(
-      currentChapter.value.filename,
-      currentChapterContent.value,
-    )
+    await saveChapterContent(currentChapter.value.filename, currentChapterContent.value);
     // 保存时同步更新字数，并持久化到 novel.json
-    const wc = countWords(currentChapterContent.value)
-    const chapterId = currentChapter.value.id
+    const wc = countWords(currentChapterContent.value);
+    const chapterId = currentChapter.value.id;
     const updatedNovel: Novel = {
       ...currentNovel.value,
       chapters: currentNovel.value.chapters.map((c) =>
-        c.id === chapterId ? { ...c, wordCount: wc } : c,
+        c.id === chapterId ? { ...c, wordCount: wc } : c
       ),
-    }
-    novelStore.updateCurrentNovel(updatedNovel)
-    await saveNovelMeta(updatedNovel)
-    novelStore.markSaved()
+    };
+    novelStore.updateCurrentNovel(updatedNovel);
+    await saveNovelMeta(updatedNovel);
+    novelStore.markSaved();
   } catch (e) {
-    showErrorMsg('保存失败：' + (e instanceof Error ? e.message : String(e)))
+    showErrorMsg('保存失败：' + (e instanceof Error ? e.message : String(e)));
   }
 }
 
 async function trySaveCurrentChapter() {
   if (isDirty.value && currentNovel.value && currentChapter.value) {
-    await handleSave()
+    await handleSave();
   }
 }
 
 // ===== 角色管理 =====
 async function handleUpdateCharacters(characters: Character[]) {
-  if (!currentNovel.value) return
+  if (!currentNovel.value) return;
   // 故事状态按角色名关联：改名时同步短期记忆 / 改写日志
-  const renames: Record<string, string> = {}
+  const renames: Record<string, string> = {};
   for (const c of characters) {
-    const prev = currentNovel.value.characters.find((x) => x.id === c.id)
-    if (prev && prev.name !== c.name && c.name.trim()) renames[prev.name] = c.name
+    const prev = currentNovel.value.characters.find((x) => x.id === c.id);
+    if (prev && prev.name !== c.name && c.name.trim()) renames[prev.name] = c.name;
   }
-  const updated = { ...currentNovel.value, characters }
-  novelStore.updateCurrentNovel(updated)
-  await saveNovelMeta(updated).catch((e) =>
-    showErrorMsg('保存角色失败：' + e.message),
-  )
+  const updated = { ...currentNovel.value, characters };
+  novelStore.updateCurrentNovel(updated);
+  await saveNovelMeta(updated).catch((e) => showErrorMsg('保存角色失败：' + e.message));
   if (Object.keys(renames).length) {
     try {
-      const state = await loadStoryState(updated.id)
-      agentStore.setStoryState(
-        await saveStoryState(renameCharactersInState(state, renames)),
-      )
+      const state = await loadStoryState(updated.id);
+      agentStore.setStoryState(await saveStoryState(renameCharactersInState(state, renames)));
     } catch (e) {
-      showErrorMsg('同步角色记忆失败：' + errorText(e))
+      showErrorMsg('同步角色记忆失败：' + errorText(e));
     }
   }
 }
 
 // ===== 全局搜索 =====
 async function handleSearchJump(result: SearchResult) {
-  showGlobalSearch.value = false
-  if (!currentNovel.value) return
+  showGlobalSearch.value = false;
+  if (!currentNovel.value) return;
 
   // 找到目标章节元数据
-  const chapter = currentNovel.value.chapters.find(
-    (c) => c.id === result.chapterId,
-  )
-  if (!chapter) return
+  const chapter = currentNovel.value.chapters.find((c) => c.id === result.chapterId);
+  if (!chapter) return;
 
   // 如果不是当前章节，先切换
   if (currentChapter.value?.id !== chapter.id) {
-    await trySaveCurrentChapter()
+    await trySaveCurrentChapter();
     try {
-      const content = await loadChapterContent(chapter.filename)
-      novelStore.openChapter(chapter, content)
+      const content = await loadChapterContent(chapter.filename);
+      novelStore.openChapter(chapter, content);
     } catch (e) {
-      showErrorMsg(
-        '加载章节失败：' + (e instanceof Error ? e.message : String(e)),
-      )
-      return
+      showErrorMsg('加载章节失败：' + (e instanceof Error ? e.message : String(e)));
+      return;
     }
   }
 
   // 等待编辑器渲染后跳转到对应行
-  await nextTick()
-  editorRef.value?.jumpToLine(result.lineIndex)
+  await nextTick();
+  editorRef.value?.jumpToLine(result.lineIndex);
 }
 
 // ===== Agent 回调与收尾（统一处理取消/失败/成功，避免状态胶囊卡住） =====
 
 function errorText(e: unknown): string {
-  return e instanceof Error ? e.message : String(e)
+  return e instanceof Error ? e.message : String(e);
 }
 
 // ===== Agent 交互面板（chat）编排 =====
 
 /** 每轮 turn 的 UI 关联状态（助手气泡 / 写章预览卡 / 工具卡队列） */
 interface TurnUiState {
-  assistantId: string | null
-  previewCardId: string | null
+  assistantId: string | null;
+  previewCardId: string | null;
   /** onToolStart 顺序入队、onToolEnd 顺序出队，保证卡片与工具一一对应 */
-  pendingCards: string[]
+  pendingCards: string[];
   /** 本轮是否写入了正文（结束时提示「本章定稿」） */
-  wrote: boolean
+  wrote: boolean;
 }
 
 function createTurnUi(): TurnUiState {
-  return { assistantId: null, previewCardId: null, pendingCards: [], wrote: false }
+  return { assistantId: null, previewCardId: null, pendingCards: [], wrote: false };
 }
 
 /** 取当前章最新内容（编辑器里未保存的手动编辑也算） */
 function liveChapterContent(): string {
-  return currentChapterContent.value
+  return currentChapterContent.value;
 }
 
 /** 确保当前章节有会话（章节变化则重建） */
 function ensureChatSession(): AgentSession | null {
-  const novel = currentNovel.value
-  const chapter = currentChapter.value
-  if (!novel || !chapter) return null
+  const novel = currentNovel.value;
+  const chapter = currentChapter.value;
+  if (!novel || !chapter) return null;
   if (chatSession.value && chatSession.value.chapterId === chapter.id) {
     // 小说对象可能已被替换（定稿改写了 Skill / 概要等），让会话用最新的
-    chatSession.value.novel = novel
-    return chatSession.value
+    chatSession.value.novel = novel;
+    return chatSession.value;
   }
   chatSession.value = createChatSession({
     novel,
     chapter,
     chapterContent: currentChapterContent.value,
     liveContent: liveChapterContent,
-  })
-  return chatSession.value
+  });
+  return chatSession.value;
 }
 
 /** 打开章节后：重置转录并恢复该章节的持久化对话 */
 async function loadChatSessionForChapter() {
-  const chapter = currentChapter.value
-  chatStore.resetForChapter(chapter?.id ?? null)
-  chatSession.value = null
-  if (!chapter) return
-  const session = ensureChatSession()
-  if (!session) return
+  const chapter = currentChapter.value;
+  chatStore.resetForChapter(chapter?.id ?? null);
+  chatSession.value = null;
+  if (!chapter) return;
+  const session = ensureChatSession();
+  if (!session) return;
   try {
-    const file = await loadChatSessionFile(chapter.id)
+    const file = await loadChatSessionFile(chapter.id);
     // 异步期间用户可能已切章
-    if (currentChapter.value?.id !== chapter.id) return
+    if (currentChapter.value?.id !== chapter.id) return;
     if (file) {
-      chatStore.transcript = file.transcript
-      restoreSessionMessages(session, file.llmMessages)
+      chatStore.transcript = file.transcript;
+      restoreSessionMessages(session, file.llmMessages);
       // 恢复「待确认 plan」：重开面板后 plan 卡仍在，可继续确认/取消
-      const pending = chatStore.getPendingPlan()
+      const pending = chatStore.getPendingPlan();
       if (pending && file.phase === 'awaiting_confirmation') {
-        session.plan = { ...pending.plan, outline: pending.outlineDraft }
+        session.plan = { ...pending.plan, outline: pending.outlineDraft };
       }
     }
   } catch {
@@ -981,305 +886,287 @@ async function loadChatSessionForChapter() {
 
 /** 持久化当前对话（转录 + LLM 消息历史） */
 function persistChatSession() {
-  const session = chatSession.value
-  const chapter = currentChapter.value
-  if (!session || !chapter) return
+  const session = chatSession.value;
+  const chapter = currentChapter.value;
+  if (!session || !chapter) return;
   // 用引擎阶段（而非 UI 阶段）落盘：plan 待确认时也要记为 awaiting_confirmation
   void saveChatSessionFile(
     chapter.id,
     chapter.title,
     session.messages,
     chatStore.transcript,
-    session.phase === 'done' || session.phase === 'canceled' ? 'idle' : session.phase,
-  )
+    session.phase === 'done' || session.phase === 'canceled' ? 'idle' : session.phase
+  );
 }
 
 /** 写章提交：同步编辑器与快照（落盘由工具完成；字数经编辑器自动保存链路同步） */
 function commitChatWrite(write: ChatWriteData) {
-  const chapter = currentChapter.value
-  const session = chatSession.value
-  if (!chapter) return
+  const chapter = currentChapter.value;
+  const session = chatSession.value;
+  if (!chapter) return;
   if (chapter.id !== write.chapterId) {
     chatStore.pushSystem(
-      `已写入《${write.chapterTitle}》 ${write.addedChars} 字（切换到该章节查看）`,
-    )
-    return
+      `已写入《${write.chapterTitle}》 ${write.addedChars} 字（切换到该章节查看）`
+    );
+    return;
   }
-  novelStore.updateContent(write.newContent)
-  editorRef.value?.replaceContent(write.newContent)
-  if (session) session.chapterContent = write.newContent
+  novelStore.updateContent(write.newContent);
+  editorRef.value?.replaceContent(write.newContent);
+  if (session) session.chapterContent = write.newContent;
 }
 
 /** 构造 chat 回调：转录同步 + 写章提交 + 统一收尾 */
 function makeChatCallbacks(turnUi: TurnUiState): ChatTurnCallbacks {
-  let finished = false
+  let finished = false;
   const finish = () => {
-    if (finished) return
-    finished = true
-    if (turnUi.assistantId) chatStore.endAssistant(turnUi.assistantId)
-    chatStore.setBusy(false)
-    chatStore.setStatus('')
-    chatStore.setPhase('idle')
-    novelStore.stopGenerating()
+    if (finished) return;
+    finished = true;
+    if (turnUi.assistantId) chatStore.endAssistant(turnUi.assistantId);
+    chatStore.setBusy(false);
+    chatStore.setStatus('');
+    chatStore.setPhase('idle');
+    novelStore.stopGenerating();
     // 刷新故事状态缓存
-    const novelId = currentNovel.value?.id
+    const novelId = currentNovel.value?.id;
     if (novelId)
       loadStoryState(novelId)
         .then((s) => agentStore.setStoryState(s))
-        .catch(() => {})
-    persistChatSession()
-  }
+        .catch(() => {});
+    persistChatSession();
+  };
 
   return {
     onPhase: (p) => {
-      chatStore.setPhase(p)
+      chatStore.setPhase(p);
       if (p === 'planning' || p === 'generating') {
-        if (!isGenerating.value) novelStore.startGenerating()
+        if (!isGenerating.value) novelStore.startGenerating();
       }
       if (p === 'canceled') {
-        chatStore.pushSystem('已停止')
-        finish()
+        chatStore.pushSystem('已停止');
+        finish();
       }
     },
     onStatus: (s) => chatStore.setStatus(s),
     onTextDelta: (delta) => {
-      if (!turnUi.assistantId) turnUi.assistantId = chatStore.beginAssistant()
-      chatStore.appendAssistant(turnUi.assistantId, delta)
+      if (!turnUi.assistantId) turnUi.assistantId = chatStore.beginAssistant();
+      chatStore.appendAssistant(turnUi.assistantId, delta);
     },
     onToolStart: (tool, argsSummary) => {
       // 写章卡可能已被预览事件提前创建
-      if (
-        (tool === 'append_to_chapter' || tool === 'replace_tail') &&
-        turnUi.previewCardId
-      ) {
-        chatStore.updateTool(turnUi.previewCardId, { argsSummary })
-        turnUi.pendingCards.push(turnUi.previewCardId)
-        turnUi.previewCardId = null
-        return
+      if ((tool === 'append_to_chapter' || tool === 'replace_tail') && turnUi.previewCardId) {
+        chatStore.updateTool(turnUi.previewCardId, { argsSummary });
+        turnUi.pendingCards.push(turnUi.previewCardId);
+        turnUi.previewCardId = null;
+        return;
       }
-      const id = chatStore.pushTool(tool, argsSummary)
-      turnUi.pendingCards.push(id)
+      const id = chatStore.pushTool(tool, argsSummary);
+      turnUi.pendingCards.push(id);
     },
     onWritePreview: (tool, partial) => {
       if (!turnUi.previewCardId) {
-        turnUi.previewCardId = chatStore.pushTool(tool, '正在写入正文…')
+        turnUi.previewCardId = chatStore.pushTool(tool, '正在写入正文…');
       }
-      chatStore.setToolPreview(turnUi.previewCardId, partial)
-      chatStore.setStatus(`正在写入正文… ${partial.length} 字`)
+      chatStore.setToolPreview(turnUi.previewCardId, partial);
+      chatStore.setStatus(`正在写入正文… ${partial.length} 字`);
     },
     onToolEnd: (tool, ok, resultText, write) => {
-      const id = turnUi.pendingCards.shift() ?? null
+      const id = turnUi.pendingCards.shift() ?? null;
       if (id)
         chatStore.updateTool(id, {
           status: ok ? 'done' : 'error',
           resultText,
           write,
-        })
+        });
       if (write) {
-        turnUi.wrote = true
-        commitChatWrite(write)
+        turnUi.wrote = true;
+        commitChatWrite(write);
       }
     },
     onVirtualWrite: (content) => {
-      const session = chatSession.value
-      if (!session) return
-      const write = buildVirtualWrite(session, content)
-      void saveChapterContent(session.chapter.filename, write.newContent).catch(
-        (e) => {
-          showErrorMsg(
-            '写入章节失败：' + (e instanceof Error ? e.message : String(e)),
-          )
-        },
-      )
+      const session = chatSession.value;
+      if (!session) return;
+      const write = buildVirtualWrite(session, content);
+      void saveChapterContent(session.chapter.filename, write.newContent).catch((e) => {
+        showErrorMsg('写入章节失败：' + (e instanceof Error ? e.message : String(e)));
+      });
       const id = chatStore.pushTool(
         'append_to_chapter',
-        `写入 ${write.addedChars} 字（无工具模式）`,
-      )
+        `写入 ${write.addedChars} 字（无工具模式）`
+      );
       chatStore.updateTool(id, {
         status: 'done',
         resultText: `已把 ${write.addedChars} 字正文追加到章节末尾。`,
         write,
-      })
-      turnUi.wrote = true
-      commitChatWrite(write)
+      });
+      turnUi.wrote = true;
+      commitChatWrite(write);
     },
     onPlanReady: (plan) => {
       // 展示文本里去掉 PLAN 协议块（已渲染为 plan 卡）
       if (turnUi.assistantId) {
-        const m = chatStore.transcript.find((x) => x.id === turnUi.assistantId)
-        if (m && m.kind === 'assistant')
-          m.text = m.text.replace(PLAN_BLOCK_PATTERN, '').trim()
+        const m = chatStore.transcript.find((x) => x.id === turnUi.assistantId);
+        if (m && m.kind === 'assistant') m.text = m.text.replace(PLAN_BLOCK_PATTERN, '').trim();
       }
-      chatStore.pushPlan(plan)
-      chatStore.setStatus('等待确认规划')
+      chatStore.pushPlan(plan);
+      chatStore.setStatus('等待确认规划');
     },
     onContextTrimmed: (info) => {
-      chatStore.setContextUsage(info.estimatedTokens, info.trimmed)
+      chatStore.setContextUsage(info.estimatedTokens, info.trimmed);
       showWarnMsg(
-        `上下文接近上限，已省略 ${info.trimmed} 条早期调研结果（约 ${info.estimatedTokens} tokens）。`,
-      )
+        `上下文接近上限，已省略 ${info.trimmed} 条早期调研结果（约 ${info.estimatedTokens} tokens）。`
+      );
     },
     onWarn: (msg) => showWarnMsg(msg),
     onError: (e) => {
-      showErrorMsg(errorText(e))
-      finish()
+      showErrorMsg(errorText(e));
+      finish();
     },
     onDone: () => {
       if (turnUi.wrote) {
         chatStore.pushSystem(
-          '正文已写入。本章写完后，点顶部「本章定稿」更新章节概要、角色记忆与整体进度。',
-        )
+          '正文已写入。本章写完后，点顶部「本章定稿」更新章节概要、角色记忆与整体进度。'
+        );
       }
-      finish()
+      finish();
     },
-  }
+  };
 }
 
 // ===== 交互面板：发送 / 快捷动作 / 停止 / plan 确认 =====
 
 /** 发送一条自由消息（概要展开 / 提问 / plan 修改意见，由模型判定走哪条路径） */
 async function handleChatSend(text: string) {
-  const novel = currentNovel.value
-  const chapter = currentChapter.value
-  if (!novel || !chapter) return
-  if (chatStore.busy || isGenerating.value) return
+  const novel = currentNovel.value;
+  const chapter = currentChapter.value;
+  if (!novel || !chapter) return;
+  if (chatStore.busy || isGenerating.value) return;
   if (!apiKey.value) {
-    showErrorMsg('请先在「设置」中填写 DeepSeek API Key')
-    return
+    showErrorMsg('请先在「设置」中填写 DeepSeek API Key');
+    return;
   }
-  const session = ensureChatSession()
-  if (!session) return
-  session.forcedMentions = parseMentions(text, novel)
+  const session = ensureChatSession();
+  if (!session) return;
+  session.forcedMentions = parseMentions(text, novel);
 
-  chatStore.pushUser(text)
-  chatStore.setBusy(true)
-  const turnUi = createTurnUi()
+  chatStore.pushUser(text);
+  chatStore.setBusy(true);
+  const turnUi = createTurnUi();
   // 有待确认 plan 时，本条消息视为对 plan 的修改意见 → 强制 plan 路径
   await runChatTurn(
     session,
     { visibleText: text, forcePlan: chatStore.getPendingPlan() !== null },
     buildAgentConfig(),
-    makeChatCallbacks(turnUi),
-  )
+    makeChatCallbacks(turnUi)
+  );
 }
 
 /** 快捷动作：续写上一章（新章场景）/ 续写本章 */
-async function handleChatQuickAction(
-  action: 'continue-prev' | 'continue-current',
-) {
-  const novel = currentNovel.value
-  const chapter = currentChapter.value
-  if (!novel || !chapter) return
-  if (chatStore.busy || isGenerating.value) return
+async function handleChatQuickAction(action: 'continue-prev' | 'continue-current') {
+  const novel = currentNovel.value;
+  const chapter = currentChapter.value;
+  if (!novel || !chapter) return;
+  if (chatStore.busy || isGenerating.value) return;
   if (!apiKey.value) {
-    showErrorMsg('请先在「设置」中填写 DeepSeek API Key')
-    return
+    showErrorMsg('请先在「设置」中填写 DeepSeek API Key');
+    return;
   }
 
-  let task: { visible: string; llm: string } | null
+  let task: { visible: string; llm: string } | null;
   try {
     task =
       action === 'continue-prev'
-        ? await buildContinuePrevTask(
-            novel,
-            chapter,
-            settingStore.agentWriteLength,
-          )
+        ? await buildContinuePrevTask(novel, chapter, settingStore.agentWriteLength)
         : buildContinueCurrentTask(
             novel,
             chapter,
             currentChapterContent.value,
             settingStore.agentWriteLength,
-            await loadStoryState(novel.id).catch(() => agentStore.storyState),
-          )
+            await loadStoryState(novel.id).catch(() => agentStore.storyState)
+          );
   } catch (e) {
-    showErrorMsg(errorText(e))
-    return
+    showErrorMsg(errorText(e));
+    return;
   }
   if (!task) {
-    showErrorMsg('没有上一章，无法「续写上一章」')
-    return
+    showErrorMsg('没有上一章，无法「续写上一章」');
+    return;
   }
 
-  const session = ensureChatSession()
-  if (!session) return
-  chatStore.pushUser(task.visible)
-  chatStore.setBusy(true)
-  const turnUi = createTurnUi()
+  const session = ensureChatSession();
+  if (!session) return;
+  chatStore.pushUser(task.visible);
+  chatStore.setBusy(true);
+  const turnUi = createTurnUi();
   await runChatTurn(
     session,
     { visibleText: task.visible, llmText: task.llm, forcePlan: true },
     buildAgentConfig(),
-    makeChatCallbacks(turnUi),
-  )
+    makeChatCallbacks(turnUi)
+  );
 }
 
 /** 停止当前轮次（编辑器 Escape 也走这里） */
 function handleChatStop() {
   if (finalizeAbort) {
-    chatStore.pushSystem('正在停止定稿…')
-    finalizeAbort.abort()
-    return
+    chatStore.pushSystem('正在停止定稿…');
+    finalizeAbort.abort();
+    return;
   }
   if (chatSession.value && chatStore.busy) {
-    chatStore.pushSystem('正在停止…')
-    abortChatSession(chatSession.value)
+    chatStore.pushSystem('正在停止…');
+    abortChatSession(chatSession.value);
   }
 }
 
 /** 确认 plan → 生成轮（写章） */
 async function handleChatConfirmPlan(plan: AgentPlan) {
-  const session = chatSession.value
-  if (!session) return
-  if (chatStore.busy || isGenerating.value) return
+  const session = chatSession.value;
+  if (!session) return;
+  if (chatStore.busy || isGenerating.value) return;
   if (!apiKey.value) {
-    showErrorMsg('请先在「设置」中填写 DeepSeek API Key')
-    return
+    showErrorMsg('请先在「设置」中填写 DeepSeek API Key');
+    return;
   }
-  const pending = chatStore.getPendingPlan()
-  if (pending) chatStore.updatePlan(pending.id, { status: 'confirmed' })
-  session.plan = plan
-  chatStore.setBusy(true)
-  const turnUi = createTurnUi()
-  await runChatGenerateTurn(
-    session,
-    buildAgentConfig(),
-    makeChatCallbacks(turnUi),
-  )
+  const pending = chatStore.getPendingPlan();
+  if (pending) chatStore.updatePlan(pending.id, { status: 'confirmed' });
+  session.plan = plan;
+  chatStore.setBusy(true);
+  const turnUi = createTurnUi();
+  await runChatGenerateTurn(session, buildAgentConfig(), makeChatCallbacks(turnUi));
 }
 
 /** 取消待确认的 plan */
 function handleChatCancelPlan() {
-  const pending = chatStore.getPendingPlan()
+  const pending = chatStore.getPendingPlan();
   if (pending) {
-    chatStore.updatePlan(pending.id, { status: 'cancelled' })
-    chatStore.pushSystem('规划已取消，可继续调整或让 Agent 重新规划')
+    chatStore.updatePlan(pending.id, { status: 'cancelled' });
+    chatStore.pushSystem('规划已取消，可继续调整或让 Agent 重新规划');
   }
-  persistChatSession()
+  persistChatSession();
 }
 
 /** 撤销某次写章（恢复到写入前快照） */
 function handleChatUndoWrite(msgId: string) {
-  const msg = chatStore.transcript.find((m) => m.id === msgId)
-  const session = chatSession.value
-  if (!msg || msg.kind !== 'tool' || !msg.write?.snapshot) return
-  if (chatStore.busy) return
+  const msg = chatStore.transcript.find((m) => m.id === msgId);
+  const session = chatSession.value;
+  if (!msg || msg.kind !== 'tool' || !msg.write?.snapshot) return;
+  if (chatStore.busy) return;
 
-  const snapshot = msg.write.snapshot
-  novelStore.updateContent(snapshot)
-  editorRef.value?.replaceContent(snapshot)
-  if (session) session.chapterContent = snapshot
-  msg.write = { ...msg.write, snapshot: undefined }
-  chatStore.pushSystem('已恢复该次写入前的章节内容')
-  persistChatSession()
+  const snapshot = msg.write.snapshot;
+  novelStore.updateContent(snapshot);
+  editorRef.value?.replaceContent(snapshot);
+  if (session) session.chapterContent = snapshot;
+  msg.write = { ...msg.write, snapshot: undefined };
+  chatStore.pushSystem('已恢复该次写入前的章节内容');
+  persistChatSession();
 }
 
 /** 清空对话（删持久化文件 + 重建会话） */
 async function handleChatClear() {
-  const chapter = currentChapter.value
-  chatStore.clear()
-  chatSession.value = null
-  if (chapter) await deleteChatSessionFile(chapter.id)
+  const chapter = currentChapter.value;
+  chatStore.clear();
+  chatSession.value = null;
+  if (chapter) await deleteChatSessionFile(chapter.id);
 }
 
 // ===== Agent 配置 =====
@@ -1289,59 +1176,56 @@ function buildAgentConfig(overrides: Partial<AgentConfig> = {}): AgentConfig {
     model: settingStore.deepseekModel,
     lengthTarget: settingStore.agentWriteLength,
     ...overrides,
-  }
+  };
 }
 
 // ===== 角色面板：档案/状态编辑落盘 =====
 async function handleUpdateSingleCharacter(character: Character) {
-  if (!currentNovel.value) return
+  if (!currentNovel.value) return;
   const characters = currentNovel.value.characters.map((c) =>
-    c.id === character.id ? character : c,
-  )
-  await handleUpdateCharacters(characters)
+    c.id === character.id ? character : c
+  );
+  await handleUpdateCharacters(characters);
 }
 
 /** 角色面板：手动编辑短期记忆 */
-async function handleUpdateShortTermMemory(patch: {
-  characterName: string
-  shortTerm: string
-}) {
-  if (!currentNovel.value) return
+async function handleUpdateShortTermMemory(patch: { characterName: string; shortTerm: string }) {
+  if (!currentNovel.value) return;
   try {
-    const state = await loadStoryState(currentNovel.value.id)
+    const state = await loadStoryState(currentNovel.value.id);
     const saved = await saveStoryState(
-      setShortTermMemory(state, patch.characterName, patch.shortTerm),
-    )
-    agentStore.setStoryState(saved)
+      setShortTermMemory(state, patch.characterName, patch.shortTerm)
+    );
+    agentStore.setStoryState(saved);
   } catch (e) {
-    showErrorMsg('保存短期记忆失败：' + errorText(e))
+    showErrorMsg('保存短期记忆失败：' + errorText(e));
   }
 }
 
 /** 故事状态：回滚一次长期记忆（Skill）改写 */
 async function handleRevertLongTerm(changeId: string) {
-  const novel = currentNovel.value
-  if (!novel) return
+  const novel = currentNovel.value;
+  if (!novel) return;
   if (chatStore.busy) {
-    showWarnMsg('Agent 工作中，请稍后再回滚')
-    return
+    showWarnMsg('Agent 工作中，请稍后再回滚');
+    return;
   }
   try {
-    const state = await loadStoryState(novel.id)
-    const r = revertLongTermChange(novel.characters, state, changeId)
+    const state = await loadStoryState(novel.id);
+    const r = revertLongTermChange(novel.characters, state, changeId);
     if (!r) {
-      showWarnMsg('无法回滚：记录不存在、已回滚，或角色已被删除')
-      return
+      showWarnMsg('无法回滚：记录不存在、已回滚，或角色已被删除');
+      return;
     }
-    const updated = { ...novel, characters: r.characters }
-    novelStore.updateCurrentNovel(updated)
-    await saveNovelMeta(updated)
-    agentStore.setStoryState(await saveStoryState(r.state))
+    const updated = { ...novel, characters: r.characters };
+    novelStore.updateCurrentNovel(updated);
+    await saveNovelMeta(updated);
+    agentStore.setStoryState(await saveStoryState(r.state));
     if (r.revertedIds.length > 1) {
-      showWarnMsg(`已回滚，并一并撤销了之后对该角色的 ${r.revertedIds.length - 1} 次改写`)
+      showWarnMsg(`已回滚，并一并撤销了之后对该角色的 ${r.revertedIds.length - 1} 次改写`);
     }
   } catch (e) {
-    showErrorMsg('回滚失败：' + errorText(e))
+    showErrorMsg('回滚失败：' + errorText(e));
   }
 }
 
@@ -1352,67 +1236,67 @@ async function handleRevertLongTerm(changeId: string) {
  * summary / finalizedAt 以 currentNovel.chapters 中的为准。
  */
 const currentChapterMeta = computed<ChapterMeta | null>(() => {
-  const ch = currentChapter.value
-  if (!ch) return null
-  return currentNovel.value?.chapters.find((c) => c.id === ch.id) ?? ch
-})
+  const ch = currentChapter.value;
+  if (!ch) return null;
+  return currentNovel.value?.chapters.find((c) => c.id === ch.id) ?? ch;
+});
 
 /** 更新当前小说中某章的元数据（同时同步 currentChapter），并落盘 */
 async function patchChapterMeta(chapterId: string, patch: Partial<ChapterMeta>) {
-  const novel = currentNovel.value
-  if (!novel) return
+  const novel = currentNovel.value;
+  if (!novel) return;
   const updated: Novel = {
     ...novel,
     chapters: novel.chapters.map((c) => (c.id === chapterId ? { ...c, ...patch } : c)),
-  }
-  novelStore.updateCurrentNovel(updated)
-  if (currentChapter.value?.id === chapterId) Object.assign(currentChapter.value, patch)
-  await saveNovelMeta(updated)
+  };
+  novelStore.updateCurrentNovel(updated);
+  if (currentChapter.value?.id === chapterId) Object.assign(currentChapter.value, patch);
+  await saveNovelMeta(updated);
 }
 
 async function handleSaveChapterSummary(summary: string) {
-  const ch = currentChapterMeta.value
-  if (!ch) return
+  const ch = currentChapterMeta.value;
+  if (!ch) return;
   try {
-    await patchChapterMeta(ch.id, { summary: summary || undefined })
+    await patchChapterMeta(ch.id, { summary: summary || undefined });
   } catch (e) {
-    showErrorMsg('保存概要失败：' + errorText(e))
+    showErrorMsg('保存概要失败：' + errorText(e));
   }
 }
 
-const finalizing = ref(false)
-let finalizeAbort: AbortController | null = null
+const finalizing = ref(false);
+let finalizeAbort: AbortController | null = null;
 
 function handleFinalizeFromSummaryDialog() {
-  sidebarCollapsed.value = false
-  sidebarTab.value = 'agent'
-  void handleFinalizeChapter()
+  sidebarCollapsed.value = false;
+  sidebarTab.value = 'agent';
+  void handleFinalizeChapter();
 }
 
 /** 定稿成功：把角色 Skill 与本章概要/定稿时间合并回当前小说（保留期间的字数等变化） */
 async function applyFinalizeResult(result: FinalizeResult, chapterId: string) {
-  const novel = currentNovel.value
-  if (!novel || novel.id !== result.novel.id) return
-  const fin = result.novel.chapters.find((c) => c.id === chapterId)
+  const novel = currentNovel.value;
+  if (!novel || novel.id !== result.novel.id) return;
+  const fin = result.novel.chapters.find((c) => c.id === chapterId);
   novelStore.updateCurrentNovel({
     ...novel,
     characters: result.novel.characters,
-  })
+  });
   await patchChapterMeta(chapterId, {
     summary: fin?.summary,
     finalizedAt: fin?.finalizedAt,
-  })
-  agentStore.setStoryState(result.state)
+  });
+  agentStore.setStoryState(result.state);
 }
 
 /** 定稿中断/失败：工具可能已改写部分 Skill，以磁盘为准刷新角色，避免自动保存覆盖回旧值 */
 async function syncCharactersFromDisk() {
-  const novel = currentNovel.value
-  if (!novel) return
+  const novel = currentNovel.value;
+  if (!novel) return;
   try {
-    const disk = await loadCurrentNovel()
+    const disk = await loadCurrentNovel();
     if (disk && disk.id === novel.id) {
-      novelStore.updateCurrentNovel({ ...novel, characters: disk.characters })
+      novelStore.updateCurrentNovel({ ...novel, characters: disk.characters });
     }
   } catch {
     // ignore
@@ -1421,34 +1305,34 @@ async function syncCharactersFromDisk() {
 
 /** 本章定稿：章节概要 → 短期记忆 → 长期记忆 → 整体进度 */
 async function handleFinalizeChapter() {
-  const novel = currentNovel.value
-  const chapter = currentChapterMeta.value
-  if (!novel || !chapter) return
-  if (chatStore.busy || isGenerating.value) return
+  const novel = currentNovel.value;
+  const chapter = currentChapterMeta.value;
+  if (!novel || !chapter) return;
+  if (chatStore.busy || isGenerating.value) return;
   if (!apiKey.value) {
-    showErrorMsg('请先在「设置」中填写 DeepSeek API Key')
-    return
+    showErrorMsg('请先在「设置」中填写 DeepSeek API Key');
+    return;
   }
-  await trySaveCurrentChapter()
-  const content = currentChapterContent.value
+  await trySaveCurrentChapter();
+  const content = currentChapterContent.value;
   if (content.trim().length < 50) {
-    showWarnMsg('本章正文太短，写完后再定稿')
-    return
+    showWarnMsg('本章正文太短，写完后再定稿');
+    return;
   }
 
-  const chapterId = chapter.id
-  const refinalize = !!chapter.finalizedAt
+  const chapterId = chapter.id;
+  const refinalize = !!chapter.finalizedAt;
   chatStore.pushSystem(
     refinalize
       ? `重新定稿《${chapter.title}》：先撤回上次定稿对记忆的改动，再重新整理`
-      : `定稿《${chapter.title}》：概要 → 短期记忆 → 长期记忆 → 整体进度`,
-  )
-  chatStore.setBusy(true)
-  chatStore.setPhase('finalizing')
-  novelStore.startGenerating()
-  finalizing.value = true
-  finalizeAbort = new AbortController()
-  const cards: Partial<Record<FinalizeStep, string>> = {}
+      : `定稿《${chapter.title}》：概要 → 短期记忆 → 长期记忆 → 整体进度`
+  );
+  chatStore.setBusy(true);
+  chatStore.setPhase('finalizing');
+  novelStore.startGenerating();
+  finalizing.value = true;
+  finalizeAbort = new AbortController();
+  const cards: Partial<Record<FinalizeStep, string>> = {};
 
   try {
     const result = await runChapterFinalize(
@@ -1462,25 +1346,25 @@ async function handleFinalizeChapter() {
       {
         onStatus: (s) => chatStore.setStatus(s),
         onStepStart: (step) => {
-          cards[step] = chatStore.pushTool(`finalize:${step}`, '进行中…')
+          cards[step] = chatStore.pushTool(`finalize:${step}`, '进行中…');
         },
         onStepEnd: (step, _ok, text) => {
-          const id = cards[step]
-          if (!id) return
-          const firstLine = text.split('\n')[0]
+          const id = cards[step];
+          if (!id) return;
+          const firstLine = text.split('\n')[0];
           chatStore.updateTool(id, {
             status: 'done',
             argsSummary: firstLine.length > 40 ? firstLine.slice(0, 40) + '…' : firstLine,
             resultText: text,
-          })
-          delete cards[step]
+          });
+          delete cards[step];
         },
         onContextTrimmed: (info) =>
           showWarnMsg(`上下文接近上限，已省略 ${info.trimmed} 条早期内容。`),
         onWarn: (m) => showWarnMsg(m),
-      },
-    )
-    await applyFinalizeResult(result, chapterId)
+      }
+    );
+    await applyFinalizeResult(result, chapterId);
     const parts = [
       `《${chapter.title}》已定稿。`,
       result.shortTermUpdated.length
@@ -1489,50 +1373,51 @@ async function handleFinalizeChapter() {
       result.longTermChanges.length
         ? `长期记忆改写：${result.longTermChanges.map((c) => c.characterName).join('、')}（可在「故事状态」回滚）`
         : '长期记忆：无需改写',
-    ]
-    chatStore.pushSystem(parts.join('\n'))
+    ];
+    chatStore.pushSystem(parts.join('\n'));
   } catch (e) {
     const aborted =
       finalizeAbort?.signal.aborted ||
-      (e instanceof Error && (e.name === 'AbortError' || /abort/i.test(e.message)))
+      (e instanceof Error && (e.name === 'AbortError' || /abort/i.test(e.message)));
     for (const id of Object.values(cards)) {
-      if (id) chatStore.updateTool(id, { status: 'error', argsSummary: aborted ? '已停止' : '失败' })
+      if (id)
+        chatStore.updateTool(id, { status: 'error', argsSummary: aborted ? '已停止' : '失败' });
     }
-    if (aborted) chatStore.pushSystem('已停止定稿（已完成的步骤会保留，可重新定稿）')
-    else showErrorMsg('定稿失败：' + errorText(e))
-    await syncCharactersFromDisk()
+    if (aborted) chatStore.pushSystem('已停止定稿（已完成的步骤会保留，可重新定稿）');
+    else showErrorMsg('定稿失败：' + errorText(e));
+    await syncCharactersFromDisk();
     loadStoryState(novel.id)
       .then((s) => agentStore.setStoryState(s))
-      .catch(() => {})
+      .catch(() => {});
   } finally {
-    finalizeAbort = null
-    finalizing.value = false
-    chatStore.setBusy(false)
-    chatStore.setStatus('')
-    chatStore.setPhase('idle')
-    novelStore.stopGenerating()
-    persistChatSession()
+    finalizeAbort = null;
+    finalizing.value = false;
+    chatStore.setBusy(false);
+    chatStore.setStatus('');
+    chatStore.setPhase('idle');
+    novelStore.stopGenerating();
+    persistChatSession();
   }
 }
 
 // ===== 工具函数 =====
 function showErrorMsg(msg: string) {
-  snackColor.value = 'error'
-  errorMessage.value = msg
-  showError.value = true
+  snackColor.value = 'error';
+  errorMessage.value = msg;
+  showError.value = true;
 }
 
 function showWarnMsg(msg: string) {
-  snackColor.value = 'warning'
-  errorMessage.value = msg
-  showError.value = true
+  snackColor.value = 'warning';
+  errorMessage.value = msg;
+  showError.value = true;
 }
 
 onBeforeUnmount(() => {
-  if (autoSaveTimer) clearTimeout(autoSaveTimer)
-  if (chatStore.busy && chatSession.value) abortChatSession(chatSession.value)
-  novelStore.stopGenerating()
-})
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  if (chatStore.busy && chatSession.value) abortChatSession(chatSession.value);
+  novelStore.stopGenerating();
+});
 </script>
 
 <style scoped>

@@ -1,4 +1,4 @@
-import { AppService } from "@/types/system";
+import type { AppService } from '@/types/system';
 
 declare global {
   interface Window {
@@ -6,14 +6,12 @@ declare global {
   }
 }
 
-// @ts-ignore
 const platform = import.meta.env.VITE_APP_PLATFORM;
-export const isTauriAppPlatform = () => platform === "tauri";
-export const isWebAppPlatform = () => platform === "web";
+export const isTauriAppPlatform = () => platform === 'tauri';
+export const isWebAppPlatform = () => platform === 'web';
 
 export const hasCli = () => window.__READEST_CLI_ACCESS === true;
-export const isPWA = () =>
-  window.matchMedia("(display-mode: standalone)").matches;
+export const isPWA = () => window.matchMedia('(display-mode: standalone)').matches;
 
 export interface EnvConfigType {
   getAppService: () => Promise<AppService>;
@@ -22,11 +20,11 @@ export interface EnvConfigType {
 let nativeAppService: AppService | null = null;
 const getNativeAppService = async () => {
   if (!nativeAppService) {
-    const { NativeAppService } = await import("@/services/nativeAppService");
+    const { NativeAppService } = await import('@/services/nativeAppService');
     try {
       nativeAppService = new NativeAppService();
     } catch (err) {
-      throw new Error(`初始化 NativeAppService 失败: ${err}`);
+      throw new Error(`初始化 NativeAppService 失败: ${err}`, { cause: err });
     }
     await nativeAppService.loadSettings();
   }
@@ -36,7 +34,7 @@ const getNativeAppService = async () => {
 let webAppService: AppService | null = null;
 const getWebAppService = async () => {
   if (!webAppService) {
-    const { WebAppService } = await import("@/services/webAppService");
+    const { WebAppService } = await import('@/services/webAppService');
     webAppService = new WebAppService();
     await webAppService.loadSettings();
   }

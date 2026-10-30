@@ -1,12 +1,12 @@
-import { useReaderStore } from '@/store/readerStore';
-import { isTauriAppPlatform } from '@/services/environment';
 import useShortcuts from '@/hooks/useShortcuts';
-import { useSidebarStore } from '@/store/sidebarStore';
+import { MAX_ZOOM_LEVEL, MIN_ZOOM_LEVEL, ZOOM_STEP } from '@/services/constants';
+import { isTauriAppPlatform } from '@/services/environment';
+import { useReaderStore } from '@/store/readerStore';
 import { useSettingsStore } from '@/store/settingsStore';
+import { useSidebarStore } from '@/store/sidebarStore';
+import { eventDispatcher } from '@/utils/event';
 import { saveViewSettings } from '@/utils/viewSettingsHelper';
 import { tauriHandleToggleFullScreen, tauriQuitApp } from '@/utils/window';
-import { eventDispatcher } from '@/utils/event';
-import { MAX_ZOOM_LEVEL, MIN_ZOOM_LEVEL, ZOOM_STEP } from '@/services/constants';
 
 const useBookShortcuts = (sideBarBookKey: string) => {
   const readerStore = useReaderStore();
@@ -32,8 +32,7 @@ const useBookShortcuts = (sideBarBookKey: string) => {
     }
   };
 
-  const switchSideBar = () => {
-  };
+  const switchSideBar = () => {};
 
   const goLeft = () => {
     getView(sideBarBookKey)?.goLeft();
@@ -136,30 +135,28 @@ const useBookShortcuts = (sideBarBookKey: string) => {
     }
   };
 
-  useShortcuts(
-    {
-      onSwitchSideBar: switchSideBar,
-      onToggleSideBar: toggleSideBar,
-      onCloseNote: closeAllMenus,
-      onToggleScrollMode: toggleScrollMode,
-      onOpenFontLayoutSettings: () => setFontLayoutSettingsDialogOpen(true),
-      onToggleSearchBar: showSearchBar,
-      onReloadPage: reloadPage,
-      onToggleFullscreen: toggleFullscreen,
-      onQuitApp: quitApp,
-      onGoLeft: goLeft,
-      onGoRight: goRight,
-      onGoPrev: goPrev,
-      onGoNext: goNext,
-      onGoHalfPageDown: goHalfPageDown,
-      onGoHalfPageUp: goHalfPageUp,
-      onGoBack: goBack,
-      onGoForward: goForward,
-      onZoomIn: zoomIn,
-      onZoomOut: zoomOut,
-      onResetZoom: resetZoom,
-    },
-  );
+  useShortcuts({
+    onSwitchSideBar: switchSideBar,
+    onToggleSideBar: toggleSideBar,
+    onCloseNote: closeAllMenus,
+    onToggleScrollMode: toggleScrollMode,
+    onOpenFontLayoutSettings: () => setFontLayoutSettingsDialogOpen(true),
+    onToggleSearchBar: showSearchBar,
+    onReloadPage: reloadPage,
+    onToggleFullscreen: toggleFullscreen,
+    onQuitApp: quitApp,
+    onGoLeft: goLeft,
+    onGoRight: goRight,
+    onGoPrev: goPrev,
+    onGoNext: goNext,
+    onGoHalfPageDown: goHalfPageDown,
+    onGoHalfPageUp: goHalfPageUp,
+    onGoBack: goBack,
+    onGoForward: goForward,
+    onZoomIn: zoomIn,
+    onZoomOut: zoomOut,
+    onResetZoom: resetZoom,
+  });
 };
 
 export default useBookShortcuts;
