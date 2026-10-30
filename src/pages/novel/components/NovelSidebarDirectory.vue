@@ -6,7 +6,7 @@
       <span class="lg-section-label">当前小说</span>
     </div>
     <div class="current-novel-box">
-      <div v-if="novel" class="current-novel-title text-truncate">
+      <div v-if="novel" class="current-novel-title truncate">
         {{ novel.title }}
       </div>
       <div v-else class="current-novel-title current-novel-title--empty">未打开小说</div>

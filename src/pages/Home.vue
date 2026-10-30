@@ -25,7 +25,7 @@
         @click="onNavItemClick(item)"
       >
         <v-icon :icon="item.icon" />
-        <span class="text-body-small mt-1">{{ item.title }}</span>
+        <span class="text-xs mt-1">{{ item.title }}</span>
       </v-btn>
     </v-bottom-navigation>
   </v-app>

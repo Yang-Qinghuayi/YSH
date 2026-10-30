@@ -2,8 +2,8 @@
   <div class="overview-bar lg-card">
     <!-- 标题简介 -->
     <div v-if="novel" class="overview-title-wrap">
-      <div class="overview-title text-truncate">{{ novel.title }}</div>
-      <div v-if="novel.synopsis" class="overview-synopsis text-truncate">{{ novel.synopsis }}</div>
+      <div class="overview-title truncate">{{ novel.title }}</div>
+      <div v-if="novel.synopsis" class="overview-synopsis truncate">{{ novel.synopsis }}</div>
     </div>
 
     <v-spacer />

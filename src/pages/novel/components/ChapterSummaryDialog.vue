@@ -1,13 +1,13 @@
 <template>
   <v-dialog v-model="visible" max-width="620" scrollable>
     <v-card v-if="chapter" rounded="xl" class="lg-dialog">
-      <v-card-title class="d-flex align-center ga-3 pt-5 px-5">
+      <v-card-title class="flex items-center gap-3 pt-5 px-5">
         <span class="title-badge">
           <v-icon :icon="mdiTextBoxOutline" size="18" />
         </span>
         <div class="min-w-0">
-          <div class="text-title-large text-truncate">本章概要</div>
-          <div class="sub-title text-truncate">{{ chapter.title }}</div>
+          <div class="text-2xl truncate">本章概要</div>
+          <div class="sub-title truncate">{{ chapter.title }}</div>
         </div>
         <v-spacer />
         <span v-if="chapter.finalizedAt" class="status-chip status-chip--done">
@@ -16,7 +16,7 @@
         <span v-else class="status-chip">未定稿</span>
       </v-card-title>
 
-      <v-card-text class="pa-5">
+      <v-card-text class="p-5">
         <v-textarea
           v-model="draft"
           placeholder="本章还没有概要。写完本章后点「定稿本章」自动生成，也可以直接在这里手写。"

@@ -2,17 +2,17 @@
   <v-dialog v-model="visible" max-width="760" scrollable>
     <v-card v-if="loaded" rounded="xl" class="lg-dialog">
       <!-- 标题栏 -->
-      <v-card-title class="d-flex align-center ga-3 pt-5 px-5">
+      <v-card-title class="flex items-center gap-3 pt-5 px-5">
         <span class="title-badge">
           <v-icon :icon="mdiStateMachine" size="18" />
         </span>
-        <span class="text-title-large">故事状态</span>
+        <span class="text-2xl">故事状态</span>
         <span v-if="liveState?.updatedAt" class="updated-hint">
           最近更新 {{ formatTime(liveState.updatedAt) }}
         </span>
       </v-card-title>
 
-      <v-card-text class="pa-5">
+      <v-card-text class="p-5">
         <div class="intro-hint">
           每章写完后，在 Agent
           面板点「定稿」：会生成章节概要、改写角色短期记忆、判断是否改写长期记忆，并更新整体进度。

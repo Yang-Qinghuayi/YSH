@@ -1,8 +1,8 @@
 <template>
-  <div class="w-100 px-3">
-    <div class="d-flex justify-space-between align-center mb-1">
-      <span class="text-body-medium text-on-surface-variant">字重</span>
-      <span class="text-body-medium text-on-surface-variant">{{ fontWeight }}</span>
+  <div class="w-full px-3">
+    <div class="flex justify-between items-center mb-1">
+      <span class="text-sm text-on-surface-variant">字重</span>
+      <span class="text-sm text-on-surface-variant">{{ fontWeight }}</span>
     </div>
     <v-slider
       v-model="fontWeight"

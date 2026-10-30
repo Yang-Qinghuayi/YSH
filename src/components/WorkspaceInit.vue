@@ -107,12 +107,7 @@
       <transition name="slide-down">
         <div v-if="selectedPath" class="selected-wrap">
           <div class="selected-path">
-            <v-icon
-              :icon="mdiCheckCircleOutline"
-              size="16"
-              color="success"
-              class="mr-2 flex-shrink-0"
-            />
+            <v-icon :icon="mdiCheckCircleOutline" size="16" color="success" class="mr-2 shrink-0" />
             <span class="path-text">{{ selectedPath }}</span>
           </div>
         </div>

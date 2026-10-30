@@ -7,9 +7,9 @@
     scrollable
     @update:model-value="onToggle"
   >
-    <v-card class="import-dialog-card lg-card d-flex flex-column h-100">
+    <v-card class="import-dialog-card lg-card flex flex-col h-full">
       <!-- 标题栏 -->
-      <div class="import-header d-flex align-center px-4 py-3 flex-shrink-0">
+      <div class="import-header flex items-center px-4 py-3 shrink-0">
         <v-icon :icon="mdiImport" size="20" class="mr-2" color="primary" />
         <span class="import-title">导入小说</span>
         <span class="import-subtitle ml-2">{{ stepSubtitle }}</span>
@@ -20,10 +20,10 @@
       </div>
 
       <!-- 主体 -->
-      <div class="import-body flex-1-1 overflow-y-auto px-4 py-3">
+      <div class="import-body flex-1 overflow-y-auto px-4 py-3">
         <!-- ===== Step 1：输入 ===== -->
         <template v-if="step === 'input'">
-          <div class="text-body-medium text-medium-emphasis mb-2">
+          <div class="text-sm text-on-surface/60 mb-2">
             粘贴小说全文，或上传 .txt / .md 文件。会先按章节标题自动切分，再由 AI
             提取人物、情节与设定。
           </div>
@@ -35,7 +35,7 @@
             rows="14"
           ></textarea>
 
-          <div class="d-flex align-center ga-2 mt-3 flex-wrap">
+          <div class="flex items-center gap-2 mt-3 flex-wrap">
             <label class="lg-pill import-file-btn">
               <v-icon :icon="mdiFileUploadOutline" size="15" start />
               上传文件
@@ -47,9 +47,9 @@
                 @change="onFileChange"
               />
             </label>
-            <span v-if="fileName" class="text-body-small text-medium-emphasis">{{ fileName }}</span>
+            <span v-if="fileName" class="text-xs text-on-surface/60">{{ fileName }}</span>
             <v-spacer />
-            <span class="text-body-small text-medium-emphasis">{{ rawCharCount }} 字</span>
+            <span class="text-xs text-on-surface/60">{{ rawCharCount }} 字</span>
           </div>
 
           <v-alert
@@ -61,7 +61,7 @@
             closable
           >
             检测到 {{ splitPreview.length }} 个章节
-            <span class="text-medium-emphasis ml-1"
+            <span class="text-on-surface/60 ml-1"
               >（示例：{{
                 splitPreview
                   .slice(0, 3)
@@ -74,7 +74,7 @@
 
         <!-- ===== Step 2：预览确认 ===== -->
         <template v-else-if="step === 'preview'">
-          <div class="preview-section lg-card--inset pa-3 mb-3">
+          <div class="preview-section lg-card--inset p-3 mb-3">
             <div class="lg-section-label mb-2">小说信息</div>
             <label class="native-label mb-2">
               <span class="native-label-text">小说标题</span>
@@ -91,8 +91,8 @@
           </div>
 
           <!-- 章节 -->
-          <div class="preview-section lg-card--inset pa-3 mb-3">
-            <div class="d-flex align-center mb-2">
+          <div class="preview-section lg-card--inset p-3 mb-3">
+            <div class="flex items-center mb-2">
               <div class="lg-section-label">章节（{{ form.chapters.length }}）</div>
               <v-spacer />
               <button class="lg-pill import-mini-btn" @click="toggleAllChapters">
@@ -107,14 +107,14 @@
                 :class="{ 'chapter-check-item--off': !ch.selected }"
               >
                 <input v-model="ch.selected" type="checkbox" class="chapter-check-box" />
-                <span class="chapter-check-title text-truncate">{{ i + 1 }}. {{ ch.title }}</span>
+                <span class="chapter-check-title truncate">{{ i + 1 }}. {{ ch.title }}</span>
                 <span class="chapter-check-meta">{{ ch.wordCount }} 字</span>
               </label>
             </div>
           </div>
 
           <!-- 情节梗概 -->
-          <div class="preview-section lg-card--inset pa-3 mb-3">
+          <div class="preview-section lg-card--inset p-3 mb-3">
             <label class="native-label">
               <span class="native-label-text">情节梗概（详细，将作为设定条目）</span>
               <textarea
@@ -126,8 +126,8 @@
           </div>
 
           <!-- 人物 -->
-          <div class="preview-section lg-card--inset pa-3 mb-3">
-            <div class="d-flex align-center mb-2">
+          <div class="preview-section lg-card--inset p-3 mb-3">
+            <div class="flex items-center mb-2">
               <div class="lg-section-label">
                 人物（{{ selectedCharacters.length }}/{{ form.characters.length }}）
               </div>
@@ -165,14 +165,14 @@
                 <v-icon :icon="mdiClose" size="15" />
               </button>
             </div>
-            <div v-if="!form.characters.length" class="text-body-small text-medium-emphasis pa-2">
+            <div v-if="!form.characters.length" class="text-xs text-on-surface/60 p-2">
               暂无人物
             </div>
           </div>
 
           <!-- 设定 -->
-          <div class="preview-section lg-card--inset pa-3 mb-3">
-            <div class="d-flex align-center mb-2">
+          <div class="preview-section lg-card--inset p-3 mb-3">
+            <div class="flex items-center mb-2">
               <div class="lg-section-label">
                 设定条目（{{ selectedLoreEntries.length }}/{{ form.loreEntries.length }}）
               </div>
@@ -189,11 +189,11 @@
             >
               <input v-model="e.selected" type="checkbox" class="chapter-check-box mt-2" />
               <div class="char-row__fields">
-                <div class="d-flex ga-2 mb-1">
+                <div class="flex gap-2 mb-1">
                   <input
                     v-model="e.name"
                     type="text"
-                    class="native-input native-input-sm flex-1-1"
+                    class="native-input native-input-sm flex-1"
                     placeholder="名称"
                   />
                   <select v-model="e.importance" class="native-input native-input-sm native-select">
@@ -229,7 +229,7 @@
                 <v-icon :icon="mdiClose" size="15" />
               </button>
             </div>
-            <div v-if="!form.loreEntries.length" class="text-body-small text-medium-emphasis pa-2">
+            <div v-if="!form.loreEntries.length" class="text-xs text-on-surface/60 p-2">
               暂无设定
             </div>
           </div>
@@ -237,7 +237,7 @@
 
         <!-- ===== Step 3：完成 ===== -->
         <template v-else>
-          <div class="import-done d-flex flex-column align-center justify-center h-100 ga-3 pa-6">
+          <div class="import-done flex flex-col items-center justify-center h-full gap-3 p-6">
             <div class="import-done-icon lg-card--inset">
               <v-icon :icon="mdiCheckCircleOutline" size="44" color="success" />
             </div>
@@ -252,7 +252,7 @@
       </div>
 
       <!-- 底部操作栏 -->
-      <div class="import-footer d-flex align-center px-4 py-3 flex-shrink-0 ga-2">
+      <div class="import-footer flex items-center px-4 py-3 shrink-0 gap-2">
         <v-btn
           v-if="step === 'preview'"
           variant="text"
@@ -264,9 +264,7 @@
         </v-btn>
         <v-spacer />
         <template v-if="step === 'input'">
-          <span v-if="statusText" class="text-body-small text-medium-emphasis mr-2">{{
-            statusText
-          }}</span>
+          <span v-if="statusText" class="text-xs text-on-surface/60 mr-2">{{ statusText }}</span>
           <v-btn
             color="primary"
             variant="tonal"
@@ -281,9 +279,7 @@
           </v-btn>
         </template>
         <template v-else-if="step === 'preview'">
-          <span v-if="statusText" class="text-body-small text-medium-emphasis mr-2">{{
-            statusText
-          }}</span>
+          <span v-if="statusText" class="text-xs text-on-surface/60 mr-2">{{ statusText }}</span>
           <v-btn
             color="primary"
             size="small"

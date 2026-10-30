@@ -1,9 +1,9 @@
 <template>
-  <div class="entry-editor d-flex flex-column h-100">
+  <div class="entry-editor flex flex-col h-full">
     <!-- 顶部元数据表单 -->
-    <div class="entry-meta-form flex-shrink-0">
+    <div class="entry-meta-form shrink-0">
       <!-- 重要度 + 启用 -->
-      <div class="d-flex align-center flex-wrap ga-2 mb-2">
+      <div class="flex items-center flex-wrap gap-2 mb-2">
         <select
           :value="entry.importance"
           class="native-input native-input-sm native-select"

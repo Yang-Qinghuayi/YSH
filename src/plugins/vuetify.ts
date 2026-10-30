@@ -1,7 +1,8 @@
-// Vuetify 样式按需：只引入层顺序/reset 与工具类（d-flex / pa-3 / text-medium-emphasis…），
-// 组件样式由 vite-plugin-vuetify 的 autoImport 按需注入，不再 import 'vuetify/styles'（301 KB）。
+// Vuetify 样式按需：只引入层顺序 / reset，组件样式由 vite-plugin-vuetify 的
+// autoImport 按需注入，不再 import 'vuetify/styles'（301 KB）。
+// 工具类一律用 Tailwind（入口 src/styles/tailwind.css），Vuetify 的
+// utilities.css 不再引入。
 import 'vuetify/lib/styles/core.css';
-import '@/styles/vuetify-utilities.css';
 
 import type { App } from 'vue';
 import { createVuetify } from 'vuetify';

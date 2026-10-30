@@ -1,10 +1,10 @@
 <template>
   <div>
-    <div class="book-viewport d-flex justify-center align-center w-100">
+    <div class="flex justify-center items-center w-full h-[94vh]">
       <!-- 桌面端目录按钮 -->
       <v-btn
         v-if="lgAndUp"
-        class="toc-toggle toc-toggle--desktop"
+        class="fixed top-5 right-5 z-[1000]"
         icon
         color="secondary"
         variant="tonal"
@@ -18,7 +18,7 @@
       <!-- 移动端目录按钮（浮于内容上方，避开底部 Tab 栏） -->
       <v-btn
         v-if="isMobile"
-        class="toc-toggle toc-toggle--mobile"
+        class="fixed bottom-20 right-4 z-[1000]"
         icon
         color="secondary"
         variant="tonal"
@@ -30,12 +30,13 @@
         </v-icon>
       </v-btn>
 
-      <div
-        ref="containerRef"
-        class="book-content position-relative w-100 h-100"
-        @click="handlePageFlip"
-      >
-        <div class="page-info">{{ pageInfo }}</div>
+      <!-- 正文吃掉目录之外的全部宽度：min-w-0 不可省，否则阅读器内部尺寸会顶住收缩 -->
+      <div ref="containerRef" class="relative w-full h-full grow min-w-0" @click="handlePageFlip">
+        <div
+          class="absolute bottom-2 left-1/2 -translate-x-1/2 text-sm font-semibold leading-5 text-on-surface-variant"
+        >
+          {{ pageInfo }}
+        </div>
       </div>
 
       <!-- 桌面端：侧边目录面板 -->
@@ -48,7 +49,7 @@
           v-if="bookDoc && showBigCatalog && lgAndUp"
           :book-id
           :doc="bookDoc"
-          class="theme-border"
+          class="border-[3px] border-primary/20 rounded-[10px]"
         >
         </TOCView>
       </transition>
@@ -57,8 +58,8 @@
     <!-- 移动端：底部抽屉目录 -->
     <v-bottom-sheet v-if="isMobile" v-model="showMobileTOC" max-height="75vh">
       <v-sheet class="rounded-t-xl overflow-hidden">
-        <div class="d-flex justify-center pt-2 pb-1">
-          <div class="sheet-grabber"></div>
+        <div class="flex justify-center pt-2 pb-1">
+          <div class="h-1 w-10 rounded-full bg-outline/40"></div>
         </div>
         <TOCView v-if="bookDoc" :book-id :doc="bookDoc" :in-sheet="true" class="pb-4" />
       </v-sheet>
@@ -282,66 +283,9 @@ const initBook = async () => {
 </script>
 
 <style>
-.theme-border {
-  border: 3px solid rgba(var(--v-theme-primary), 0.2);
-  border-radius: 10px;
-}
-
-/* 目录悬浮按钮定位修复：
-   Tailwind v4 把 .fixed 放进 @layer utilities，而 Vuetify 4 的样式层
-   （@layer vuetify-components，声明在后）里存在 .v-btn { position: relative }，
-   按 CSS 级联层规则「后声明的层赢得同优先级冲突」，.fixed 会被压制。
-   这里改用未分层的更高优先级规则恢复 fixed 定位（right/top 等
-   偏移量与 Vuetify 无冲突，仍由 Tailwind 的 right-5/top-5 等类提供）。 */
-.v-btn.toc-toggle {
-  position: fixed;
-  z-index: 1000;
-}
-
-.book-viewport {
-  height: 94vh;
-}
-
-/* 正文区吃掉目录之外的全部宽度。
-   min-width: 0 是必须的：flex item 的自动最小尺寸默认是 min-content，
-   阅读器内部的渲染尺寸会顶住这里，导致目录挤不进来 / 正文被无限压缩。
-   目录面板自身是固定宽度（见 TOCView.vue 的 --toc-panel-width）。 */
-.book-content {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-/* 悬浮目录按钮定位：
-   Tailwind 已移除，这里用未分层规则，避免被 Vuetify 的 .v-btn 组件层覆盖。 */
-.toc-toggle--desktop {
-  top: 20px;
-  right: 20px;
-}
-
-.toc-toggle--mobile {
-  bottom: 80px;
-  right: 16px;
-}
-
-/* 右下角页码 */
-.page-info {
-  position: absolute;
-  bottom: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-weight: 600;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  color: rgb(var(--v-theme-on-surface-variant));
-}
-
-/* 底部抽屉的拖拽指示条 */
-.sheet-grabber {
-  width: 40px;
-  height: 4px;
-  border-radius: 9999px;
-  background: rgb(var(--v-theme-outline) / 40%);
-}
+/* 目录悬浮按钮现在直接用 Tailwind 的 fixed / top-5 / right-5：
+   styles/tailwind.css 里把 Tailwind 的 utilities 层排在了 Vuetify 组件层之后，
+   同优先级下 utilities 胜出，不再需要未分层的兜底规则压 .v-btn 的 position。 */
 
 /* 目录面板淡入淡出 */
 .fade-enter-active {

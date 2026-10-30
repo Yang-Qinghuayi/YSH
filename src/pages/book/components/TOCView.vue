@@ -1,14 +1,20 @@
 <template>
+  <!-- 宽度必须写死：不写宽度时，面板作为 flex item 的 flex-basis:auto 会取
+       max-content，而条目文字是 nowrap，于是最长的一条标题决定面板宽度，
+       正文被越挤越窄。桌面固定 w-64（16rem），移动端抽屉里占满整行。 -->
   <div
     ref="viewRef"
     role="tree"
-    :class="['toc-panel pa-3', inSheet ? 'toc-panel--sheet' : 'toc-panel--side']"
+    :class="[
+      'relative z-[200] overflow-y-auto overflow-x-hidden p-3',
+      inSheet ? 'w-full' : 'w-64 shrink-0',
+    ]"
     :style="inSheet ? { maxHeight: 'calc(75dvh - 40px)' } : { height: '80vh' }"
   >
-    <div class="toc-panel__title text-truncate ma-3 mb-0 text-center">
+    <div class="truncate text-center m-3 mb-0 text-lg font-medium leading-7">
       {{ doc.metadata.title }}
     </div>
-    <div class="text-truncate text-center ma-2">
+    <div class="truncate text-center m-2">
       {{ authorName }}
     </div>
     <TOCItemView
@@ -109,43 +115,3 @@ watch([progress, () => doc, () => sidebarStore.sideBarBookKey], async ([newProgr
   scrollToProgress(newProgress);
 });
 </script>
-
-<style scoped>
-/* 目录面板宽度固定，不再被最长的一条标题撑开。
-   原先模板上挂的是 w-64 —— 那是 Tailwind 的类名，本项目用的是 Vuetify 工具类
-   （只有 w-25/33/50/66/75/100），所以 w-64 实际不生效：面板没有宽度，作为
-   flex item 时 flex-basis:auto 会按 max-content 取宽，而条目文字是 nowrap，
-   最长的一条标题就成了面板宽度；又因为它带 flex-shrink-0 不会收缩，正文被挤窄。
-   这里直接给死宽度，超长标题交给条目内部做 ellipsis 截断。 */
-.toc-panel {
-  /* 想调整侧栏宽度，只改这一个变量即可 */
-  --toc-panel-width: 18rem;
-
-  min-width: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-
-/* 桌面端：贴着正文右侧的固定宽度侧栏 */
-.toc-panel--side {
-  position: relative;
-  z-index: 200;
-  flex: 0 0 var(--toc-panel-width);
-  width: var(--toc-panel-width);
-  max-width: var(--toc-panel-width);
-}
-
-/* 移动端底部抽屉：横向占满 */
-.toc-panel--sheet {
-  flex: 0 0 auto;
-  width: 100%;
-  max-width: 100%;
-}
-
-/* 书名（模板里原来用的 text-lg 同样是 Tailwind 类名，Vuetify 没有，故在此声明） */
-.toc-panel__title {
-  font-size: 1.125rem;
-  line-height: 1.75rem;
-  font-weight: 500;
-}
-</style>

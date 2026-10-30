@@ -1,29 +1,29 @@
 <template>
   <v-dialog v-model="isOpen" max-width="640" scrollable>
     <v-card rounded="xl" class="lg-dialog">
-      <v-card-title class="d-flex align-center ga-3 pt-5 px-5">
+      <v-card-title class="flex items-center gap-3 pt-5 px-5">
         <span class="title-badge">
           <v-icon :icon="mdiAccountEdit" size="18" />
         </span>
-        <span class="text-title-large">角色管理</span>
+        <span class="text-2xl">角色管理</span>
       </v-card-title>
 
-      <v-card-text class="pa-5">
+      <v-card-text class="p-5">
         <!-- 角色列表 -->
-        <div v-if="!editingCharacter" class="d-flex flex-column ga-3">
+        <div v-if="!editingCharacter" class="flex flex-col gap-3">
           <div
             v-for="character in characters"
             :key="character.id"
-            class="character-item lg-card--inset pa-3"
+            class="character-item lg-card--inset p-3"
           >
-            <div class="d-flex align-center justify-space-between">
-              <div class="flex-1-1 mr-2">
-                <div class="font-weight-medium">{{ character.name }}</div>
-                <div class="text-body-small text-medium-emphasis mt-1 line-clamp-2">
+            <div class="flex items-center justify-between">
+              <div class="flex-1 mr-2">
+                <div class="font-medium">{{ character.name }}</div>
+                <div class="text-xs text-on-surface/60 mt-1 line-clamp-2">
                   {{ character.skill || '暂无长期记忆' }}
                 </div>
               </div>
-              <div class="d-flex ga-1 flex-shrink-0">
+              <div class="flex gap-1 shrink-0">
                 <v-btn icon size="small" variant="text" @click="startEdit(character)">
                   <v-icon :icon="mdiPencil" size="18" />
                 </v-btn>
@@ -52,7 +52,7 @@
         </div>
 
         <!-- 编辑/新增单个角色 -->
-        <div v-else class="d-flex flex-column ga-4">
+        <div v-else class="flex flex-col gap-4">
           <label class="native-label">
             <span class="native-label-text">角色名（用于 @提及）</span>
             <input

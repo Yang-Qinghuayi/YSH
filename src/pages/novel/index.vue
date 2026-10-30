@@ -6,7 +6,7 @@
   <div class="novel-root">
     <WorkspaceInit v-if="!workspaceReady" @done="handleWorkspaceReady" />
 
-    <div v-else class="novel-page d-flex">
+    <div v-else class="novel-page flex">
       <NovelEditorStage @stop="page.handleStopAgent" />
       <NovelSidebar @stop="page.handleStopAgent" />
       <NovelDialogs />

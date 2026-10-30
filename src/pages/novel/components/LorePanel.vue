@@ -7,12 +7,12 @@
     scrollable
     @update:model-value="(v) => emit('update:visible', v)"
   >
-    <v-card class="lore-dialog-card lg-card d-flex flex-column h-100">
+    <v-card class="lore-dialog-card lg-card flex flex-col h-full">
       <!-- 标题栏 -->
-      <div class="lore-dialog-header d-flex align-center px-4 py-3 flex-shrink-0">
+      <div class="lore-dialog-header flex items-center px-4 py-3 shrink-0">
         <v-icon :icon="mdiBookmarkMultipleOutline" size="20" class="mr-2" color="primary" />
         <span class="lore-dialog-title">设定资料库</span>
-        <span class="lore-dialog-subtitle ml-2 text-truncate">{{ novel.title }}</span>
+        <span class="lore-dialog-subtitle ml-2 truncate">{{ novel.title }}</span>
         <v-spacer />
         <button class="lg-icon-btn" title="关闭" @click="emit('update:visible', false)">
           <v-icon :icon="mdiClose" size="18" />
@@ -20,16 +20,16 @@
       </div>
 
       <!-- 主体：左右两栏 -->
-      <div class="lore-page d-flex flex-1-1 overflow-hidden">
+      <div class="lore-page flex flex-1 overflow-hidden">
         <!-- ===== 左侧栏 ===== -->
-        <div class="lore-sidebar d-flex flex-column ga-2">
+        <div class="lore-sidebar flex flex-col gap-2">
           <!-- 条目列表 -->
           <div
             v-if="lore"
-            class="lore-section lore-entries lg-card--inset pa-2 d-flex flex-column flex-1-1"
+            class="lore-section lore-entries lg-card--inset p-2 flex flex-col flex-1"
           >
             <div class="lg-section-label px-1 mb-1">条目</div>
-            <div class="flex-1-1 overflow-y-auto lore-entries-scroll">
+            <div class="flex-1 overflow-y-auto lore-entries-scroll">
               <EntryList
                 :entries="filteredEntries"
                 :current-entry-id="currentEntry?.id"
@@ -42,20 +42,17 @@
           </div>
 
           <!-- 加载状态 -->
-          <div
-            v-else
-            class="d-flex align-center justify-center flex-1-1 text-medium-emphasis text-body-medium"
-          >
+          <div v-else class="flex items-center justify-center flex-1 text-on-surface/60 text-sm">
             加载中…
           </div>
         </div>
 
         <!-- ===== 主内容区 ===== -->
-        <div class="lore-main flex-1-1 d-flex flex-column overflow-hidden">
+        <div class="lore-main flex-1 flex flex-col overflow-hidden">
           <!-- 未选择时的占位 -->
           <div
             v-if="!currentEntry"
-            class="lore-empty d-flex flex-column align-center justify-center h-100 ga-3"
+            class="lore-empty flex flex-col items-center justify-center h-full gap-3"
           >
             <div class="lore-empty-icon lg-card--inset">
               <v-icon :icon="mdiBookmarkMultipleOutline" size="40" />

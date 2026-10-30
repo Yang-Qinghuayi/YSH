@@ -1,5 +1,5 @@
 <template>
-  <div class="editor-main flex-1-1 d-flex flex-column overflow-hidden">
+  <div class="editor-main flex-1 flex flex-col overflow-hidden">
     <NovelOverviewBar
       v-if="currentNovel"
       :novel="currentNovel"
@@ -40,7 +40,7 @@
     <NovelEditor
       v-else
       ref="editorRef"
-      class="flex-1-1"
+      class="flex-1"
       style="min-height: 0"
       :chapter="currentChapter"
       :content="currentChapterContent"

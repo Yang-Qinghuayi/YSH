@@ -1,0 +1,39 @@
+/* ============================================================
+ * Tailwind v4 入口（由 @tailwindcss/vite 插件接管，不走 PostCSS 链）
+ *
+ * 1. 层顺序：这里先声明 Vuetify 的层、再声明 Tailwind 的层。
+ *    CSS 级联层的优先级由「层名第一次出现的顺序」决定，所以只要这条
+ *    @layer 语句排在 Vuetify 的 core.css 之前（或 Vuetify 尚未声明时），
+ *    Tailwind 的 utilities 就永远压得住 Vuetify 组件样式 —— 否则会出现
+ *    `.v-btn { position: relative }` 压制 `.fixed` 这类问题（book.vue 里
+ *    曾为此写过未分层的兜底规则）。
+ *    注意：一旦顺序在这里钉死，文件 import 的先后就不再影响结果。
+ *
+ * 2. 主题桥接：@theme 里把 Vuetify 的 Material You 变量（--v-theme-*）
+ *    接成 Tailwind 的颜色，这样 bg-surface / text-primary / border-outline
+ *    这些类直接跟随换肤，不用再写 bg-[rgb(var(--v-theme-surface))]。
+ * ============================================================ */
+@layer vuetify-core, vuetify-components, vuetify-overrides, vuetify-utilities, vuetify-final, theme, base, components, utilities;
+
+@import 'tailwindcss';
+
+@theme {
+  /* 字体：沿用 global.scss 定义的中文字体栈（--font-sans） */
+  --default-font-family: var(--font-sans);
+  --default-mono-font-family: var(--font-sans);
+
+  /* 颜色：全部指向 Vuetify 主题变量，换肤 / 深色模式自动生效 */
+  --color-background: rgb(var(--v-theme-background));
+  --color-surface: rgb(var(--v-theme-surface));
+  --color-surface-variant: rgb(var(--v-theme-surface-variant));
+  --color-on-surface: rgb(var(--v-theme-on-surface));
+  --color-on-surface-variant: rgb(var(--v-theme-on-surface-variant));
+  --color-primary: rgb(var(--v-theme-primary));
+  --color-on-primary: rgb(var(--v-theme-on-primary));
+  --color-secondary: rgb(var(--v-theme-secondary));
+  --color-on-secondary: rgb(var(--v-theme-on-secondary));
+  --color-error: rgb(var(--v-theme-error));
+  --color-on-error: rgb(var(--v-theme-on-error));
+  --color-outline: rgb(var(--v-theme-outline));
+  --color-outline-variant: rgb(var(--v-theme-outline-variant));
+}

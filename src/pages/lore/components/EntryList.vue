@@ -1,5 +1,5 @@
 <template>
-  <div class="entry-list d-flex flex-column ga-1">
+  <div class="entry-list flex flex-col gap-1">
     <!-- 条目列表 -->
     <div
       v-for="entry in entries"
@@ -29,7 +29,7 @@
         @keyup.esc="cancelRename"
         @click.stop
       />
-      <span v-else class="entry-name text-truncate">{{ entry.name }}</span>
+      <span v-else class="entry-name truncate">{{ entry.name }}</span>
 
       <!-- 禁用图标 -->
       <v-icon

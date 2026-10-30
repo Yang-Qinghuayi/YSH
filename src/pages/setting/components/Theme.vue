@@ -1,10 +1,10 @@
 <template>
   <div>
-    <div class="font-weight-bold mb-3">{{ t('common.theme_color') }}</div>
+    <div class="font-bold mb-3">{{ t('common.theme_color') }}</div>
 
     <!-- 调色板选择 -->
-    <div class="mt-3 d-flex align-center ga-2">
-      <span class="text-body-small text-medium-emphasis mr-1">{{ t('common.palette') }}</span>
+    <div class="mt-3 flex items-center gap-2">
+      <span class="text-xs text-on-surface/60 mr-1">{{ t('common.palette') }}</span>
 
       <!-- 预设色点 -->
       <div
