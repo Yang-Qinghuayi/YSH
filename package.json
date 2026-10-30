@@ -15,6 +15,7 @@
     "dev-tauri": "vite --mode tauri",
     "build-tauri": "vite build --mode tauri",
     "start-tauri": "vite preview",
+    "build:dmg": "tauri build --bundles dmg",
     "lint": "npm run lint:eslint && npm run lint:prettier && npm run lint:ts",
     "lint:eslint": "eslint \"src/**/*.{js,jsx,ts,tsx,vue}\" --fix --ignore-pattern src/foliate-js",
     "lint:prettier": "prettier --write \"src/**/*.{js,tsx,css,scss,vue,md,json,html}\"",
