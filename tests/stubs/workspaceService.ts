@@ -6,9 +6,9 @@
  * 因此数据层写入的路径就是相对路径本身，便于断言。
  */
 export function getDataBase(): { base: string; pathPrefix: string } {
-  return { base: 'Data', pathPrefix: '' }
+  return { base: 'Data', pathPrefix: '' };
 }
 
 export function isWorkspaceInitialized(): boolean {
-  return true
+  return true;
 }

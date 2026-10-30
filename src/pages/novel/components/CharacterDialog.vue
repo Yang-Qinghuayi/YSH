@@ -1,33 +1,39 @@
 <template>
   <v-dialog v-model="isOpen" max-width="640" scrollable>
     <v-card rounded="xl" class="lg-dialog">
-      <v-card-title class="d-flex align-center gap-3 pt-5 px-5">
+      <v-card-title class="d-flex align-center ga-3 pt-5 px-5">
         <span class="title-badge">
           <v-icon :icon="mdiAccountEdit" size="18" />
         </span>
-        <span class="text-h6">角色管理</span>
+        <span class="text-title-large">角色管理</span>
       </v-card-title>
 
       <v-card-text class="pa-5">
         <!-- 角色列表 -->
-        <div v-if="!editingCharacter" class="d-flex flex-column gap-3">
+        <div v-if="!editingCharacter" class="d-flex flex-column ga-3">
           <div
             v-for="character in characters"
             :key="character.id"
             class="character-item lg-card--inset pa-3"
           >
             <div class="d-flex align-center justify-space-between">
-              <div class="flex-1 mr-2">
+              <div class="flex-1-1 mr-2">
                 <div class="font-weight-medium">{{ character.name }}</div>
-                <div class="text-caption text-medium-emphasis mt-1 line-clamp-2">
+                <div class="text-body-small text-medium-emphasis mt-1 line-clamp-2">
                   {{ character.skill || '暂无长期记忆' }}
                 </div>
               </div>
-              <div class="d-flex gap-1 flex-shrink-0">
+              <div class="d-flex ga-1 flex-shrink-0">
                 <v-btn icon size="small" variant="text" @click="startEdit(character)">
                   <v-icon :icon="mdiPencil" size="18" />
                 </v-btn>
-                <v-btn icon size="small" variant="text" color="error" @click="confirmDelete(character.id)">
+                <v-btn
+                  icon
+                  size="small"
+                  variant="text"
+                  color="error"
+                  @click="confirmDelete(character.id)"
+                >
                   <v-icon :icon="mdiDelete" size="18" />
                 </v-btn>
               </div>
@@ -46,7 +52,7 @@
         </div>
 
         <!-- 编辑/新增单个角色 -->
-        <div v-else class="d-flex flex-column gap-4">
+        <div v-else class="d-flex flex-column ga-4">
           <label class="native-label">
             <span class="native-label-text">角色名（用于 @提及）</span>
             <input
@@ -66,7 +72,8 @@
               rows="9"
             ></textarea>
             <span class="native-hint">
-              发生重大事件后，「本章定稿」时 Agent 可能改写这里（改写记录可在「故事状态」里回滚）。角色此刻知道什么，记录在短期记忆里（角色面板查看）。
+              发生重大事件后，「本章定稿」时 Agent
+              可能改写这里（改写记录可在「故事状态」里回滚）。角色此刻知道什么，记录在短期记忆里（角色面板查看）。
             </span>
           </label>
         </div>
@@ -76,7 +83,13 @@
         <v-spacer />
         <template v-if="editingCharacter">
           <v-btn variant="text" rounded="pill" @click="cancelEdit">取消</v-btn>
-          <v-btn color="primary" variant="tonal" rounded="pill" :disabled="!editingCharacter.name.trim()" @click="saveCharacter">
+          <v-btn
+            color="primary"
+            variant="tonal"
+            rounded="pill"
+            :disabled="!editingCharacter.name.trim()"
+            @click="saveCharacter"
+          >
             保存
           </v-btn>
         </template>
@@ -89,65 +102,66 @@
 </template>
 
 <script setup lang="ts">
-import { mdiAccountEdit, mdiPencil, mdiDelete } from '@mdi/js'
-import type { Character } from '@/types/novel'
+import { mdiAccountEdit, mdiDelete, mdiPencil } from '@mdi/js';
+
+import type { Character } from '@/types/novel';
 
 const props = defineProps<{
-  modelValue: boolean
-  characters: Character[]
-}>()
+  modelValue: boolean;
+  characters: Character[];
+}>();
 
 const emit = defineEmits<{
-  'update:modelValue': [value: boolean]
-  'update:characters': [characters: Character[]]
-}>()
+  'update:modelValue': [value: boolean];
+  'update:characters': [characters: Character[]];
+}>();
 
 const isOpen = computed({
   get: () => props.modelValue,
   set: (v) => emit('update:modelValue', v),
-})
+});
 
-const editingCharacter = ref<Character | null>(null)
-const isCreating = ref(false)
+const editingCharacter = ref<Character | null>(null);
+const isCreating = ref(false);
 
 function startCreate() {
-  isCreating.value = true
+  isCreating.value = true;
   editingCharacter.value = {
     id: `char-${Date.now()}`,
     name: '',
-  }
+  };
 }
 
 function startEdit(character: Character) {
-  isCreating.value = false
-  editingCharacter.value = JSON.parse(JSON.stringify(character)) as Character
+  isCreating.value = false;
+  editingCharacter.value = JSON.parse(JSON.stringify(character)) as Character;
 }
 
 function cancelEdit() {
-  editingCharacter.value = null
-  isCreating.value = false
+  editingCharacter.value = null;
+  isCreating.value = false;
 }
 
 function saveCharacter() {
-  if (!editingCharacter.value) return
-  const char = editingCharacter.value
-  if (!char.name.trim()) return
+  if (!editingCharacter.value) return;
+  const char = editingCharacter.value;
+  if (!char.name.trim()) return;
 
-  const updated = [...props.characters]
+  const updated = [...props.characters];
   if (isCreating.value) {
-    updated.push(char)
+    updated.push(char);
   } else {
-    const index = updated.findIndex((c) => c.id === char.id)
-    if (index !== -1) updated[index] = char
+    const index = updated.findIndex((c) => c.id === char.id);
+    if (index !== -1) updated[index] = char;
   }
 
-  emit('update:characters', updated)
-  cancelEdit()
+  emit('update:characters', updated);
+  cancelEdit();
 }
 
 function confirmDelete(characterId: string) {
-  const updated = props.characters.filter((c) => c.id !== characterId)
-  emit('update:characters', updated)
+  const updated = props.characters.filter((c) => c.id !== characterId);
+  emit('update:characters', updated);
 }
 </script>
 
@@ -217,5 +231,4 @@ function confirmDelete(characterId: string) {
   color: rgba(var(--v-theme-on-surface), 0.5);
   padding-left: 4px;
 }
-
 </style>

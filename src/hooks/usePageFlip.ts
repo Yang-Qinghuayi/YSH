@@ -14,8 +14,8 @@ import { tauriGetWindowLogicalPosition } from '@/utils/window';
  *   此时点击正文左右两侧不会有任何反应；
  * - disableClick 是阅读器自带的「禁用点击翻页」开关，同样不响应点击。
  *
- * 注意：菜单不再由正文点击（原中间区域）触发，
- * 改为在书籍页再次点击「书籍」路由项时弹出，见 useNavItems.ts。
+ * 注意：菜单不再由正文点击触发，改为在书籍页再次点击「书籍」路由项时弹出。
+ * 复制该段也不再占用点击区域，改为三击正文（浏览器原生选段）触发。
  */
 const canFlipByClick = (viewSettings: ViewSettings | null) =>
   !!viewSettings && !viewSettings.scrolled && !viewSettings.disableClick;
@@ -23,7 +23,8 @@ const canFlipByClick = (viewSettings: ViewSettings | null) =>
 export function usePageFlip(
   viewRef: Ref<FoliateView | null>,
   containerRef: Ref<HTMLElement | null>,
-  appService: Ref<AppService | null>
+  appService: Ref<AppService | null>,
+  onCopyParagraph?: (text: string) => void
 ) {
   const handlePageFlip = async (msg: MessageEvent | CustomEvent | MouseEvent) => {
     const { bookId: bookKey } = useBookIdStore();
@@ -32,7 +33,10 @@ export function usePageFlip(
 
     if (msg instanceof MessageEvent) {
       if (msg.data && msg.data.bookKey === bookKey) {
-        if (msg.data.type === 'iframe-single-click') {
+        if (msg.data.type === 'iframe-triple-click') {
+          // 三击正文：静默复制浏览器已选中的那一段（与翻页完全无关）
+          onCopyParagraph?.(msg.data.text);
+        } else if (msg.data.type === 'iframe-single-click') {
           // 上下滑动模式（或显式禁用点击翻页）下，正文点击一律不响应
           if (!canFlipByClick(viewSettings)) return;
 
@@ -40,7 +44,7 @@ export function usePageFlip(
           if (viewElement) {
             const { screenX } = msg.data;
             const viewRect = viewElement.getBoundingClientRect();
-            let windowStartX = 0;
+            let windowStartX: number;
 
             if (isTauriAppPlatform()) {
               if (appService.value?.isMobile) {
@@ -65,7 +69,7 @@ export function usePageFlip(
                 readerStore.setHoveredBookKey(null);
                 return;
               }
-              // 中间区域不再弹菜单，仅按屏幕中线区分上一页 / 下一页
+              // 三击不会走到这里，单击仍按屏幕中线区分上一页 / 下一页
               const isRightSide = screenX >= viewCenterX;
               const goNext = viewSettings!.swapClickArea ? !isRightSide : isRightSide;
               if (goNext) viewRef.value?.goRight();

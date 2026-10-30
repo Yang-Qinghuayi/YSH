@@ -46,7 +46,9 @@
           <span><v-icon :icon="mdiGauge" size="14" /> 上下文</span>
           <strong>{{ contextPercent }}%</strong>
         </div>
-        <div class="context-meter__track"><div class="context-meter__fill" :style="{ width: `${contextPercent}%` }" /></div>
+        <div class="context-meter__track">
+          <div class="context-meter__fill" :style="{ width: `${contextPercent}%` }" />
+        </div>
         <div class="context-meter__bottom">
           <span>{{ formatTokens(contextTokens) }} / {{ formatTokens(contextLimit) }} tokens</span>
           <span v-if="contextTrimmed">已自动压缩 {{ contextTrimmed }} 条</span>
@@ -56,14 +58,12 @@
 
       <div v-if="chatStore.busy" class="agent-panel__status">
         <v-progress-circular indeterminate size="13" width="2" color="primary" />
-        <span class="agent-panel__status-text">{{
-          chatStore.statusText || '正在处理…'
-        }}</span>
+        <span class="agent-panel__status-text">{{ chatStore.statusText || '正在处理…' }}</span>
       </div>
     </div>
 
     <!-- ===== 转录区 ===== -->
-    <div ref="bodyRef" class="agent-panel__body flex-1 lg-scroll" @scroll="onScroll">
+    <div ref="bodyRef" class="agent-panel__body flex-1-1 lg-scroll" @scroll="onScroll">
       <!-- 空状态 -->
       <div v-if="!transcript.length" class="agent-panel__empty">
         <div class="empty-icon">
@@ -71,13 +71,11 @@
         </div>
         <div class="empty-title">AI 写作助手</div>
         <div class="empty-sub">
-          写下本章概要，Agent
-          会先调研资料、给出规划，你确认后再动笔；也可以直接提问或让它续写。
+          写下本章概要，Agent 会先调研资料、给出规划，你确认后再动笔；也可以直接提问或让它续写。
         </div>
         <div class="empty-hints">
           <div class="empty-hint-item">
-            <v-icon :icon="mdiNoteTextOutline" size="13" /> 输入概要 → 出规划 →
-            确认 → 写正文
+            <v-icon :icon="mdiNoteTextOutline" size="13" /> 输入概要 → 出规划 → 确认 → 写正文
           </div>
           <div class="empty-hint-item">
             <v-icon :icon="mdiRobotOutline" size="13" /> 多轮对话，随时修改规划
@@ -102,8 +100,7 @@
           </span>
           <div class="chat-assistant__bubble">
             <span class="chat-assistant__text"
-              >{{ msg.text
-              }}<span v-if="msg.streaming" class="chat-cursor">▍</span></span
+              >{{ msg.text }}<span v-if="msg.streaming" class="chat-cursor">▍</span></span
             >
           </div>
         </div>
@@ -132,9 +129,7 @@
               :color="msg.status === 'done' ? 'success' : 'error'"
             />
             <span class="chat-tool__name">{{ toolLabel(msg.tool) }}</span>
-            <span class="chat-tool__summary text-truncate">{{
-              msg.argsSummary
-            }}</span>
+            <span class="chat-tool__summary text-truncate">{{ msg.argsSummary }}</span>
             <v-icon
               v-if="msg.resultText || msg.write"
               :icon="expanded.has(msg.id) ? mdiChevronUp : mdiChevronDown"
@@ -148,9 +143,7 @@
             <div class="chat-write-meta">
               <v-icon :icon="mdiPen" size="13" />
               <span v-if="msg.write">
-                已写入《{{ msg.write.chapterTitle }}》 +{{
-                  msg.write.addedChars
-                }}
+                已写入《{{ msg.write.chapterTitle }}》 +{{ msg.write.addedChars }}
                 字
                 <template v-if="msg.write.removedChars"
                   >（重写 -{{ msg.write.removedChars }} 字）</template
@@ -176,10 +169,7 @@
           </div>
 
           <!-- 展开细节 -->
-          <div
-            v-if="expanded.has(msg.id) && msg.resultText"
-            class="chat-tool__detail lg-scroll"
-          >
+          <div v-if="expanded.has(msg.id) && msg.resultText" class="chat-tool__detail lg-scroll">
             {{ msg.resultText }}
           </div>
         </div>
@@ -188,19 +178,14 @@
         <div
           v-else-if="msg.kind === 'plan'"
           class="chat-plan lg-card--inset"
-          :class="{
-            'chat-plan--muted':
-              msg.status === 'superseded' || msg.status === 'cancelled',
-          }"
+          :class="{ 'chat-plan--muted': msg.status === 'superseded' || msg.status === 'cancelled' }"
         >
           <div class="chat-plan__head">
             <span class="chat-plan__icon">
               <v-icon :icon="mdiPencilOutline" size="14" />
             </span>
             <span class="chat-plan__title">章节规划</span>
-            <span v-if="msg.status === 'superseded'" class="chat-plan__tag"
-              >已更新</span
-            >
+            <span v-if="msg.status === 'superseded'" class="chat-plan__tag">已更新</span>
             <span
               v-else-if="msg.status === 'cancelled'"
               class="chat-plan__tag chat-plan__tag--error"
@@ -212,9 +197,7 @@
               >已确认</span
             >
             <v-spacer />
-            <span v-if="msg.status === 'pending'" class="chat-plan__pending"
-              >待确认</span
-            >
+            <span v-if="msg.status === 'pending'" class="chat-plan__pending">待确认</span>
           </div>
 
           <!-- 大纲（pending 可编辑） -->
@@ -231,9 +214,7 @@
               auto-grow
               hide-details
               rounded="lg"
-              @update:model-value="
-                (v: string) => chatStore.updatePlan(msg.id, { outlineDraft: v })
-              "
+              @update:model-value="(v: string) => chatStore.updatePlan(msg.id, { outlineDraft: v })"
             />
             <div v-else class="chat-plan__outline">{{ msg.outlineDraft }}</div>
           </div>
@@ -243,10 +224,7 @@
             <div class="chat-plan__approach">{{ msg.plan.approach }}</div>
           </div>
 
-          <div
-            v-if="msg.plan.selectedCharacters?.length"
-            class="chat-plan__block"
-          >
+          <div v-if="msg.plan.selectedCharacters?.length" class="chat-plan__block">
             <div class="lg-section-label mb-1">选用角色</div>
             <div class="chip-wrap">
               <v-chip
@@ -261,10 +239,7 @@
             </div>
           </div>
 
-          <div
-            v-if="msg.plan.referencedLoreEntries?.length"
-            class="chat-plan__block"
-          >
+          <div v-if="msg.plan.referencedLoreEntries?.length" class="chat-plan__block">
             <div class="lg-section-label mb-1">引用设定</div>
             <div class="chip-wrap">
               <v-chip
@@ -280,18 +255,10 @@
           </div>
 
           <div v-if="msg.status === 'pending'" class="chat-plan__actions">
-            <button
-              class="lg-pill chat-plan__confirm"
-              @click="onConfirmPlan(msg)"
-            >
+            <button class="lg-pill chat-plan__confirm" @click="onConfirmPlan(msg)">
               <v-icon :icon="mdiAutoFix" size="14" /> 确认生成
             </button>
-            <button
-              class="lg-pill chat-plan__cancel"
-              @click="$emit('cancelPlan')"
-            >
-              取消
-            </button>
+            <button class="lg-pill chat-plan__cancel" @click="$emit('cancelPlan')">取消</button>
           </div>
         </div>
 
@@ -316,8 +283,7 @@
             rounded="lg"
             class="length-select"
             @update:model-value="
-              (v) =>
-                (settingStore.agentWriteLength = v as 500 | 1000 | 1500 | 2000)
+              (v) => (settingStore.agentWriteLength = v as 500 | 1000 | 1500 | 2000)
             "
           />
         </div>
@@ -382,60 +348,70 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue'
 import {
-  mdiRobotOutline,
-  mdiDeleteOutline,
-  mdiCheckCircle,
   mdiAlertCircle,
+  mdiAt,
+  mdiAutoFix,
+  mdiBookPlusOutline,
+  mdiCheckCircle,
+  mdiCheckDecagramOutline,
   mdiChevronDown,
   mdiChevronUp,
-  mdiPencilOutline,
-  mdiAutoFix,
-  mdiPen,
-  mdiUndoVariant,
+  mdiDeleteOutline,
+  mdiGauge,
   mdiNoteTextOutline,
-  mdiAt,
+  mdiPen,
+  mdiPencilOutline,
+  mdiRobotOutline,
   mdiSend,
   mdiStop,
-  mdiBookPlusOutline,
-  mdiCheckDecagramOutline,
-  mdiGauge,
-} from '@mdi/js'
-import { storeToRefs } from 'pinia'
-import { useChatStore } from '@/store/chatStore'
-import { useSettingStore } from '@/store/setting'
-import type { AgentPlan } from '@/services/agentService'
-import { FINALIZE_STEP_LABELS, type FinalizeStep } from '@/services/chapterFinalize'
-import type { Novel, ChapterMeta } from '@/types/novel'
-import type { ChatMsg } from '@/types/agentChat'
-import MentionTextarea from './MentionTextarea.vue'
+  mdiUndoVariant,
+} from '@mdi/js';
+import { storeToRefs } from 'pinia';
+import { computed, nextTick, ref, watch } from 'vue';
+
+import type { AgentPlan } from '@/services/agentService';
+import { FINALIZE_STEP_LABELS, type FinalizeStep } from '@/services/chapterFinalize';
+import { useChatStore } from '@/store/chatStore';
+import { useSettingStore } from '@/store/setting';
+import type { ChatMsg } from '@/types/agentChat';
+import type { ChapterMeta, Novel } from '@/types/novel';
+
+import MentionTextarea from './MentionTextarea.vue';
 
 const props = defineProps<{
-  novel: Novel
-  chapter: ChapterMeta | null
+  novel: Novel;
+  chapter: ChapterMeta | null;
   /** 当前章正文长度（「续写上一章」护栏：需基本为空） */
-  contentLength: number
-}>()
+  contentLength: number;
+}>();
 
 const emit = defineEmits<{
-  send: [text: string]
-  quickAction: [action: 'continue-prev' | 'continue-current']
-  stop: []
-  confirmPlan: [plan: AgentPlan]
-  cancelPlan: []
-  undoWrite: [msgId: string]
-  clearChat: []
+  send: [text: string];
+  quickAction: [action: 'continue-prev' | 'continue-current'];
+  stop: [];
+  confirmPlan: [plan: AgentPlan];
+  cancelPlan: [];
+  undoWrite: [msgId: string];
+  clearChat: [];
   /** 本章定稿：概要 → 短期记忆 → 长期记忆 → 整体进度 */
-  finalize: []
-}>()
+  finalize: [];
+}>();
 
-const chatStore = useChatStore()
-const settingStore = useSettingStore()
-const { transcript, busy: chatBusy, contextTokens, contextLimit, contextTrimmed } = storeToRefs(chatStore)
-const contextPercent = computed(() => Math.min(100, Math.round((contextTokens.value / contextLimit.value) * 100)))
+const chatStore = useChatStore();
+const settingStore = useSettingStore();
+const {
+  transcript,
+  busy: chatBusy,
+  contextTokens,
+  contextLimit,
+  contextTrimmed,
+} = storeToRefs(chatStore);
+const contextPercent = computed(() =>
+  Math.min(100, Math.round((contextTokens.value / contextLimit.value) * 100))
+);
 function formatTokens(value: number) {
-  return value >= 1000 ? `${(value / 1000).toFixed(1)}k` : String(value)
+  return value >= 1000 ? `${(value / 1000).toFixed(1)}k` : String(value);
 }
 
 // ===== 目标字数 =====
@@ -444,42 +420,42 @@ const lengthItems = [
   { title: '1000 字', value: 1000 },
   { title: '1500 字', value: 1500 },
   { title: '2000 字', value: 2000 },
-]
+];
 
 // ===== 输入 =====
-const draft = ref('')
-const mentionMenuOpen = ref(false)
+const draft = ref('');
+const mentionMenuOpen = ref(false);
 
-const inputDisabled = computed(() => chatBusy.value || !props.chapter)
+const inputDisabled = computed(() => chatBusy.value || !props.chapter);
 const inputPlaceholder = computed(() => {
-  if (!props.chapter) return '先打开一个章节'
-  if (chatBusy.value) return 'Agent 工作中…'
-  return '写本章概要，或向我提问…（@ 可指定角色）'
-})
+  if (!props.chapter) return '先打开一个章节';
+  if (chatBusy.value) return 'Agent 工作中…';
+  return '写本章概要，或向我提问…（@ 可指定角色）';
+});
 
 function sendDraft() {
-  const text = draft.value.trim()
-  if (!text || inputDisabled.value) return
-  emit('send', text)
-  draft.value = ''
+  const text = draft.value.trim();
+  if (!text || inputDisabled.value) return;
+  emit('send', text);
+  draft.value = '';
 }
 
 function onEnterKey(e: KeyboardEvent) {
   // @提及菜单打开时 Enter 用于选中角色（MentionTextarea 内部处理）
-  if (mentionMenuOpen.value) return
-  e.preventDefault()
-  sendDraft()
+  if (mentionMenuOpen.value) return;
+  e.preventDefault();
+  sendDraft();
 }
 
 // ===== 本章定稿 =====
 const finalizeTitle = computed(() => {
-  if (!props.chapter) return ''
-  if (props.contentLength < 50) return '本章正文太短，写完后再定稿'
-  const steps = '生成本章概要 → 改写角色短期记忆 → 判断是否改写长期记忆（Skill）→ 更新整体进度'
+  if (!props.chapter) return '';
+  if (props.contentLength < 50) return '本章正文太短，写完后再定稿';
+  const steps = '生成本章概要 → 改写角色短期记忆 → 判断是否改写长期记忆（Skill）→ 更新整体进度';
   return props.chapter.finalizedAt
     ? `本章已定稿过。重新定稿会先撤回上次定稿对记忆的改动，再重新执行：${steps}`
-    : `写完本章后点击：${steps}`
-})
+    : `写完本章后点击：${steps}`;
+});
 
 // ===== 工具卡名称 =====
 const TOOL_LABELS: Record<string, string> = {
@@ -492,69 +468,68 @@ const TOOL_LABELS: Record<string, string> = {
   update_long_term_memory: '改写长期记忆',
   append_to_chapter: '写入正文',
   replace_tail: '重写结尾',
-}
+};
 function toolLabel(tool: string): string {
   // 定稿步骤卡：finalize:<step>
   if (tool.startsWith('finalize:')) {
-    const step = tool.slice('finalize:'.length) as FinalizeStep
-    return `定稿 · ${FINALIZE_STEP_LABELS[step] ?? step}`
+    const step = tool.slice('finalize:'.length) as FinalizeStep;
+    return `定稿 · ${FINALIZE_STEP_LABELS[step] ?? step}`;
   }
-  return TOOL_LABELS[tool] ?? tool
+  return TOOL_LABELS[tool] ?? tool;
 }
 
 // ===== 快捷动作护栏 =====
 const canContinuePrev = computed<boolean | null>(() => {
-  if (!props.chapter) return null
-  const prev = props.novel.chapters.find((c) => c.order < props.chapter!.order)
-  if (!prev) return false
+  if (!props.chapter) return null;
+  const prev = props.novel.chapters.find((c) => c.order < props.chapter!.order);
+  if (!prev) return false;
   // 当前章需基本为空（新开章节场景）
-  return props.contentLength <= 50
-})
+  return props.contentLength <= 50;
+});
 
 // ===== 工具卡展开 =====
-const expanded = ref<Set<string>>(new Set())
+const expanded = ref<Set<string>>(new Set());
 function toggleExpand(id: string) {
-  const s = new Set(expanded.value)
-  if (s.has(id)) s.delete(id)
-  else s.add(id)
-  expanded.value = s
+  const s = new Set(expanded.value);
+  if (s.has(id)) s.delete(id);
+  else s.add(id);
+  expanded.value = s;
 }
 
 // ===== plan 确认 =====
 function onConfirmPlan(msg: Extract<ChatMsg, { kind: 'plan' }>) {
-  emit('confirmPlan', { ...msg.plan, outline: msg.outlineDraft })
+  emit('confirmPlan', { ...msg.plan, outline: msg.outlineDraft });
 }
 
 // ===== 自动滚动（吸底，用户上滑则暂停） =====
-const bodyRef = ref<HTMLElement | null>(null)
-const stickToBottom = ref(true)
+const bodyRef = ref<HTMLElement | null>(null);
+const stickToBottom = ref(true);
 
 function onScroll() {
-  const el = bodyRef.value
-  if (!el) return
-  stickToBottom.value = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+  const el = bodyRef.value;
+  if (!el) return;
+  stickToBottom.value = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
 }
 
 function scrollToBottom() {
   nextTick(() => {
-    const el = bodyRef.value
-    if (el) el.scrollTop = el.scrollHeight
-  })
+    const el = bodyRef.value;
+    if (el) el.scrollTop = el.scrollHeight;
+  });
 }
 
-const lastMsg = computed(() => transcript.value[transcript.value.length - 1])
+const lastMsg = computed(() => transcript.value[transcript.value.length - 1]);
 const lastMsgLen = computed(() => {
-  const m = lastMsg.value
-  if (!m) return 0
-  if (m.kind === 'assistant') return m.text.length
-  if (m.kind === 'tool')
-    return (m.preview?.length ?? 0) + (m.resultText?.length ?? 0)
-  return 0
-})
+  const m = lastMsg.value;
+  if (!m) return 0;
+  if (m.kind === 'assistant') return m.text.length;
+  if (m.kind === 'tool') return (m.preview?.length ?? 0) + (m.resultText?.length ?? 0);
+  return 0;
+});
 
 watch([() => transcript.value.length, lastMsgLen], () => {
-  if (stickToBottom.value) scrollToBottom()
-})
+  if (stickToBottom.value) scrollToBottom();
+});
 </script>
 
 <style scoped>
@@ -709,11 +684,7 @@ watch([() => transcript.value.length, lastMsgLen], () => {
   color: rgb(var(--v-theme-error));
 }
 .context-meter--warning .context-meter__fill {
-  background: linear-gradient(
-    90deg,
-    rgba(var(--v-theme-error), 0.55),
-    rgb(var(--v-theme-error))
-  );
+  background: linear-gradient(90deg, rgba(var(--v-theme-error), 0.55), rgb(var(--v-theme-error)));
 }
 .agent-panel__status {
   display: flex;

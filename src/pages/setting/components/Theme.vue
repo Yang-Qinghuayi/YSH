@@ -1,10 +1,10 @@
 <template>
   <div>
-    <div class="font-bold mb-3">{{ t('common.theme_color') }}</div>
+    <div class="font-weight-bold mb-3">{{ t('common.theme_color') }}</div>
 
     <!-- 调色板选择 -->
-    <div class="mt-3 d-flex align-center gap-2">
-      <span class="text-caption text-medium-emphasis mr-1">{{ t('common.palette') }}</span>
+    <div class="mt-3 d-flex align-center ga-2">
+      <span class="text-body-small text-medium-emphasis mr-1">{{ t('common.palette') }}</span>
 
       <!-- 预设色点 -->
       <div
@@ -21,11 +21,7 @@
       <div class="palette-divider" />
 
       <!-- 自定义种子色，用 wrapper 承载 active 状态和虚线样式 -->
-      <div
-        class="seed-dot"
-        :class="{ active: seedEnabled }"
-        :title="t('common.material_you_seed')"
-      >
+      <div class="seed-dot" :class="{ active: seedEnabled }" :title="t('common.material_you_seed')">
         <input
           type="color"
           :value="materialSeed"
@@ -39,28 +35,29 @@
 </template>
 
 <script lang="ts" setup>
-import { storeToRefs } from 'pinia'
-import { useSettingStore } from '@/store/setting'
-import { palettes, paletteSeedMap } from '@/utils/paletteConfig'
-import type { PaletteId } from '@/utils/paletteConfig'
-import { useI18n } from '@/utils/i18n'
+import { storeToRefs } from 'pinia';
 
-const { t } = useI18n()
-const settingStore = useSettingStore()
-const { palette, materialSeed, seedEnabled } = storeToRefs(settingStore)
+import { useSettingStore } from '@/store/setting';
+import { useI18n } from '@/utils/i18n';
+import type { PaletteId } from '@/utils/paletteConfig';
+import { palettes, paletteSeedMap } from '@/utils/paletteConfig';
 
-const paletteItems = palettes.map(p => ({ id: p.id, label: p.label }))
+const { t } = useI18n();
+const settingStore = useSettingStore();
+const { palette, materialSeed, seedEnabled } = storeToRefs(settingStore);
+
+const paletteItems = palettes.map((p) => ({ id: p.id, label: p.label }));
 
 function onPaletteChange(newPalette: PaletteId | string) {
-  palette.value = newPalette as PaletteId
-  materialSeed.value = paletteSeedMap[newPalette as PaletteId]
-  seedEnabled.value = false
+  palette.value = newPalette as PaletteId;
+  materialSeed.value = paletteSeedMap[newPalette as PaletteId];
+  seedEnabled.value = false;
 }
 
 function onSeedChange(e: Event) {
-  const value = (e.target as HTMLInputElement).value
-  materialSeed.value = value
-  seedEnabled.value = true
+  const value = (e.target as HTMLInputElement).value;
+  materialSeed.value = value;
+  seedEnabled.value = true;
 }
 </script>
 
@@ -72,7 +69,9 @@ function onSeedChange(e: Event) {
   border-radius: 50%;
   cursor: pointer;
   flex-shrink: 0;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .palette-dot:hover {
@@ -80,7 +79,9 @@ function onSeedChange(e: Event) {
 }
 
 .palette-dot.active {
-  box-shadow: 0 0 0 2.5px white, 0 0 0 4px currentColor;
+  box-shadow:
+    0 0 0 2.5px white,
+    0 0 0 4px currentColor;
   transform: scale(1.1);
 }
 
@@ -102,7 +103,9 @@ function onSeedChange(e: Event) {
   border-radius: 50%;
   cursor: pointer;
   flex-shrink: 0;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
   /* 虚线描边：暗示"可自定义" */
   outline: 1.5px dashed rgba(128, 128, 128, 0.5);
   outline-offset: 2px;
@@ -114,7 +117,9 @@ function onSeedChange(e: Event) {
 
 .seed-dot.active {
   outline: none;
-  box-shadow: 0 0 0 2.5px white, 0 0 0 4px currentColor;
+  box-shadow:
+    0 0 0 2.5px white,
+    0 0 0 4px currentColor;
   transform: scale(1.1);
 }
 

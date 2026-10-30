@@ -1,5 +1,5 @@
 import { availableTransformers } from './transformers';
-import { TransformContext } from './transformers/types';
+import type { TransformContext } from './transformers/types';
 
 export const transformContent = async (ctx: TransformContext): Promise<string> => {
   let transformed = ctx.content;

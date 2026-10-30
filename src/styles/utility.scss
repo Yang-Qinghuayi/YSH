@@ -68,7 +68,10 @@
   font-weight: 500;
   cursor: pointer;
   user-select: none;
-  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease,
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease,
     box-shadow 0.2s ease;
 }
 .lg-pill:hover:not(:disabled) {
@@ -101,7 +104,9 @@
   background: transparent;
   cursor: pointer;
   color: rgba(var(--v-theme-on-surface), 0.55);
-  transition: background 0.18s ease, color 0.18s ease;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease;
   padding: 0;
 }
 .lg-icon-btn:hover:not(:disabled) {

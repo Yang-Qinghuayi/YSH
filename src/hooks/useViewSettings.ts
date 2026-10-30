@@ -1,8 +1,9 @@
-import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
-import { type ViewSettings } from '@/types/book';
+import { computed } from 'vue';
+
 import { useBookIdStore } from '@/store/bookIdStore';
 import { useReaderStore } from '@/store/readerStore';
+import { type ViewSettings } from '@/types/book';
 import { saveViewSettings } from '@/utils/viewSettingsHelper';
 
 /**

@@ -1,37 +1,52 @@
 <template>
-  <div role="tree" ref="viewRef"
-    :class="inSheet ? 'w-full p-3' : 'w-64 p-3 shrink-0'"
-    :style="inSheet
-      ? { maxHeight: 'calc(75dvh - 40px)', overflowY: 'auto' }
-      : { position: 'relative', zIndex: 200, height: '80vh', overflowY: 'auto' }"
+  <div
+    ref="viewRef"
+    role="tree"
+    :class="inSheet ? 'w-100 pa-3' : 'w-64 pa-3 flex-shrink-0'"
+    :style="
+      inSheet
+        ? { maxHeight: 'calc(75dvh - 40px)', overflowY: 'auto' }
+        : { position: 'relative', zIndex: 200, height: '80vh', overflowY: 'auto' }
+    "
   >
-    <div class="text-lg truncate m-3 mb-0 text-center">
+    <div class="text-lg text-truncate ma-3 mb-0 text-center">
       {{ doc.metadata.title }}
     </div>
-    <div class="truncate text-center m-2">
-      {{ doc.metadata.author?.name }}
+    <div class="text-truncate text-center ma-2">
+      {{ authorName }}
     </div>
-    <TOCItemView v-for="(item, index) in doc?.toc" :key="`${index}-${item.href}`" :bookId="bookId" :item="item"
-      :depth="0" :expandedItems="expandedItems" />
+    <TOCItemView
+      v-for="(item, index) in doc?.toc"
+      :key="`${index}-${item.href}`"
+      :book-id="bookId"
+      :item="item"
+      :depth="0"
+      :expanded-items="expandedItems"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue';
-import TOCItemView from './TOCItemView.vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
+
+import type { BookDoc, TOCItem } from '@/libs/document';
 import { useReaderStore } from '@/store/readerStore';
 import { useSidebarStore } from '@/store/sidebarStore';
+import type { BookProgress } from '@/types/book';
 import { getContentMd5 } from '@/utils/misc';
 import { findParentPath } from '@/utils/toc';
-import type { BookDoc, TOCItem } from '@/libs/document';
-import type { BookProgress } from '@/types/book';
 
-const { bookId, doc, inSheet = false } = defineProps<{
-  bookId: string
-  doc: BookDoc
-  inSheet?: boolean
-}>()
+import TOCItemView from './TOCItemView.vue';
 
+const {
+  bookId,
+  doc,
+  inSheet = false,
+} = defineProps<{
+  bookId: string;
+  doc: BookDoc;
+  inSheet?: boolean;
+}>();
 
 const viewRef = ref<HTMLElement | null>(null);
 const expandedItems = ref<string[]>([]);
@@ -42,6 +57,14 @@ const sidebarStore = useSidebarStore();
 // 用 computed 包裹，确保 watch 能响应翻页后的 progress 变化（原来是快照）
 const progress = computed(() => readerStore.getProgress(bookId));
 
+// foliate 的 metadata.author 可能是字符串，也可能是 Contributor 对象/数组
+const authorName = computed(() => {
+  const author = doc.metadata.author;
+  if (!author) return '';
+  const first = Array.isArray(author) ? author[0] : author;
+  return typeof first === 'string' ? first : (first?.name ?? '');
+});
+
 function expandParents(toc: TOCItem[], href: string) {
   const parentPath = findParentPath(toc, href).map((item) => item.href);
   expandedItems.value = parentPath.filter(Boolean) as string[];
@@ -50,7 +73,9 @@ function expandParents(toc: TOCItem[], href: string) {
 function scrollToProgress(progress: BookProgress) {
   const currentHref = progress.sectionHref;
   const hrefMd5 = currentHref ? getContentMd5(currentHref) : '';
-  const currentItem = viewRef.value?.querySelector(`[data-href="${hrefMd5}"]`) as HTMLElement | null;
+  const currentItem = viewRef.value?.querySelector(
+    `[data-href="${hrefMd5}"]`
+  ) as HTMLElement | null;
 
   if (currentItem) {
     const rect = currentItem.getBoundingClientRect();
@@ -61,7 +86,7 @@ function scrollToProgress(progress: BookProgress) {
     currentItem.setAttribute('aria-current', 'page');
   }
 
-  if (currentHref) {
+  if (currentHref && doc.toc) {
     expandParents(doc.toc, currentHref);
   }
 }
@@ -82,12 +107,20 @@ onMounted(() => {
   return () => observer.disconnect();
 });
 
-watch(
-  [progress, () => doc, () => sidebarStore.sideBarBookKey],
-  async ([newProgress]) => {
-    if (!newProgress) return;
-    await nextTick();
-    scrollToProgress(newProgress);
-  }
-);
+watch([progress, () => doc, () => sidebarStore.sideBarBookKey], async ([newProgress]) => {
+  if (!newProgress) return;
+  await nextTick();
+  scrollToProgress(newProgress);
+});
 </script>
+
+<style scoped>
+.toc-panel {
+  width: 16rem;
+}
+
+.toc-title {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+</style>

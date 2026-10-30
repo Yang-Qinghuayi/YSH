@@ -7,60 +7,47 @@
  * 每个工具统一返回 { ok, data?, error?, text }——text 是回传 LLM 的摘要文本（控 token，不回传全文）。
  */
 
-import type {
-  ChatCompletionTool,
-  ChatCompletionFunctionTool,
-} from 'openai/resources/chat/completions'
-import type { Novel, ChapterMeta } from '@/types/novel'
-import { loadOrCreateLore, loadEntryContent } from '@/services/loreService'
+import { applyAppendToChapter, applyReplaceTail } from '@/services/agentProtocol';
+import { sliceContextBeforeCursor } from '@/services/deepseekService';
+import { loadEntryContent, loadOrCreateLore } from '@/services/loreService';
+import { saveChapterContent, saveNovelMeta, searchInChapters } from '@/services/novelService';
 import {
-  searchInChapters,
-  saveChapterContent,
-  saveNovelMeta,
-} from '@/services/novelService'
-import { loadStoryState, saveStoryState } from '@/services/storyStateService'
-import { sliceContextBeforeCursor } from '@/services/deepseekService'
-import {
-  applyShortTermMemories,
   applyLongTermChange,
+  applyShortTermMemories,
   formatStoryStateForTool,
   type ShortTermPatch,
-} from '@/services/storyMemory'
-import {
-  applyAppendToChapter,
-  applyReplaceTail,
-} from '@/services/agentProtocol'
+} from '@/services/storyMemory';
+import { loadStoryState, saveStoryState } from '@/services/storyStateService';
+import type { ChatCompletionFunctionTool, ChatCompletionTool } from '@/types/llm';
+import type { ChapterMeta, Novel } from '@/types/novel';
 
 /** 工具执行上下文 */
 export interface ToolContext {
-  novel: Novel
-  chapter: ChapterMeta
-  chapterContent: string
-  cursorPosition: number
+  novel: Novel;
+  chapter: ChapterMeta;
+  chapterContent: string;
+  cursorPosition: number;
   /**
    * 交互面板（chat）模式专用：取「最新」章节内容。
    * 会话建立时的 chapterContent 是快照，用户在编辑器里的手动编辑不落进快照；
    * 写章工具落笔前必须用 liveContent 取当前文档，避免覆盖用户刚写的内容。
    */
-  liveContent?: () => string
+  liveContent?: () => string;
 }
 
 /** 工具执行结果 */
 export interface ToolResult {
-  ok: boolean
-  data?: unknown
-  error?: string
+  ok: boolean;
+  data?: unknown;
+  error?: string;
   /** 回传给 LLM 的自然语言摘要 */
-  text: string
+  text: string;
 }
 
 /** 工具定义 */
 export interface AgentTool {
-  def: ChatCompletionFunctionTool
-  execute: (
-    args: Record<string, unknown>,
-    ctx: ToolContext,
-  ) => Promise<ToolResult>
+  def: ChatCompletionFunctionTool;
+  execute: (args: Record<string, unknown>, ctx: ToolContext) => Promise<ToolResult>;
 }
 
 // ===================== 工具实现 =====================
@@ -71,8 +58,7 @@ const queryLoreTool: AgentTool = {
     type: 'function',
     function: {
       name: 'query_lore',
-      description:
-        '按关键词/重要度检索当前小说的资料库（世界观/地点等设定）。返回匹配条目的摘要。',
+      description: '按关键词/重要度检索当前小说的资料库（世界观/地点等设定）。返回匹配条目的摘要。',
       parameters: {
         type: 'object',
         properties: {
@@ -91,48 +77,45 @@ const queryLoreTool: AgentTool = {
   },
   async execute(args, ctx) {
     try {
-      const keywords = (args.keywords as string[] | undefined) ?? []
-      const importance = args.importance as string | undefined
+      const keywords = (args.keywords as string[] | undefined) ?? [];
+      const importance = args.importance as string | undefined;
 
-      const lore = await loadOrCreateLore(ctx.novel)
-      let entries = lore.entries.filter((e) => e.enabled)
-      if (importance)
-        entries = entries.filter((e) => e.importance === importance)
+      const lore = await loadOrCreateLore(ctx.novel);
+      let entries = lore.entries.filter((e) => e.enabled);
+      if (importance) entries = entries.filter((e) => e.importance === importance);
       if (keywords.length > 0) {
         entries = entries.filter((e) => {
-          const hay = [e.name, e.briefDescription, ...e.keywords]
-            .join(' ')
-            .toLowerCase()
-          return keywords.some((k) => hay.includes(k.toLowerCase()))
-        })
+          const hay = [e.name, e.briefDescription, ...e.keywords].join(' ').toLowerCase();
+          return keywords.some((k) => hay.includes(k.toLowerCase()));
+        });
       }
 
       if (entries.length === 0) {
-        return { ok: true, text: '资料库中无匹配条目。' }
+        return { ok: true, text: '资料库中无匹配条目。' };
       }
 
       // major 条目加载全文，其余仅索引
-      const lines: string[] = ['匹配条目：']
+      const lines: string[] = ['匹配条目：'];
       for (const e of entries.slice(0, 20)) {
         if (e.importance === 'major') {
-          const content = await loadEntryContent(e.filename)
-          lines.push(`【${e.name}】（主要）`)
-          if (e.briefDescription) lines.push(`简介：${e.briefDescription}`)
-          if (content.trim()) lines.push(content.trim().slice(0, 800))
+          const content = await loadEntryContent(e.filename);
+          lines.push(`【${e.name}】（主要）`);
+          if (e.briefDescription) lines.push(`简介：${e.briefDescription}`);
+          if (content.trim()) lines.push(content.trim().slice(0, 800));
         } else {
-          lines.push(`- ${e.name}：${e.briefDescription || '无简介'}`)
+          lines.push(`- ${e.name}：${e.briefDescription || '无简介'}`);
         }
       }
       return {
         ok: true,
         data: { count: entries.length },
         text: lines.join('\n'),
-      }
+      };
     } catch (e) {
-      return { ok: false, error: String(e), text: `检索资料库失败：${e}` }
+      return { ok: false, error: String(e), text: `检索资料库失败：${e}` };
     }
   },
-}
+};
 
 /** search_chapters：跨章节全文搜索 */
 const searchChaptersTool: AgentTool = {
@@ -140,8 +123,7 @@ const searchChaptersTool: AgentTool = {
     type: 'function',
     function: {
       name: 'search_chapters',
-      description:
-        '在已写章节中全文搜索关键词，返回匹配行与所在章节。用于回顾前文细节。',
+      description: '在已写章节中全文搜索关键词，返回匹配行与所在章节。用于回顾前文细节。',
       parameters: {
         type: 'object',
         properties: {
@@ -154,29 +136,27 @@ const searchChaptersTool: AgentTool = {
   },
   async execute(args, ctx) {
     try {
-      const query = String(args.query ?? '')
-      const limit = Number(args.limit ?? 15)
-      if (!query.trim()) return { ok: true, text: '搜索词为空。' }
+      const query = String(args.query ?? '');
+      const limit = Number(args.limit ?? 15);
+      if (!query.trim()) return { ok: true, text: '搜索词为空。' };
 
-      const results = await searchInChapters(ctx.novel.chapters, query)
-      const sliced = results.slice(0, limit)
-      if (sliced.length === 0)
-        return { ok: true, text: `未在已写章节中找到"${query}"。` }
+      const results = await searchInChapters(ctx.novel.chapters, query);
+      const sliced = results.slice(0, limit);
+      if (sliced.length === 0) return { ok: true, text: `未在已写章节中找到"${query}"。` };
 
       const lines = sliced.map(
-        (r) =>
-          `·《${r.chapterTitle}》第${r.lineIndex + 1}行：${r.lineContent.trim().slice(0, 120)}`,
-      )
+        (r) => `·《${r.chapterTitle}》第${r.lineIndex + 1}行：${r.lineContent.trim().slice(0, 120)}`
+      );
       return {
         ok: true,
         data: { count: results.length },
         text: `找到 ${results.length} 处：\n${lines.join('\n')}`,
-      }
+      };
     } catch (e) {
-      return { ok: false, error: String(e), text: `搜索章节失败：${e}` }
+      return { ok: false, error: String(e), text: `搜索章节失败：${e}` };
     }
   },
-}
+};
 
 /** read_story_state：读取整体进度与角色短期记忆（POV） */
 const readStoryStateTool: AgentTool = {
@@ -205,11 +185,11 @@ const readStoryStateTool: AgentTool = {
   },
   async execute(args, ctx) {
     try {
-      const state = await loadStoryState(ctx.novel.id)
-      const section = args.section as 'mainline' | 'memories' | 'all' | undefined
+      const state = await loadStoryState(ctx.novel.id);
+      const section = args.section as 'mainline' | 'memories' | 'all' | undefined;
       const names = Array.isArray(args.characterNames)
         ? (args.characterNames as unknown[]).map(String)
-        : []
+        : [];
       return {
         ok: true,
         data: state,
@@ -218,12 +198,12 @@ const readStoryStateTool: AgentTool = {
           characterNames: names,
           chapters: ctx.novel.chapters,
         }),
-      }
+      };
     } catch (e) {
-      return { ok: false, error: String(e), text: `读取故事状态失败：${e}` }
+      return { ok: false, error: String(e), text: `读取故事状态失败：${e}` };
     }
   },
-}
+};
 
 /** read_context：读取当前章节前文 */
 const readContextTool: AgentTool = {
@@ -231,8 +211,7 @@ const readContextTool: AgentTool = {
     type: 'function',
     function: {
       name: 'read_context',
-      description:
-        '读取当前章节光标前的正文上下文（最近约2000字，已剔除@提及行）。用于衔接前文。',
+      description: '读取当前章节光标前的正文上下文（最近约2000字，已剔除@提及行）。用于衔接前文。',
       parameters: {
         type: 'object',
         properties: {
@@ -243,21 +222,17 @@ const readContextTool: AgentTool = {
   },
   async execute(args, ctx) {
     try {
-      const chars = Number(args.chars ?? 2000)
-      const text = sliceContextBeforeCursor(
-        ctx.chapterContent,
-        ctx.cursorPosition,
-        chars,
-      )
+      const chars = Number(args.chars ?? 2000);
+      const text = sliceContextBeforeCursor(ctx.chapterContent, ctx.cursorPosition, chars);
       return {
         ok: true,
         text: `【当前章节：${ctx.chapter.title}】\n【前文上下文】\n${text || '（章节开头，无前文）'}`,
-      }
+      };
     } catch (e) {
-      return { ok: false, error: String(e), text: `读取上下文失败：${e}` }
+      return { ok: false, error: String(e), text: `读取上下文失败：${e}` };
     }
   },
-}
+};
 
 /** select_characters：选定本章要写的角色，返回其长期记忆（Skill）+ 短期记忆（POV） */
 const selectCharactersTool: AgentTool = {
@@ -286,50 +261,47 @@ const selectCharactersTool: AgentTool = {
       const ids =
         (args.characterIds as string[] | undefined) ??
         (args.skillIds as string[] | undefined) ??
-        []
-      const state = await loadStoryState(ctx.novel.id).catch(() => null)
-      const lines: string[] = []
+        [];
+      const state = await loadStoryState(ctx.novel.id).catch(() => null);
+      const lines: string[] = [];
 
       for (const id of ids) {
         // 容错：模型偶尔会传角色名而不是 id
         const char =
           ctx.novel.characters.find((c) => c.id === id) ??
-          ctx.novel.characters.find((c) => c.name === id)
+          ctx.novel.characters.find((c) => c.name === id);
         if (!char) {
-          lines.push(`（未找到 id=${id} 的角色）`)
-          continue
+          lines.push(`（未找到 id=${id} 的角色）`);
+          continue;
         }
-        lines.push(`【角色 ${char.name}】`)
-        lines.push(`长期记忆（Skill）：${char.skill?.trim() || '（未填写）'}`)
-        const mem = state?.characterMemories.find(
-          (m) => m.characterName === char.name,
-        )
-        lines.push(
-          `短期记忆（POV）：${mem?.shortTerm.trim() || '（暂无，按长期记忆与前文把握）'}`,
-        )
+        lines.push(`【角色 ${char.name}】`);
+        lines.push(`长期记忆（Skill）：${char.skill?.trim() || '（未填写）'}`);
+        const mem = state?.characterMemories.find((m) => m.characterName === char.name);
+        lines.push(`短期记忆（POV）：${mem?.shortTerm.trim() || '（暂无，按长期记忆与前文把握）'}`);
       }
       if (lines.length) {
-        lines.push(
-          '提醒：每个角色的言行与心理只能基于 TA 自己短期记忆里的信息与本章亲历的事。',
-        )
+        lines.push('提醒：每个角色的言行与心理只能基于 TA 自己短期记忆里的信息与本章亲历的事。');
       }
 
       return {
         ok: true,
         data: { ids },
         text: lines.join('\n') || '未选用任何角色。',
-      }
+      };
     } catch (e) {
-      return { ok: false, error: String(e), text: `选用角色失败：${e}` }
+      return { ok: false, error: String(e), text: `选用角色失败：${e}` };
     }
   },
-}
+};
 
 // ===================== 定稿工具（有副作用，仅「本章定稿」使用） =====================
 
 /** 模型偶尔会带上 @ 前缀或空白 */
 function normalizeName(v: unknown): string {
-  return String(v ?? '').trim().replace(/^@/, '').trim()
+  return String(v ?? '')
+    .trim()
+    .replace(/^@/, '')
+    .trim();
 }
 
 /**
@@ -368,37 +340,31 @@ const updateShortTermMemoryTool: AgentTool = {
   },
   async execute(args, ctx) {
     try {
-      const raw = (Array.isArray(args.memories) ? args.memories : []) as Partial<ShortTermPatch>[]
+      const raw = (Array.isArray(args.memories) ? args.memories : []) as Partial<ShortTermPatch>[];
       const patches: ShortTermPatch[] = raw.map((p) => ({
         characterName: normalizeName(p?.characterName),
         shortTerm: String(p?.shortTerm ?? ''),
-      }))
-      const known = new Set(ctx.novel.characters.map((c) => c.name))
-      const unknown = patches
-        .map((p) => p.characterName)
-        .filter((n) => n && !known.has(n))
-      const valid = patches.filter((p) => known.has(p.characterName))
+      }));
+      const known = new Set(ctx.novel.characters.map((c) => c.name));
+      const unknown = patches.map((p) => p.characterName).filter((n) => n && !known.has(n));
+      const valid = patches.filter((p) => known.has(p.characterName));
 
-      const state = await loadStoryState(ctx.novel.id)
-      const { state: next, updated } = applyShortTermMemories(
-        state,
-        valid,
-        ctx.chapter.id,
-      )
-      if (updated.length) await saveStoryState(next)
-      const tail = unknown.length ? `；忽略未知角色：${unknown.join('、')}` : ''
+      const state = await loadStoryState(ctx.novel.id);
+      const { state: next, updated } = applyShortTermMemories(state, valid, ctx.chapter.id);
+      if (updated.length) await saveStoryState(next);
+      const tail = unknown.length ? `；忽略未知角色：${unknown.join('、')}` : '';
       return {
         ok: true,
         data: { updated },
         text: updated.length
           ? `已改写 ${updated.length} 个角色的短期记忆：${updated.join('、')}${tail}。`
           : `没有可更新的短期记忆${tail}。`,
-      }
+      };
     } catch (e) {
-      return { ok: false, error: String(e), text: `更新短期记忆失败：${e}` }
+      return { ok: false, error: String(e), text: `更新短期记忆失败：${e}` };
     }
   },
-}
+};
 
 /**
  * update_long_term_memory：重大事件改变了角色时，改写其长期记忆（Skill）。
@@ -431,8 +397,8 @@ const updateLongTermMemoryTool: AgentTool = {
   },
   async execute(args, ctx) {
     try {
-      const name = normalizeName(args.characterName)
-      const state = await loadStoryState(ctx.novel.id)
+      const name = normalizeName(args.characterName);
+      const state = await loadStoryState(ctx.novel.id);
       const result = applyLongTermChange(
         ctx.novel.characters,
         state,
@@ -441,27 +407,27 @@ const updateLongTermMemoryTool: AgentTool = {
           reason: String(args.reason ?? ''),
           revisedSkill: String(args.revisedSkill ?? ''),
         },
-        ctx.chapter.id,
-      )
+        ctx.chapter.id
+      );
       if (!result) {
         return {
           ok: false,
           text: `未改写「${name}」的长期记忆（角色不存在、内容为空或与原文相同）。`,
-        }
+        };
       }
-      ctx.novel.characters = result.characters
-      await saveNovelMeta(ctx.novel)
-      await saveStoryState(result.state)
+      ctx.novel.characters = result.characters;
+      await saveNovelMeta(ctx.novel);
+      await saveStoryState(result.state);
       return {
         ok: true,
         data: { change: result.change, characters: result.characters },
         text: `已改写「${name}」的长期记忆（原因：${result.change.reason}）。`,
-      }
+      };
     } catch (e) {
-      return { ok: false, error: String(e), text: `更新长期记忆失败：${e}` }
+      return { ok: false, error: String(e), text: `更新长期记忆失败：${e}` };
     }
   },
-}
+};
 
 // ===================== 写章工具（交互面板 chat 模式） =====================
 
@@ -491,13 +457,13 @@ const appendToChapterTool: AgentTool = {
   },
   async execute(args, ctx) {
     try {
-      const content = String(args.content ?? '')
-      const base = ctx.liveContent?.() ?? ctx.chapterContent
-      const { next, addedChars } = applyAppendToChapter(base, content)
+      const content = String(args.content ?? '');
+      const base = ctx.liveContent?.() ?? ctx.chapterContent;
+      const { next, addedChars } = applyAppendToChapter(base, content);
       if (addedChars === 0) {
-        return { ok: false, text: 'content 为空，未写入任何内容。' }
+        return { ok: false, text: 'content 为空，未写入任何内容。' };
       }
-      await saveChapterContent(ctx.chapter.filename, next)
+      await saveChapterContent(ctx.chapter.filename, next);
       return {
         ok: true,
         data: {
@@ -508,12 +474,12 @@ const appendToChapterTool: AgentTool = {
           previousContent: base,
         },
         text: `已把 ${addedChars} 字正文追加到《${ctx.chapter.title}》末尾。`,
-      }
+      };
     } catch (e) {
-      return { ok: false, error: String(e), text: `写入章节失败：${e}` }
+      return { ok: false, error: String(e), text: `写入章节失败：${e}` };
     }
   },
-}
+};
 
 /**
  * replace_tail：重写章节结尾（用于「打磨/改写结尾」类修改）。
@@ -542,14 +508,14 @@ const replaceTailTool: AgentTool = {
   },
   async execute(args, ctx) {
     try {
-      const content = String(args.content ?? '')
-      const chars = Number(args.chars ?? 0)
-      const base = ctx.liveContent?.() ?? ctx.chapterContent
-      const { next, removedChars } = applyReplaceTail(base, chars, content)
+      const content = String(args.content ?? '');
+      const chars = Number(args.chars ?? 0);
+      const base = ctx.liveContent?.() ?? ctx.chapterContent;
+      const { next, removedChars } = applyReplaceTail(base, chars, content);
       if (content.trim() === '' && removedChars === 0) {
-        return { ok: false, text: '未做任何修改（content 为空且 chars=0）。' }
+        return { ok: false, text: '未做任何修改（content 为空且 chars=0）。' };
       }
-      await saveChapterContent(ctx.chapter.filename, next)
+      await saveChapterContent(ctx.chapter.filename, next);
       return {
         ok: true,
         data: {
@@ -561,12 +527,12 @@ const replaceTailTool: AgentTool = {
           previousContent: base,
         },
         text: `已重写《${ctx.chapter.title}》结尾：移除 ${removedChars} 字，写入 ${content.length} 字。`,
-      }
+      };
     } catch (e) {
-      return { ok: false, error: String(e), text: `重写章节结尾失败：${e}` }
+      return { ok: false, error: String(e), text: `重写章节结尾失败：${e}` };
     }
   },
-}
+};
 
 // ===================== 工具集导出 =====================
 
@@ -577,36 +543,27 @@ export const READONLY_TOOLS: AgentTool[] = [
   readStoryStateTool,
   readContextTool,
   selectCharactersTool,
-]
+];
 
 /** 定稿工具：改写短期记忆 */
-export const SHORT_TERM_TOOLS: AgentTool[] = [updateShortTermMemoryTool]
+export const SHORT_TERM_TOOLS: AgentTool[] = [updateShortTermMemoryTool];
 /** 定稿工具：判断并改写长期记忆 */
-export const LONG_TERM_TOOLS: AgentTool[] = [updateLongTermMemoryTool]
+export const LONG_TERM_TOOLS: AgentTool[] = [updateLongTermMemoryTool];
 /** 全部定稿工具（无工具模式下按名字查执行器用） */
-export const FINALIZE_TOOLS: AgentTool[] = [
-  updateShortTermMemoryTool,
-  updateLongTermMemoryTool,
-]
+export const FINALIZE_TOOLS: AgentTool[] = [updateShortTermMemoryTool, updateLongTermMemoryTool];
 
 /** 写章工具（交互面板 chat 模式的主循环可用） */
-export const CHAT_WRITE_TOOLS: AgentTool[] = [
-  appendToChapterTool,
-  replaceTailTool,
-]
+export const CHAT_WRITE_TOOLS: AgentTool[] = [appendToChapterTool, replaceTailTool];
 
 /** 交互面板（chat）模式主循环的完整工具集 = 只读调研 + 写章 */
-export const CHAT_TOOLS: AgentTool[] = [...READONLY_TOOLS, ...CHAT_WRITE_TOOLS]
+export const CHAT_TOOLS: AgentTool[] = [...READONLY_TOOLS, ...CHAT_WRITE_TOOLS];
 
 /** 按 name 查找工具执行器 */
-export function findTool(
-  name: string,
-  tools: AgentTool[],
-): AgentTool | undefined {
-  return tools.find((t) => t.def.function.name === name)
+export function findTool(name: string, tools: AgentTool[]): AgentTool | undefined {
+  return tools.find((t) => t.def.function.name === name);
 }
 
 /** 把 AgentTool[] 转为 OpenAI tool schema 数组 */
 export function toToolSchemas(tools: AgentTool[]): ChatCompletionTool[] {
-  return tools.map((t) => t.def)
+  return tools.map((t) => t.def);
 }

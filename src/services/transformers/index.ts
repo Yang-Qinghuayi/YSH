@@ -1,6 +1,6 @@
-import type { Transformer } from './types';
-import { translateTransformer } from './translate';
 import { punctuationTransformer } from './punctuation';
+import { translateTransformer } from './translate';
+import type { Transformer } from './types';
 
 export const availableTransformers: Transformer[] = [
   punctuationTransformer,

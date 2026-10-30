@@ -1,4 +1,4 @@
-import { onMounted, onBeforeUnmount, type Ref } from 'vue'
+import { onBeforeUnmount, onMounted, type Ref } from 'vue';
 
 /**
  * 按 ESC 关闭弹窗。
@@ -9,11 +9,11 @@ import { onMounted, onBeforeUnmount, type Ref } from 'vue'
 export function useDialogEsc(show: Ref<boolean>) {
   function onKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape' && show.value && !e.isComposing) {
-      e.preventDefault()
-      show.value = false
+      e.preventDefault();
+      show.value = false;
     }
   }
 
-  onMounted(() => window.addEventListener('keydown', onKeydown))
-  onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
+  onMounted(() => window.addEventListener('keydown', onKeydown));
+  onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
 }
