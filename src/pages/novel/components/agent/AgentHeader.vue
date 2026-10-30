@@ -1,18 +1,20 @@
 <template>
-  <div class="agent-panel__head">
+  <header class="agent-panel__head">
     <span class="title-badge">
       <v-icon :icon="mdiRobotOutline" size="18" />
     </span>
-    <span class="agent-panel__title">Agent</span>
-    <v-chip
-      v-if="chapter"
-      size="x-small"
-      variant="tonal"
-      color="primary"
-      class="agent-panel__target"
-    >
-      《{{ chapter.title }}》
-    </v-chip>
+    <div class="agent-panel__heading">
+      <span class="agent-panel__title">Agent</span>
+      <v-chip
+        v-if="chapter"
+        size="x-small"
+        variant="tonal"
+        color="primary"
+        class="agent-panel__target"
+      >
+        《{{ chapter.title }}》
+      </v-chip>
+    </div>
     <v-spacer />
     <button
       v-if="chapter"
@@ -25,10 +27,15 @@
       <v-icon :icon="mdiCheckDecagramOutline" size="14" />
       {{ chapter.finalizedAt ? '重新定稿' : '本章定稿' }}
     </button>
-    <button class="lg-icon-btn" title="清空对话" :disabled="!canClear" @click="$emit('clearChat')">
+    <button
+      class="lg-icon-btn agent-panel__clear"
+      title="清空对话"
+      :disabled="!canClear"
+      @click="$emit('clearChat')"
+    >
       <v-icon :icon="mdiDeleteOutline" size="16" />
     </button>
-  </div>
+  </header>
 </template>
 
 <script setup lang="ts">

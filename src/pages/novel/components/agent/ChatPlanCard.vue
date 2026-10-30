@@ -6,7 +6,9 @@
     }"
   >
     <div class="chat-plan__head">
-      <v-icon :icon="mdiPencilOutline" size="15" />
+      <span class="chat-plan__icon">
+        <v-icon :icon="mdiPencilOutline" size="14" />
+      </span>
       <span class="chat-plan__title">章节规划</span>
       <span v-if="message.status === 'superseded'" class="chat-plan__tag">已更新</span>
       <span v-else-if="message.status === 'cancelled'" class="chat-plan__tag chat-plan__tag--error">

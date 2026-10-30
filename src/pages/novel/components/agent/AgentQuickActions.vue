@@ -14,9 +14,6 @@
         class="length-select"
         @update:model-value="(value) => $emit('updateLength', Number(value))"
       />
-      <span v-if="hasChapter && canContinuePrev === false" class="length-hint">
-        「续写上一章」需当前章基本为空
-      </span>
     </div>
     <div class="chip-row">
       <button
@@ -34,6 +31,9 @@
         <v-icon :icon="mdiPen" size="14" /> 续写本章
       </button>
     </div>
+    <span v-if="hasChapter && canContinuePrev === false" class="length-hint">
+      「续写上一章」需当前章基本为空
+    </span>
   </div>
 </template>
 

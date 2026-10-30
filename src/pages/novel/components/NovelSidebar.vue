@@ -1,6 +1,6 @@
 <template>
   <aside
-    class="novel-sidebar"
+    class="novel-sidebar lg-scroll"
     :class="{
       'novel-sidebar--rail': sidebarCollapsed,
       'novel-sidebar--agent': !sidebarCollapsed && sidebarTab === 'agent',

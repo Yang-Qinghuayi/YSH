@@ -9,15 +9,17 @@
       @clear-chat="$emit('clearChat')"
     />
 
-    <AgentContextMeter
-      :context-tokens="contextTokens"
-      :context-limit="contextLimit"
-      :context-trimmed="contextTrimmed"
-    />
+    <div class="agent-panel__meta">
+      <AgentContextMeter
+        :context-tokens="contextTokens"
+        :context-limit="contextLimit"
+        :context-trimmed="contextTrimmed"
+      />
 
-    <div v-if="busy" class="agent-panel__status lg-card--inset">
-      <v-progress-circular indeterminate size="13" width="2" color="primary" />
-      <span class="agent-panel__status-text">{{ statusText || '正在处理…' }}</span>
+      <div v-if="busy" class="agent-panel__status">
+        <v-progress-circular indeterminate size="13" width="2" color="primary" />
+        <span class="agent-panel__status-text">{{ statusText || '正在处理…' }}</span>
+      </div>
     </div>
 
     <ChatTranscript
@@ -29,22 +31,24 @@
       @update-outline="handleUpdateOutline"
     />
 
-    <AgentQuickActions
-      :has-chapter="!!chapter"
-      :busy="busy"
-      :can-continue-prev="canContinuePrev"
-      :length="settingStore.agentWriteLength"
-      @quick-action="$emit('quickAction', $event)"
-      @update-length="handleUpdateLength"
-    />
+    <footer class="agent-panel__foot">
+      <AgentQuickActions
+        :has-chapter="!!chapter"
+        :busy="busy"
+        :can-continue-prev="canContinuePrev"
+        :length="settingStore.agentWriteLength"
+        @quick-action="$emit('quickAction', $event)"
+        @update-length="handleUpdateLength"
+      />
 
-    <ChatComposer
-      :characters="novel.characters"
-      :busy="busy"
-      :disabled="inputDisabled"
-      @send="$emit('send', $event)"
-      @stop="$emit('stop')"
-    />
+      <ChatComposer
+        :characters="novel.characters"
+        :busy="busy"
+        :disabled="inputDisabled"
+        @send="$emit('send', $event)"
+        @stop="$emit('stop')"
+      />
+    </footer>
   </div>
 </template>
 
