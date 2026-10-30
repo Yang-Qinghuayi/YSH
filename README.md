@@ -54,22 +54,22 @@ YSH 是一款本地优先的跨平台桌面应用，将电子书阅读、AI 辅�
 
 ## AI 创作引擎
 
-写作 AI 由自研的 Agent 状态机驱动，底层接入 DeepSeek API（OpenAI 兼容格式）。
+写作 AI 由 `src/services/agent` 下的交互面板引擎驱动，底层接入 DeepSeek API（OpenAI 兼容格式）。页面与服务的模块地图见 [`docs/agent-refactor.md`](docs/agent-refactor.md)。
 
 ```
 idle → planning → awaiting_confirmation → generating → done
           │               │                    │
-      工具调用循环      用户确认闸门         流式文本输出
-     (只读，无副作用)  (大纲可编辑/取消)    (可随时中断)
+      工具调用循环      用户确认闸门         写章工具落盘
+   (只读调研 + 写章)  (大纲可编辑/取消)   (同步编辑器，可撤销)
                                  任一步骤可进入 canceled
 
-「本章定稿」（作者手动触发，独立流水线 chapterFinalize.ts）：
+「本章定稿」（作者手动触发，独立流水线 agent/finalize.ts）：
 章节概要 → 短期记忆 → 长期记忆（按需）→ 整体进度
 ```
 
-- **planning**：Agent 自行调用只读工具调研（最多 12 轮，含渐进催促与"连续三轮重复"死循环检测），最后产出 `<<<PLAN>>>` 结构化规划。内联续写走轻量模式（4 轮、跳过确认）。
+- **planning**：Agent 自行调用只读工具调研（交互面板最多 8 轮，含渐进催促与"连续三轮重复"死循环检测），最后产出 `<<<PLAN>>>` 结构化规划。
 - **awaiting_confirmation**：弹出规划面板，大纲可直接编辑；确认后编辑结果会作为生成指令的一部分下发（不会被忽略）。
-- **generating**：流式输出正文，逐字写入编辑器；被单次长度上限截断时自动续写（最多 2 次）。
+- **generating**：模型通过 `append_to_chapter` / `replace_tail` 工具把正文写入章节并同步编辑器；无工具模型改用 `<<<CONTENT>>>` 块虚拟写章。
 - 写完正文**不会**自动更新记忆或摘要，统一在「本章定稿」时进行。章节概要写入 `ChapterMeta.summary`，作为后续章节规划时的「前情提要」。
 
 **规划阶段工具**（只读）
@@ -147,11 +147,12 @@ pnpm build-tauri    # 桌面，打包当前平台
 **测试**
 
 ```bash
-pnpm test           # 协议解析 / 人物记忆 / 角色迁移 / 上下文预算 + Agent 主循环与「本章定稿」端到端
+pnpm test           # 73 个用例：协议 / 人物记忆 / 上下文预算 / Agent 模块边界 + 交互面板与定稿端到端
 ```
 
 `tests/` 使用 Node 内建 test runner（零测试依赖）。其中 `*.e2e.test.ts` 会驱动真实的
-`agentService` / `agentChat` / `chapterFinalize` / `agentTools` / `storyStateService` 跑完整链路（规划 → 确认 → 生成；定稿四步），
+`agent/chat/engine.ts` / `agent/finalize.ts` / `agent/tools/*` / `storyStateService` 跑完整链路（规划 → 确认 → 生成；定稿四步），
+`agentModules.test.ts` 覆盖拆分后的文本、prompt、会话、转录裁剪与工具注册表边界。
 只把三个模块替换为替身：`openai`（网络边界，改由脚本化的假模型驱动）、`@/hooks/useEnv`（内存
 文件系统）、`@/services/workspaceService`（固定路径）——因此不联网、不写真实磁盘。
 
@@ -179,21 +180,24 @@ src/
 ├── pages/
 │   ├── book/           # 电子书阅读器
 │   ├── library/        # 图书馆管理
-│   ├── novel/          # 小说创作工坊
+│   ├── novel/          # 小说创作工坊（index.vue 仅做布局）
+│   │   ├── components/ # 编辑器 / 侧栏 / 弹窗 / Agent 展示组件
+│   │   └── composables/# UI、工作区、章节、角色记忆、聊天、定稿编排
 │   ├── lore/           # Lore 资料库
 │   └── setting/        # 应用设置
 ├── services/
-│   ├── agentService.ts      # Agent 状态机与 tool-use 循环
-│   ├── agentChat.ts         # Agent 交互面板（多轮对话）
-│   ├── chapterFinalize.ts   # 「本章定稿」流水线：概要 → 短期记忆 → 长期记忆 → 整体进度
-│   ├── agentProtocol.ts     # PLAN/MEMORY 协议解析、循环守卫（纯函数）
-│   ├── agentTools.ts        # AI 工具集定义
-│   ├── contextBudget.ts     # 上下文预算裁剪（纯函数）
-│   ├── storyMemory.ts       # 人物记忆 / 整体进度 / 定稿快照（纯函数）
+│   ├── agent/              # Agent 引擎（页面唯一入口 index.ts）
+│   │   ├── chat/           # 多轮对话引擎、会话文件、快捷动作、转录裁剪
+│   │   ├── prompts/        # 交互面板与定稿 prompt
+│   │   ├── tools/          # 只读调研 / 记忆改写 / 写章工具 + 注册表
+│   │   ├── llm.ts          # DeepSeek 流式请求边界
+│   │   ├── runtime.ts      # 单次模型调用与工具回填
+│   │   ├── protocol.ts     # PLAN / MEMORY / CONTENT 纯协议
+│   │   └── finalize.ts     # 「本章定稿」四步流水线
+│   ├── storyMemory.ts      # 人物记忆 / 整体进度 / 定稿快照（纯函数）
 │   ├── characterMigration.ts # 旧角色结构 → { name, skill } 迁移（纯函数）
-│   ├── deepseekService.ts   # DeepSeek API 封装
-│   ├── novelService.ts      # 小说数据读写
-│   └── loreService.ts       # Lore 数据读写
+│   ├── novelService.ts     # 小说数据读写
+│   └── loreService.ts      # Lore 数据读写
 ├── store/              # Pinia 状态管理
 ├── types/              # TypeScript 类型定义
 ├── hooks/              # Vue Composables

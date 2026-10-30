@@ -1,20 +1,21 @@
 <template>
   <v-dialog v-model="visible" max-width="760" scrollable>
-    <v-card rounded="xl" class="lg-dialog" v-if="loaded">
+    <v-card v-if="loaded" rounded="xl" class="lg-dialog">
       <!-- 标题栏 -->
       <v-card-title class="d-flex align-center gap-3 pt-5 px-5">
         <span class="title-badge">
           <v-icon :icon="mdiStateMachine" size="18" />
         </span>
         <span class="text-h6">故事状态</span>
-        <span class="updated-hint" v-if="liveState?.updatedAt">
+        <span v-if="liveState?.updatedAt" class="updated-hint">
           最近更新 {{ formatTime(liveState.updatedAt) }}
         </span>
       </v-card-title>
 
       <v-card-text class="pa-5">
         <div class="intro-hint">
-          每章写完后，在 Agent 面板点「定稿」：会生成章节概要、改写角色短期记忆、判断是否改写长期记忆，并更新整体进度。
+          每章写完后，在 Agent
+          面板点「定稿」：会生成章节概要、改写角色短期记忆、判断是否改写长期记忆，并更新整体进度。
         </div>
 
         <!-- ===== 整体进度 ===== -->
@@ -131,141 +132,142 @@
       <v-card-actions class="px-5 pb-5">
         <v-spacer />
         <v-btn variant="text" rounded="pill" @click="visible = false">取消</v-btn>
-        <v-btn color="primary" variant="tonal" rounded="pill" :loading="saving" @click="save">保存</v-btn>
+        <v-btn color="primary" variant="tonal" rounded="pill" :loading="saving" @click="save"
+          >保存</v-btn
+        >
       </v-card-actions>
     </v-card>
   </v-dialog>
 </template>
 
 <script setup lang="ts">
-import { mdiStateMachine, mdiClose, mdiUndoVariant } from '@mdi/js'
-import { storeToRefs } from 'pinia'
-import { useAgentStore } from '@/store/agentStore'
-import { loadStoryState, saveStoryState } from '@/services/storyStateService'
-import type { StoryState, CharacterMemory } from '@/types/storyState'
-import type { Character, ChapterMeta } from '@/types/novel'
+import { mdiClose, mdiStateMachine, mdiUndoVariant } from '@mdi/js';
+import { storeToRefs } from 'pinia';
+
+import { loadStoryState, saveStoryState } from '@/services/storyStateService';
+import { useNovelUiStore } from '@/store/novelUiStore';
+import type { ChapterMeta, Character } from '@/types/novel';
+import type { CharacterMemory, StoryState } from '@/types/storyState';
 
 const props = defineProps<{
-  modelValue: boolean
-  novelId: string
-  characters: Character[]
-  chapters: ChapterMeta[]
-}>()
+  modelValue: boolean;
+  novelId: string;
+  characters: Character[];
+  chapters: ChapterMeta[];
+}>();
 
 const emit = defineEmits<{
-  'update:modelValue': [v: boolean]
+  'update:modelValue': [v: boolean];
   /** 回滚一次长期记忆改写（由父组件改 novel.json 与 story-state.json） */
-  revert: [changeId: string]
-}>()
-const agentStore = useAgentStore()
-const { storyState: liveState } = storeToRefs(agentStore)
+  revert: [changeId: string];
+}>();
+const novelUiStore = useNovelUiStore();
+const { storyState: liveState } = storeToRefs(novelUiStore);
 
 const visible = computed({
   get: () => props.modelValue,
   set: (v) => emit('update:modelValue', v),
-})
+});
 
 /** 打开时的快照（用于判断哪些字段被编辑过） */
-const original = ref<StoryState | null>(null)
-const loaded = computed(() => !!original.value)
-const mainlineDraft = ref('')
-const memoryDrafts = reactive<Record<string, string>>({})
-const removedOrphans = reactive(new Set<string>())
-const saving = ref(false)
-const expanded = ref<Set<string>>(new Set())
+const original = ref<StoryState | null>(null);
+const loaded = computed(() => !!original.value);
+const mainlineDraft = ref('');
+const memoryDrafts = reactive<Record<string, string>>({});
+const removedOrphans = reactive(new Set<string>());
+const saving = ref(false);
+const expanded = ref<Set<string>>(new Set());
 
 // 打开时加载最新状态
 watch(
   () => props.modelValue,
   async (v) => {
     if (!v) {
-      original.value = null
-      return
+      original.value = null;
+      return;
     }
-    const s = await loadStoryState(props.novelId)
-    agentStore.setStoryState(s)
-    original.value = JSON.parse(JSON.stringify(s))
-    mainlineDraft.value = s.mainline
-    for (const k of Object.keys(memoryDrafts)) delete memoryDrafts[k]
+    const s = await loadStoryState(props.novelId);
+    novelUiStore.setStoryState(s);
+    original.value = JSON.parse(JSON.stringify(s));
+    mainlineDraft.value = s.mainline;
+    for (const k of Object.keys(memoryDrafts)) delete memoryDrafts[k];
     for (const c of props.characters) {
       memoryDrafts[c.name] =
-        s.characterMemories.find((m) => m.characterName === c.name)?.shortTerm ?? ''
+        s.characterMemories.find((m) => m.characterName === c.name)?.shortTerm ?? '';
     }
-    removedOrphans.clear()
-    expanded.value = new Set()
-  },
-)
+    removedOrphans.clear();
+    expanded.value = new Set();
+  }
+);
 
 function chapterTitle(id?: string): string {
-  if (!id) return ''
-  return props.chapters.find((c) => c.id === id)?.title ?? ''
+  if (!id) return '';
+  return props.chapters.find((c) => c.id === id)?.title ?? '';
 }
-const mainlineChapterTitle = computed(() =>
-  chapterTitle(original.value?.mainlineUpdatedChapterId),
-)
+const mainlineChapterTitle = computed(() => chapterTitle(original.value?.mainlineUpdatedChapterId));
 function originalMemory(name: string): string {
-  return original.value?.characterMemories.find((m) => m.characterName === name)?.shortTerm ?? ''
+  return original.value?.characterMemories.find((m) => m.characterName === name)?.shortTerm ?? '';
 }
 function memoryChapterTitle(name: string): string {
-  const m = original.value?.characterMemories.find((x) => x.characterName === name)
-  return chapterTitle(m?.lastUpdatedChapterId)
+  const m = original.value?.characterMemories.find((x) => x.characterName === name);
+  return chapterTitle(m?.lastUpdatedChapterId);
 }
 const orphanMemoryNames = computed(() => {
-  const names = new Set(props.characters.map((c) => c.name))
+  const names = new Set(props.characters.map((c) => c.name));
   return (original.value?.characterMemories ?? [])
     .map((m) => m.characterName)
-    .filter((n) => !names.has(n) && !removedOrphans.has(n))
-})
+    .filter((n) => !names.has(n) && !removedOrphans.has(n));
+});
 
 /** 改写记录：新的在前（读 store 的实时状态，回滚后立即刷新） */
-const changeLog = computed(() => [...(liveState.value?.longTermLog ?? [])].reverse())
+const changeLog = computed(() => [...(liveState.value?.longTermLog ?? [])].reverse());
 
 function toggleExpand(id: string) {
-  const s = new Set(expanded.value)
-  if (s.has(id)) s.delete(id)
-  else s.add(id)
-  expanded.value = s
+  const s = new Set(expanded.value);
+  if (s.has(id)) s.delete(id);
+  else s.add(id);
+  expanded.value = s;
 }
 
 async function save() {
-  if (!original.value) return
-  saving.value = true
+  if (!original.value) return;
+  saving.value = true;
   try {
     // 基于磁盘最新状态合并本次编辑（避免覆盖期间发生的回滚/定稿）
-    const latest = await loadStoryState(props.novelId)
-    const now = Date.now()
+    const latest = await loadStoryState(props.novelId);
+    const now = Date.now();
     let memories: CharacterMemory[] = latest.characterMemories.filter(
-      (m) => !removedOrphans.has(m.characterName),
-    )
+      (m) => !removedOrphans.has(m.characterName)
+    );
     for (const c of props.characters) {
-      const draft = (memoryDrafts[c.name] ?? '').trim()
-      if (draft === originalMemory(c.name).trim()) continue
-      const idx = memories.findIndex((m) => m.characterName === c.name)
+      const draft = (memoryDrafts[c.name] ?? '').trim();
+      if (draft === originalMemory(c.name).trim()) continue;
+      const idx = memories.findIndex((m) => m.characterName === c.name);
       if (!draft) {
-        memories = memories.filter((m) => m.characterName !== c.name)
+        memories = memories.filter((m) => m.characterName !== c.name);
       } else if (idx >= 0) {
-        memories[idx] = { ...memories[idx], shortTerm: draft, updatedAt: now }
+        memories[idx] = { ...memories[idx], shortTerm: draft, updatedAt: now };
       } else {
         memories.push({
           characterName: c.name,
           shortTerm: draft,
           lastUpdatedChapterId: '',
           updatedAt: now,
-        })
+        });
       }
     }
-    const mainlineChanged = mainlineDraft.value.trim() !== original.value.mainline.trim()
+    const mainlineChanged = mainlineDraft.value.trim() !== original.value.mainline.trim();
     const saved = await saveStoryState({
       ...latest,
       mainline: mainlineChanged ? mainlineDraft.value.trim() : latest.mainline,
       characterMemories: memories,
-    })
-    agentStore.setStoryState(saved)
-    visible.value = false
+    });
+    novelUiStore.setStoryState(saved);
+    visible.value = false;
   } catch (e) {
-    console.error('保存故事状态失败：', e)
+    console.error('保存故事状态失败：', e);
   } finally {
-    saving.value = false
+    saving.value = false;
   }
 }
 
@@ -275,7 +277,7 @@ function formatTime(ts: number): string {
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
-  })
+  });
 }
 </script>
 

@@ -11,59 +11,57 @@
  * 并一次性写入 meta，而非逐个调用 createChapter / createEntry。
  */
 
-import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions'
-import { createOpenAIClient, streamChatWithTools, type DeepSeekModel } from '@/services/deepseekService'
-import {
-  createNovel,
-  saveNovelMeta,
-  saveChapterContent,
-} from '@/services/novelService'
-import { loadOrCreateLore, saveLoreMeta, saveEntryContent } from '@/services/loreService'
-import { migrateCharacter } from '@/services/characterMigration'
-import type { Novel, ChapterMeta, Character } from '@/types/novel'
-import type { Lore, EntryMeta, EntryImportance } from '@/types/lore'
+import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
+
+import { createOpenAIClient, streamChatWithTools } from '@/services/agent/llm';
+import { migrateCharacter } from '@/services/characterMigration';
+import { loadOrCreateLore, saveEntryContent, saveLoreMeta } from '@/services/loreService';
+import { createNovel, saveChapterContent, saveNovelMeta } from '@/services/novelService';
+import type { DeepSeekModel } from '@/types/agent';
+import type { EntryImportance, EntryMeta, Lore } from '@/types/lore';
+import type { ChapterMeta, Character, Novel } from '@/types/novel';
 
 // ===================== 类型 =====================
 
 /** 切分出的一章 */
 export interface SplitChapter {
-  title: string
-  content: string
+  title: string;
+  content: string;
 }
 
 /** AI 提取出的人物（导入用，字段比 Character 少 id） */
 export interface ImportCharacter {
-  name: string
+  name: string;
   /** 长期记忆（Skill） */
-  skill?: string
+  skill?: string;
 }
 
 /** AI 提取出的设定条目（导入用） */
 export interface ImportLoreEntry {
-  name: string
-  importance: EntryImportance
-  briefDescription: string
-  keywords: string[]
-  content: string
+  name: string;
+  importance: EntryImportance;
+  briefDescription: string;
+  keywords: string[];
+  content: string;
 }
 
 /** AI 提取出的整书元数据 */
 export interface ImportMeta {
-  novelTitle: string
-  synopsisBrief: string // 精简版情节 → novel.synopsis
-  plotProgress: string // 详细情节阶段 → lore 条目正文
-  characters: ImportCharacter[]
-  loreEntries: ImportLoreEntry[]
+  novelTitle: string;
+  synopsisBrief: string; // 精简版情节 → novel.synopsis
+  plotProgress: string; // 详细情节阶段 → lore 条目正文
+  characters: ImportCharacter[];
+  loreEntries: ImportLoreEntry[];
 }
 
 /** persistImport 的入参（用户在预览框里可能改过） */
 export interface PersistImportParams {
-  title: string
-  synopsis: string
-  chapters: SplitChapter[]
-  characters: ImportCharacter[]
-  loreEntries: ImportLoreEntry[]
-  plotProgress: string
+  title: string;
+  synopsis: string;
+  chapters: SplitChapter[];
+  characters: ImportCharacter[];
+  loreEntries: ImportLoreEntry[];
+  plotProgress: string;
 }
 
 // ===================== 1. 章节切分 =====================
@@ -76,30 +74,35 @@ const CHAPTER_TITLE_PATTERNS = [
   /^[\s]*第[\s]*([零一二三四五六七八九十百千万0-9]+)[\s]*(章|回|节|卷|篇)(?![\s\S])/,
   /^[\s]*Chapter[\s]+[\dIVXLCDM]+/i,
   /^[\s]*\d+[、.．\s]/,
-]
+];
 
 /** 判断一行是否为章节标题 */
 function isChapterTitleLine(line: string): boolean {
-  const s = line.trim()
-  if (!s) return false
+  const s = line.trim();
+  if (!s) return false;
   // 标题行一般较短，避免把正文里的"第一章就这样过去了"误判
-  if (s.length > 40) return false
-  return CHAPTER_TITLE_PATTERNS.some((re) => re.test(s))
+  if (s.length > 40) return false;
+  return CHAPTER_TITLE_PATTERNS.some((re) => re.test(s));
 }
 
 /** 从标题行里提取干净的标题文本 */
 function cleanTitle(line: string): string {
-  return line.trim().replace(/^[\s]+/, '').trim() || '未命名'
+  return (
+    line
+      .trim()
+      .replace(/^[\s]+/, '')
+      .trim() || '未命名'
+  );
 }
 
 /** 清洗章节正文：统一换行、去掉行首多余空白 */
 function cleanContent(text: string): string {
   return text
     .split('\n')
-    .map((l) => l.replace(/[\t ]+$/,''))
+    .map((l) => l.replace(/[\t ]+$/, ''))
     .join('\n')
     .replace(/\n{3,}/g, '\n\n')
-    .trim()
+    .trim();
 }
 
 /**
@@ -107,93 +110,98 @@ function cleanContent(text: string): string {
  * 兜底：若一个章节标题都没匹配到，按每 ~3000 字机械切分，标题用「第 N 节」。
  */
 export function splitChapters(rawText: string): SplitChapter[] {
-  if (!rawText || !rawText.trim()) return []
+  if (!rawText || !rawText.trim()) return [];
 
-  const lines = rawText.split('\n')
+  const lines = rawText.split('\n');
 
   // 先扫一遍判断是否存在章节标题
-  const hasTitle = lines.some(isChapterTitleLine)
+  const hasTitle = lines.some(isChapterTitleLine);
 
   if (!hasTitle) {
     // 机械切分
-    const text = rawText.replace(/\r\n/g, '\n')
-    const chunkSize = 3000
-    const chunks: SplitChapter[] = []
-    let i = 0
-    let idx = 1
+    const text = rawText.replace(/\r\n/g, '\n');
+    const chunkSize = 3000;
+    const chunks: SplitChapter[] = [];
+    let i = 0;
+    let idx = 1;
     while (i < text.length) {
       // 尽量在句号/换行处切
-      let end = Math.min(i + chunkSize, text.length)
+      let end = Math.min(i + chunkSize, text.length);
       if (end < text.length) {
-        const slice = text.slice(i, end)
-        const lastBreak = Math.max(slice.lastIndexOf('\n'), slice.lastIndexOf('。'), slice.lastIndexOf('！'), slice.lastIndexOf('？'))
-        if (lastBreak > chunkSize * 0.5) end = i + lastBreak + 1
+        const slice = text.slice(i, end);
+        const lastBreak = Math.max(
+          slice.lastIndexOf('\n'),
+          slice.lastIndexOf('。'),
+          slice.lastIndexOf('！'),
+          slice.lastIndexOf('？')
+        );
+        if (lastBreak > chunkSize * 0.5) end = i + lastBreak + 1;
       }
       chunks.push({
         title: `第 ${idx} 节`,
         content: cleanContent(text.slice(i, end)),
-      })
-      i = end
-      idx++
+      });
+      i = end;
+      idx++;
     }
-    return chunks
+    return chunks;
   }
 
   // 按标题行切分
-  const chapters: SplitChapter[] = []
-  let curTitle = '序章'
-  let curBody: string[] = []
+  const chapters: SplitChapter[] = [];
+  let curTitle = '序章';
+  let curBody: string[] = [];
 
   const flush = () => {
-    const content = cleanContent(curBody.join('\n'))
+    const content = cleanContent(curBody.join('\n'));
     if (content || chapters.length === 0) {
-      chapters.push({ title: curTitle, content })
+      chapters.push({ title: curTitle, content });
     }
-    curBody = []
-  }
+    curBody = [];
+  };
 
   for (const line of lines) {
     if (isChapterTitleLine(line)) {
-      flush()
-      curTitle = cleanTitle(line)
+      flush();
+      curTitle = cleanTitle(line);
     } else {
-      curBody.push(line)
+      curBody.push(line);
     }
   }
-  flush()
+  flush();
 
   // 去掉开头空的「序章」（若序章无内容且后面有正式章节）
   if (chapters.length > 1 && !chapters[0].content && /序章/.test(chapters[0].title)) {
-    chapters.shift()
+    chapters.shift();
   }
 
-  return chapters
+  return chapters;
 }
 
 // ===================== 2. AI 提取元数据 =====================
 
-const SAMPLE_PER_CHAPTER = 600 // 每章采样字数
-const SAMPLE_TAIL = 400 // 末章尾部补采字数
+const SAMPLE_PER_CHAPTER = 600; // 每章采样字数
+const SAMPLE_TAIL = 400; // 末章尾部补采字数
 
 /** 构造给 AI 的上下文文本（章节清单 + 每章采样） */
 function buildExtractionInput(chapters: SplitChapter[]): string {
-  const lines: string[] = []
-  lines.push(`共 ${chapters.length} 章：`)
+  const lines: string[] = [];
+  lines.push(`共 ${chapters.length} 章：`);
   chapters.forEach((ch, i) => {
-    lines.push('')
-    lines.push(`【第 ${i + 1} 章】${ch.title}`)
-    const body = ch.content || ''
-    const head = body.slice(0, SAMPLE_PER_CHAPTER)
-    let sample = head
+    lines.push('');
+    lines.push(`【第 ${i + 1} 章】${ch.title}`);
+    const body = ch.content || '';
+    const head = body.slice(0, SAMPLE_PER_CHAPTER);
+    let sample = head;
     // 末章补尾部
     if (i === chapters.length - 1 && body.length > SAMPLE_PER_CHAPTER + SAMPLE_TAIL) {
-      sample = head + '\n……（中略）……\n' + body.slice(-SAMPLE_TAIL)
+      sample = head + '\n……（中略）……\n' + body.slice(-SAMPLE_TAIL);
     } else if (body.length > SAMPLE_PER_CHAPTER) {
-      sample = head + '\n……（后略）'
+      sample = head + '\n……（后略）';
     }
-    lines.push(sample)
-  })
-  return lines.join('\n')
+    lines.push(sample);
+  });
+  return lines.join('\n');
 }
 
 const EXTRACTION_SYSTEM_PROMPT = [
@@ -211,55 +219,55 @@ const EXTRACTION_SYSTEM_PROMPT = [
   '<<<IMPORT>>>',
   '{"novelTitle":"","synopsisBrief":"","plotProgress":"","characters":[{"name":"","skill":""}],"loreEntries":[{"name":"","importance":"important","briefDescription":"","keywords":[],"content":""}]}',
   '<<<END>>>',
-].join('\n')
+].join('\n');
 
 /** 从模型输出中解析 <<<IMPORT>>>...<<<END>>> 包裹的 JSON */
 function parseImportJson(text: string): ImportMeta {
-  const match = text.match(/<<<IMPORT>>>\s*([\s\S]*?)\s*<<<END>>>/)
-  const raw = match ? match[1] : text
-  let obj: unknown
+  const match = text.match(/<<<IMPORT>>>\s*([\s\S]*?)\s*<<<END>>>/);
+  const raw = match ? match[1] : text;
+  let obj: unknown;
   try {
-    obj = JSON.parse(raw)
+    obj = JSON.parse(raw);
   } catch {
     // 容错：尝试截取第一个 { 到最后一个 }
-    const start = raw.indexOf('{')
-    const end = raw.lastIndexOf('}')
+    const start = raw.indexOf('{');
+    const end = raw.lastIndexOf('}');
     if (start >= 0 && end > start) {
-      obj = JSON.parse(raw.slice(start, end + 1))
+      obj = JSON.parse(raw.slice(start, end + 1));
     } else {
-      throw new Error('AI 返回内容无法解析为 JSON')
+      throw new Error('AI 返回内容无法解析为 JSON');
     }
   }
 
-  const data = obj as Partial<ImportMeta>
-  if (!data || typeof data !== 'object') throw new Error('AI 返回内容格式异常')
+  const data = obj as Partial<ImportMeta>;
+  if (!data || typeof data !== 'object') throw new Error('AI 返回内容格式异常');
 
   const characters: ImportCharacter[] = Array.isArray(data.characters)
     ? data.characters
         .filter((c) => c && typeof c === 'object' && (c as ImportCharacter).name)
         .map((c) => {
           // 兼容模型沿用旧字段（profile/aliases/literaryReference）：一并并入 skill
-          const { name, skill } = migrateCharacter(c)
-          return { name: name || String((c as ImportCharacter).name), skill }
+          const { name, skill } = migrateCharacter(c);
+          return { name: name || String((c as ImportCharacter).name), skill };
         })
-    : []
+    : [];
 
   const loreEntries: ImportLoreEntry[] = Array.isArray(data.loreEntries)
     ? data.loreEntries
         .filter((e) => e && typeof e === 'object' && (e as ImportLoreEntry).name)
         .map((e) => {
-          const en = e as ImportLoreEntry
+          const en = e as ImportLoreEntry;
           const importance: EntryImportance =
-            en.importance === 'major' || en.importance === 'minor' ? en.importance : 'important'
+            en.importance === 'major' || en.importance === 'minor' ? en.importance : 'important';
           return {
             name: String(en.name),
             importance,
             briefDescription: en.briefDescription ? String(en.briefDescription) : '',
             keywords: Array.isArray(en.keywords) ? en.keywords.map(String) : [],
             content: en.content ? String(en.content) : '',
-          }
+          };
         })
-    : []
+    : [];
 
   return {
     novelTitle: data.novelTitle ? String(data.novelTitle) : '导入的小说',
@@ -267,12 +275,12 @@ function parseImportJson(text: string): ImportMeta {
     plotProgress: data.plotProgress ? String(data.plotProgress) : '',
     characters,
     loreEntries,
-  }
+  };
 }
 
 export interface ExtractCallbacks {
-  onStatus?: (text: string) => void
-  onTextDelta?: (delta: string) => void
+  onStatus?: (text: string) => void;
+  onTextDelta?: (delta: string) => void;
 }
 
 /**
@@ -281,19 +289,19 @@ export interface ExtractCallbacks {
  */
 export async function extractImportMeta(
   params: { apiKey: string; model: DeepSeekModel; chapters: SplitChapter[]; signal?: AbortSignal },
-  callbacks: ExtractCallbacks = {},
+  callbacks: ExtractCallbacks = {}
 ): Promise<ImportMeta> {
-  const client = createOpenAIClient(params.apiKey)
-  const userInput = buildExtractionInput(params.chapters)
+  const client = createOpenAIClient(params.apiKey);
+  const userInput = buildExtractionInput(params.chapters);
 
   const messages: ChatCompletionMessageParam[] = [
     { role: 'system', content: EXTRACTION_SYSTEM_PROMPT },
     { role: 'user', content: userInput },
-  ]
+  ];
 
-  callbacks.onStatus?.('正在解析小说结构…')
-  let fullText = ''
-  let finishReason: string | null = null
+  callbacks.onStatus?.('正在解析小说结构…');
+  let fullText = '';
+  let finishReason: string | null = null;
 
   for await (const ev of streamChatWithTools(client, {
     model: params.model,
@@ -301,27 +309,27 @@ export async function extractImportMeta(
     signal: params.signal,
   })) {
     if (ev.type === 'text') {
-      fullText += ev.delta
-      callbacks.onTextDelta?.(ev.delta)
+      fullText += ev.delta;
+      callbacks.onTextDelta?.(ev.delta);
     } else if (ev.type === 'done') {
-      finishReason = ev.finishReason
+      finishReason = ev.finishReason;
     }
   }
 
-  if (params.signal?.aborted) throw new DOMException('已取消', 'AbortError')
+  if (params.signal?.aborted) throw new DOMException('已取消', 'AbortError');
   if (!fullText.trim()) {
-    throw new Error(`AI 未返回内容（finishReason=${finishReason ?? 'unknown'}）`)
+    throw new Error(`AI 未返回内容（finishReason=${finishReason ?? 'unknown'}）`);
   }
 
-  callbacks.onStatus?.('正在整理结果…')
-  return parseImportJson(fullText)
+  callbacks.onStatus?.('正在整理结果…');
+  return parseImportJson(fullText);
 }
 
 // ===================== 3. 落盘 =====================
 
 /** 文件名清洗（与 novelService.createChapter 一致） */
 function sanitizeFilename(title: string): string {
-  return title.replace(/[/\\?*:|"<>]/g, '_')
+  return title.replace(/[/\\?*:|"<>]/g, '_');
 }
 
 /**
@@ -330,24 +338,24 @@ function sanitizeFilename(title: string): string {
  */
 export async function persistImport(params: PersistImportParams): Promise<Novel> {
   // 1. 创建小说（内部已 saveNovelMeta，得到 novel.id 与时间戳基线）
-  const novel = await createNovel(params.title, params.synopsis)
-  const ts = novel.id // novel-{timestamp}
+  const novel = await createNovel(params.title, params.synopsis);
+  const ts = novel.id; // novel-{timestamp}
 
   // 2. 批量写章节正文 + 收集 ChapterMeta
-  const chapters: ChapterMeta[] = []
+  const chapters: ChapterMeta[] = [];
   for (let i = 0; i < params.chapters.length; i++) {
-    const ch = params.chapters[i]
-    const order = i + 1
-    const paddedOrder = String(order).padStart(3, '0')
-    const filename = `${paddedOrder}_${sanitizeFilename(ch.title)}.md`
-    const content = ch.content && ch.content.trim() ? ch.content : ''
-    await saveChapterContent(filename, content)
+    const ch = params.chapters[i];
+    const order = i + 1;
+    const paddedOrder = String(order).padStart(3, '0');
+    const filename = `${paddedOrder}_${sanitizeFilename(ch.title)}.md`;
+    const content = ch.content && ch.content.trim() ? ch.content : '';
+    await saveChapterContent(filename, content);
     chapters.push({
       id: `chapter-${ts}-${i}`,
       filename,
       title: ch.title,
       order,
-    })
+    });
   }
 
   // 3. 角色：映射成 Character[]
@@ -355,18 +363,18 @@ export async function persistImport(params: PersistImportParams): Promise<Novel>
     id: `char-${ts}-${i}`,
     name: c.name,
     skill: c.skill,
-  }))
+  }));
 
   // 4. 一次写回全部章节 meta 和角色
   const novelWithMeta: Novel = {
     ...novel,
     chapters,
     characters,
-  }
-  await saveNovelMeta(novelWithMeta)
+  };
+  await saveNovelMeta(novelWithMeta);
 
   // 5. Lore：建资料库 + 批量写条目正文 + 一次写 meta
-  const lore: Lore = await loadOrCreateLore(novelWithMeta)
+  const lore: Lore = await loadOrCreateLore(novelWithMeta);
   const allEntries: ImportLoreEntry[] = [
     // 情节梗概作为第一条 major 条目
     {
@@ -377,15 +385,15 @@ export async function persistImport(params: PersistImportParams): Promise<Novel>
       content: params.plotProgress,
     },
     ...params.loreEntries,
-  ]
+  ];
 
-  const entryMetas: EntryMeta[] = []
+  const entryMetas: EntryMeta[] = [];
   for (let i = 0; i < allEntries.length; i++) {
-    const en = allEntries[i]
-    const id = `entry-${ts}-${i}`
-    const filename = `${id}.md`
-    const body = `# ${en.name}\n\n${en.content || ''}`.trimEnd() + '\n'
-    await saveEntryContent(filename, body)
+    const en = allEntries[i];
+    const id = `entry-${ts}-${i}`;
+    const filename = `${id}.md`;
+    const body = `# ${en.name}\n\n${en.content || ''}`.trimEnd() + '\n';
+    await saveEntryContent(filename, body);
     entryMetas.push({
       id,
       filename,
@@ -395,15 +403,15 @@ export async function persistImport(params: PersistImportParams): Promise<Novel>
       keywords: en.keywords,
       enabled: true,
       order: i + 1,
-    })
+    });
   }
 
   const loreWithEntries: Lore = {
     ...lore,
     novelTitle: novelWithMeta.title,
     entries: entryMetas,
-  }
-  await saveLoreMeta(loreWithEntries)
+  };
+  await saveLoreMeta(loreWithEntries);
 
-  return novelWithMeta
+  return novelWithMeta;
 }
