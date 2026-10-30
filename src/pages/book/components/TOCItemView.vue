@@ -1,5 +1,5 @@
 <template>
-  <div class="w-100" style="padding-top: 1px">
+  <div class="toc-item w-100" style="padding-top: 1px">
     <v-list-item
       :class="['rounded-pill', item.subitems ? 'pa-0' : '']"
       :aria-expanded="isExpanded"
@@ -9,8 +9,15 @@
       active-class="text-primary"
       @click="handleClickItem as any"
     >
-      <div class="d-flex align-center">
-        <v-btn v-if="item.subitems" size="small" icon variant="text" @click.stop="toggleExpand">
+      <div class="toc-item__row d-flex align-center">
+        <v-btn
+          v-if="item.subitems"
+          class="toc-item__toggle"
+          size="small"
+          icon
+          variant="text"
+          @click.stop="toggleExpand"
+        >
           <svg
             viewBox="0 0 8 10"
             width="8"
@@ -24,9 +31,9 @@
           </svg>
         </v-btn>
         <span
-          class="text-truncate"
+          class="toc-item__label text-truncate"
           :class="item.subitems ? 'ml-0' : 'ml-2'"
-          style="max-width: calc(100% - 24px); white-space: nowrap; text-overflow: ellipsis"
+          :title="item.label"
         >
           {{ item.label }}
         </span>
@@ -94,6 +101,31 @@ watch(
 </script>
 
 <style scoped>
+/* 目录条目：宽度由外部面板决定，条目自身只负责把超长标题截断，
+   绝不反向把面板撑宽。
+   关键点是 min-width: 0 —— flex item 的自动最小尺寸默认取 min-content，
+   nowrap 的标题会把这一路祖先全顶开；配合 label 的 flex: 1 1 auto，
+   剩余空间归标题、多余部分走 ellipsis。
+   （原来用 max-width: calc(100% - 24px) 限制，但百分比宽度在父级宽度
+     尚未确定时等价于 none，撑宽照样发生。） */
+.toc-item,
+.toc-item__row {
+  min-width: 0;
+}
+
+.toc-item__row {
+  width: 100%;
+}
+
+.toc-item__toggle {
+  flex: none;
+}
+
+.toc-item__label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 /* 展开箭头：旋转动画 + 继承文字颜色 */
 .toc-caret {
   color: rgb(var(--v-theme-on-surface));

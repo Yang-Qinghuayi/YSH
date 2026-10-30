@@ -30,7 +30,11 @@
         </v-icon>
       </v-btn>
 
-      <div ref="containerRef" class="position-relative w-100 h-100" @click="handlePageFlip">
+      <div
+        ref="containerRef"
+        class="book-content position-relative w-100 h-100"
+        @click="handlePageFlip"
+      >
         <div class="page-info">{{ pageInfo }}</div>
       </div>
 
@@ -296,6 +300,15 @@ const initBook = async () => {
 
 .book-viewport {
   height: 94vh;
+}
+
+/* 正文区吃掉目录之外的全部宽度。
+   min-width: 0 是必须的：flex item 的自动最小尺寸默认是 min-content，
+   阅读器内部的渲染尺寸会顶住这里，导致目录挤不进来 / 正文被无限压缩。
+   目录面板自身是固定宽度（见 TOCView.vue 的 --toc-panel-width）。 */
+.book-content {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 /* 悬浮目录按钮定位：
