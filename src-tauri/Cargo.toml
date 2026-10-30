@@ -15,18 +15,18 @@ name = "yshlib"
 crate-type = ["staticlib", "cdylib", "lib"]
 
 [build-dependencies]
-tauri-build = { version = "2.1", features = [] }
+tauri-build = { version = "2.6", features = [] }
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
 # FIXME: remove the devtools feature in production
 tauri = { version = "2.11", features = [ "protocol-asset", "devtools"] }
-tauri-plugin-log = "2.8"
+tauri-plugin-log = "2.9"
 tauri-plugin-fs = "2.5"
 tauri-plugin-dialog = "2.7"
 tauri-plugin-os = "2.3"
-tauri-plugin-http = "2.5"
+tauri-plugin-http = "2.7"
 tauri-plugin-shell = "2.3"
 tauri-plugin-process = "2.3"
 tauri-plugin-opener = "2.5"
@@ -35,9 +35,10 @@ tauri-plugin-sign-in-with-apple = "1.0.2"
 tauri-plugin-haptics = "2.3"
 tauri-plugin-websocket = "2"
 tauri-plugin-native-bridge = { path = "./plugins/tauri-plugin-native-bridge" }
+serde_json = "1.0.154"
 
 [target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
 tauri-plugin-cli = "2.4"
-tauri-plugin-single-instance = "2.2"
+tauri-plugin-single-instance = "2.4"
 
-tauri-plugin-window-state = "2.2"
+tauri-plugin-window-state = "2.4"
