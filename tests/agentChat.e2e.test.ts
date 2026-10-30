@@ -1,7 +1,7 @@
 /**
  * agentChat.e2e.test.ts — 交互面板（chat 模式）引擎的端到端测试（零网络、零依赖）
  *
- * 复用 agentService.e2e.test.ts 的替身体系（假 fetch（SSE）+ 内存 fs），
+ * 复用 Agent e2e 的替身体系（假 fetch/SSE + 内存 fs），
  * 驱动真实的 agentChat 多轮循环：
  *   - 概要 → 调研工具 → PLAN 闸门（awaiting_confirmation）
  *   - 确认后生成轮：append_to_chapter 工具落盘 + 实时预览事件（写完即 done，不自动更新记忆）
@@ -30,6 +30,7 @@ import {
 const here = import.meta.dirname;
 const root = path.resolve(here, '..');
 registerHooks(createHooks({ root, stubsDir: path.join(here, 'stubs') }));
+// 网络边界：把 fetch 换成按脚本回放的 SSE 流（原 openai 桩已随 SDK 一起移除）
 installFetchStub();
 
 const {
@@ -42,7 +43,7 @@ const {
   saveChatSessionFile,
   loadChatSessionFile,
   prepareTranscriptForPersist,
-} = await import('../src/services/agentChat.ts');
+} = await import('../src/services/agent/index.ts');
 
 // ===================== 夹具 =====================
 
@@ -423,7 +424,7 @@ test('持久化恢复：重新加载会话文件后多轮上下文延续', async
   const session2 = createChatSession({ novel, chapter: CHAPTER_2, chapterContent: '' });
   const file = await loadChatSessionFile(CHAPTER_2.id);
   assert.ok(file);
-  const { restoreSessionMessages } = await import('../src/services/agentChat.ts');
+  const { restoreSessionMessages } = await import('../src/services/agent/index.ts');
   restoreSessionMessages(session2, file!.llmMessages);
 
   // 第二轮：请求里应带着第一轮的 system + user + assistant

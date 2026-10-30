@@ -11,7 +11,7 @@ import {
   estimateMessagesTokens,
   estimateMessageTokens,
   estimateTokens,
-} from '../src/services/contextBudget.ts';
+} from '../src/services/agent/contextBudget.ts';
 
 interface Msg {
   role: 'system' | 'user' | 'assistant' | 'tool';

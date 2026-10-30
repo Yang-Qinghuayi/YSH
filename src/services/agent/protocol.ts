@@ -1,23 +1,11 @@
 /**
- * agentProtocol.ts
- * Agent 与模型之间的「协议层」：全部为纯函数（无 IO、无框架依赖，可直接单测）。
- *
- *   - PLAN 协议：规划阶段模型按 <<<PLAN>>>…<<<END>>> 输出章节规划
- *   - MEMORY 协议：无工具模式（reasoner）下定稿时，模型按 <<<MEMORY>>>…<<<END>>> 回吐记忆更新
- *   - 生成指令拼装：把「已确认（作者可能改过）的大纲」显式写进消息
- *   - 循环守卫：稳定签名 + 连续重复轮检测，防止模型原地打转
+ * protocol.ts
+ * Agent 与模型之间的纯协议层：PLAN / MEMORY / CONTENT 解析、写章文本变换、循环守卫。
+ * 无 IO、无框架依赖，可直接单测。
  */
 
+import type { AgentPlan } from '@/types/agent';
 import type { ChatCompletionMessageFunctionToolCall } from '@/types/llm';
-
-/** 章节规划（规划阶段产出，可在确认面板中被作者编辑） */
-export interface AgentPlan {
-  outline: string;
-  /** 本章选用的角色（历史字段名为 selectedSkills，解析时兼容） */
-  selectedCharacters: { id: string; name: string; reason: string }[];
-  referencedLoreEntries: { id: string; name: string }[];
-  approach: string;
-}
 
 /** 兼容旧字段名 selectedSkills（模型可能沿用历史 schema） */
 function pickSelectedCharacters(obj: Record<string, unknown>): AgentPlan['selectedCharacters'] {
@@ -41,7 +29,7 @@ export const INLINE_MEMORY_INSTRUCTION = [
 ].join('\n');
 
 /** 解析后的 MEMORY 块 */
-export interface MemoryBlock {
+interface MemoryBlock {
   shortTerm: { characterName: string; shortTerm: string }[];
   longTerm: { characterName: string; reason: string; revisedSkill: string }[];
 }
@@ -114,12 +102,6 @@ export function parsePlan(text: string): AgentPlan {
   };
 }
 
-/** 正文因单次长度上限被截断时的续写指令 */
-export const CONTINUE_INSTRUCTION = [
-  '上面的正文因为单次长度上限被截断了。请从断点自然接着往下写：',
-  '不要重复已经写过的内容，不要重新开头，不要写任何解释或标题，直接续接正文。',
-].join('\n');
-
 /**
  * 清理模型输出的章节摘要：去标记、去换行、限长。
  */
@@ -136,34 +118,8 @@ export function cleanChapterSummary(text: string): string {
     .slice(0, 200);
 }
 
-/**
- * 构造生成阶段的用户指令。
- * 关键：把「已确认（作者可能改过）的大纲」显式写进消息。
- * 只写 session.plan 而无人读取时，模型会沿用它自己上一轮输出的 PLAN 原文，
- * 导致规划面板里的编辑不生效。
- */
-export function buildGenerateInstruction(plan?: AgentPlan): string {
-  const tail = '只输出正文，不要输出 @提及 标记、说明文字或标题。';
-  const outline = plan?.outline?.trim();
-  const approach = plan?.approach?.trim();
-  if (!outline && !approach) return `请按已确认大纲续写小说正文。${tail}`;
-
-  const lines = [
-    '请严格依据以下已确认的章节规划续写小说正文（作者可能已修订，一律以此为准，不要沿用你此前输出的任何版本）：',
-    '',
-  ];
-  if (outline) {
-    lines.push('【已确认大纲】', outline, '');
-  }
-  if (approach) {
-    lines.push('【写法思路】', approach, '');
-  }
-  lines.push(tail);
-  return lines.join('\n');
-}
-
 /** 稳定序列化（键名排序 + 递归归一 + 循环引用保护） */
-export function stableStringify(value: unknown): string {
+function stableStringify(value: unknown): string {
   const seen = new WeakSet();
   const normalize = (v: any): any => {
     if (v === null || typeof v !== 'object') return v;
@@ -212,7 +168,7 @@ export function buildRoundKey(tcs: ChatCompletionMessageFunctionToolCall[]): str
  * 下，模型把「要写入章节的正文」包在 <<<CONTENT>>>…<<<END>>> 中回吐，
  * 客户端解析后按虚拟 append_to_chapter 落盘（与 MEMORY 协议同款思路）。
  */
-export const CONTENT_BLOCK_PATTERN = /<<<CONTENT>>>\s*([\s\S]*?)\s*<<<END>>/;
+const CONTENT_BLOCK_PATTERN = /<<<CONTENT>>>\s*([\s\S]*?)\s*<<<END>>/;
 
 /** 从模型输出中解析 CONTENT 块（无工具模式下的写章正文）；未找到返回 null */
 export function parseContentBlock(text: string): string | null {

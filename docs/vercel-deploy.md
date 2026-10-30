@@ -61,7 +61,7 @@ pnpm start      # vite preview，本地打开 dist/ 里的生产构建
 
 ## 上线后需要注意的几件事
 
-1. **DeepSeek API Key 会暴露给浏览器**。`src/services/deepseekService.ts` 用 `dangerouslyAllowBrowser: true` 在浏览器直连 `api.deepseek.com`。桌面端可以接受，公网部署等于把 Key 交给访问者。建议：给 Web 版单独配一个**限额/受限 Key**，或者后续加一层 Serverless Function（`/api/chat`）代理转发。
+1. **DeepSeek API Key 会暴露给浏览器**。`src/services/agent/llm.ts` 用 `dangerouslyAllowBrowser: true` 在浏览器直连 `api.deepseek.com`。桌面端可以接受，公网部署等于把 Key 交给访问者。建议：给 Web 版单独配一个**限额/受限 Key**，或者后续加一层 Serverless Function（`/api/chat`）代理转发。
 2. **中文字体来自 jsDelivr CDN**（`index.html` 里的 `lxgw-wenkai-webfont`）。国内访问 jsDelivr 可能不稳定，需要的话可以把字体文件下载到 `src/assets/` 自托管。
 3. **Web 端没有真实文件系统**：书籍走 IndexedDB（`src/services/webAppService.ts`），"用其他应用打开"、CLI、deep-link 等 Tauri 能力在 Web 下会自动隐藏（`isTauriAppPlatform()` 判定）。
 4. **构建产物体积**：当前 `dist/` 约 13 MB，单块 `novel` chunk ~785 KB（gzip ~248 KB），Vite 会给出 chunk 过大警告，不影响部署。

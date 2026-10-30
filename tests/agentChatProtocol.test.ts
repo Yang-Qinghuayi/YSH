@@ -12,7 +12,7 @@ import {
   applyReplaceTail,
   extractPartialContent,
   parseContentBlock,
-} from '../src/services/agentProtocol.ts';
+} from '../src/services/agent/protocol.ts';
 
 // ===================== extractPartialContent =====================
 

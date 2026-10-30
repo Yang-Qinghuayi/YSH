@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { ref } from 'vue';
 
 import type { ChapterMeta, Novel } from '@/types/novel';
 
@@ -33,6 +34,13 @@ export const useNovelStore = defineStore('novel', () => {
   function openChapter(chapter: ChapterMeta, content: string) {
     currentChapter.value = chapter;
     currentChapterContent.value = content;
+    isDirty.value = false;
+  }
+
+  // 关闭章节（删除当前章或切换小说时使用）
+  function closeChapter() {
+    currentChapter.value = null;
+    currentChapterContent.value = '';
     isDirty.value = false;
   }
 
@@ -73,6 +81,7 @@ export const useNovelStore = defineStore('novel', () => {
     abortController,
     openNovel,
     openChapter,
+    closeChapter,
     updateContent,
     markSaved,
     updateCurrentNovel,

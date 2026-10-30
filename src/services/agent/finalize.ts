@@ -1,5 +1,5 @@
 /**
- * chapterFinalize.ts
+ * finalize.ts
  * 「本章定稿」流水线：作者确认本章写完后手动触发（不会在 AI 写入后自动运行）。
  *
  *   0. 快照：记录定稿前的记忆；同一章重新定稿时先恢复到「本章之前」（见 storyMemory.beginFinalize）
@@ -13,38 +13,37 @@
  * 解析后仍交给同一套工具执行器（合并逻辑单一来源）。
  */
 
-import {
-  cleanChapterSummary,
-  INLINE_MEMORY_INSTRUCTION,
-  parseMemoryBlock,
-} from '@/services/agentProtocol';
-import {
-  type AgentCallbacks,
-  type AgentConfig,
-  type AgentSession,
-  createSession,
-  executeToolCalls,
-  runOneTurn,
-} from '@/services/agentService';
-import {
-  type AgentTool,
-  FINALIZE_TOOLS,
-  findTool,
-  LONG_TERM_TOOLS,
-  SHORT_TERM_TOOLS,
-} from '@/services/agentTools';
-import type { ContextBudgetResult } from '@/services/contextBudget';
+import { supportsToolCalling } from '@/services/agent/llm';
 import {
   buildChapterSummaryInstruction,
   buildFinalizeSystemPrompt,
   buildLongTermInstruction,
   buildMainlineInstruction,
   buildShortTermInstruction,
-  supportsToolCalling,
-} from '@/services/deepseekService';
+} from '@/services/agent/prompts';
+import {
+  cleanChapterSummary,
+  INLINE_MEMORY_INSTRUCTION,
+  parseMemoryBlock,
+} from '@/services/agent/protocol';
+import { executeToolCalls, runOneTurn } from '@/services/agent/runtime';
+import { createSession } from '@/services/agent/session';
+import {
+  FINALIZE_TOOLS,
+  findTool,
+  LONG_TERM_TOOLS,
+  SHORT_TERM_TOOLS,
+} from '@/services/agent/tools/registry';
 import { saveNovelMeta } from '@/services/novelService';
 import { beginFinalize, cleanMainline } from '@/services/storyMemory';
 import { loadStoryState, saveStoryState } from '@/services/storyStateService';
+import type {
+  AgentConfig,
+  AgentRuntimeCallbacks,
+  AgentSession,
+  AgentTool,
+  ContextTrimInfo,
+} from '@/types/agent';
 import type { ChatCompletionMessageFunctionToolCall } from '@/types/llm';
 import type { ChapterMeta, Novel } from '@/types/novel';
 import type { LongTermChange, StoryState } from '@/types/storyState';
@@ -67,7 +66,7 @@ export interface FinalizeCallbacks {
   onStatus?: (text: string) => void;
   onStepStart?: (step: FinalizeStep) => void;
   onStepEnd?: (step: FinalizeStep, ok: boolean, text: string) => void;
-  onContextTrimmed?: (info: ContextBudgetResult) => void;
+  onContextTrimmed?: (info: ContextTrimInfo) => void;
   onWarn?: (message: string) => void;
 }
 
@@ -107,12 +106,16 @@ async function runToolStep(
   instruction: string,
   tools: AgentTool[],
   maxTokens: number,
-  cbAdapter: AgentCallbacks
+  cbAdapter: AgentRuntimeCallbacks
 ): Promise<string[]> {
   const results: string[] = [];
   session.messages.push({ role: 'user', content: instruction });
   for (let i = 0; i < FINALIZE_STEP_MAX_ROUNDS; i++) {
-    const { toolCalls } = await runOneTurn(session, config, tools, maxTokens, undefined, cbAdapter);
+    const { toolCalls } = await runOneTurn(session, config, {
+      tools,
+      maxTokens,
+      callbacks: cbAdapter,
+    });
     if (!toolCalls || toolCalls.length === 0) break;
     await executeToolCalls(session, toolCalls as ChatCompletionMessageFunctionToolCall[], tools, {
       ...cbAdapter,
@@ -133,7 +136,7 @@ export async function runChapterFinalize(
   const novel = clone(input.novel);
   const chapter = novel.chapters.find((c) => c.id === input.chapter.id) ?? clone(input.chapter);
   const toolFree = !supportsToolCalling(input.config.model);
-  const cbAdapter: AgentCallbacks = {
+  const cbAdapter: AgentRuntimeCallbacks = {
     onStatus: cb.onStatus,
     onContextTrimmed: cb.onContextTrimmed,
   };
@@ -153,8 +156,6 @@ export async function runChapterFinalize(
     chapter,
     chapterContent: input.chapterContent,
     cursorPosition: input.chapterContent.length,
-    forcedMentions: [],
-    skipConfirmation: true,
   });
   if (input.abortController) session.abortController = input.abortController;
   session.messages = [
@@ -168,7 +169,10 @@ export async function runChapterFinalize(
   cb.onStepStart?.('summary');
   cb.onStatus?.('定稿 1/4：生成章节概要…');
   session.messages.push({ role: 'user', content: buildChapterSummaryInstruction() });
-  const summaryTurn = await runOneTurn(session, input.config, [], 400, undefined, cbAdapter);
+  const summaryTurn = await runOneTurn(session, input.config, {
+    maxTokens: 400,
+    callbacks: cbAdapter,
+  });
   const newSummary = cleanChapterSummary(summaryTurn.text);
   if (newSummary) chapter.summary = newSummary;
   const summary = chapter.summary?.trim() ?? '';
@@ -180,7 +184,10 @@ export async function runChapterFinalize(
     cb.onStepStart?.('long_term');
     cb.onStatus?.('定稿 2/4：更新人物记忆（无工具模式）…');
     session.messages.push({ role: 'user', content: INLINE_MEMORY_INSTRUCTION });
-    const { text } = await runOneTurn(session, input.config, [], 3500, undefined, cbAdapter);
+    const { text } = await runOneTurn(session, input.config, {
+      maxTokens: 3500,
+      callbacks: cbAdapter,
+    });
     const block = parseMemoryBlock(text);
     const ctx = {
       novel,
@@ -247,7 +254,10 @@ export async function runChapterFinalize(
     role: 'user',
     content: buildMainlineInstruction(summaries, state.mainline),
   });
-  const mainlineTurn = await runOneTurn(session, input.config, [], 1600, undefined, cbAdapter);
+  const mainlineTurn = await runOneTurn(session, input.config, {
+    maxTokens: 1600,
+    callbacks: cbAdapter,
+  });
   const mainline = cleanMainline(mainlineTurn.text);
   if (mainline) {
     await saveStoryState({

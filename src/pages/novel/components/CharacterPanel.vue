@@ -1,11 +1,11 @@
 <template>
   <v-navigation-drawer
-    :model-value="agentStore.characterPanelOpen"
+    :model-value="novelUiStore.characterPanelOpen"
     location="right"
     width="360"
     temporary
     class="char-panel"
-    @update:model-value="(v) => !v && agentStore.closeCharacterPanel()"
+    @update:model-value="(v) => !v && novelUiStore.closeCharacterPanel()"
   >
     <div v-if="!selected" class="pa-4 text-body-medium text-medium-emphasis">未选择角色</div>
     <div v-else class="d-flex flex-column h-100">
@@ -16,7 +16,7 @@
         </span>
         <span class="text-title-large">{{ selected.name }}</span>
         <v-spacer />
-        <v-btn icon size="small" variant="text" @click="agentStore.closeCharacterPanel()">
+        <v-btn icon size="small" variant="text" @click="novelUiStore.closeCharacterPanel()">
           <v-icon :icon="mdiClose" size="18" />
         </v-btn>
       </div>
@@ -72,7 +72,7 @@
 import { mdiAccount, mdiClose } from '@mdi/js';
 import { storeToRefs } from 'pinia';
 
-import { useAgentStore } from '@/store/agentStore';
+import { useNovelUiStore } from '@/store/novelUiStore';
 import type { ChapterMeta, Character } from '@/types/novel';
 
 const props = defineProps<{ characters: Character[]; chapters: ChapterMeta[] }>();
@@ -82,8 +82,8 @@ const emit = defineEmits<{
   'update:memory': [patch: { characterName: string; shortTerm: string }];
 }>();
 
-const agentStore = useAgentStore();
-const { selectedCharacterName, storyState } = storeToRefs(agentStore);
+const novelUiStore = useNovelUiStore();
+const { selectedCharacterName, storyState } = storeToRefs(novelUiStore);
 
 const selected = computed(
   () => props.characters.find((c) => c.name === selectedCharacterName.value) ?? null

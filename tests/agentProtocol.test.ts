@@ -5,18 +5,27 @@
  */
 
 import assert from 'node:assert/strict';
+import { registerHooks } from 'node:module';
+import path from 'node:path';
 import { test } from 'node:test';
 
-import {
-  buildGenerateInstruction,
+import { createHooks } from './stubs/loader.mjs';
+
+const here = import.meta.dirname;
+const root = path.resolve(here, '..');
+registerHooks(createHooks({ root, stubsDir: path.join(here, 'stubs') }));
+
+// 动态导入确保 registerHooks 先于源码里的 `@/` / 扩展名省略导入生效
+const {
   buildRoundKey,
   cleanChapterSummary,
   detectRepeatedRounds,
-  INLINE_MEMORY_INSTRUCTION,
-  parseMemoryBlock,
   parsePlan,
+  parseMemoryBlock,
   PLAN_BLOCK_PATTERN,
-} from '../src/services/agentProtocol.ts';
+  INLINE_MEMORY_INSTRUCTION,
+} = await import('../src/services/agent/protocol.ts');
+const { buildChatGenerateInstruction } = await import('../src/services/agent/prompts/chat.ts');
 
 const toolCall = (name: string, args: unknown, id = 'x') => ({
   id,
@@ -53,29 +62,23 @@ test('parsePlan：坏 JSON 与无标记时都能兜底', () => {
   assert.equal(PLAN_BLOCK_PATTERN.test('没有规划'), false);
 });
 
-test('buildGenerateInstruction：必须携带作者确认（可能改过）的大纲', () => {
+test('buildChatGenerateInstruction：必须携带作者确认（可能改过）的大纲', () => {
   const plan = {
     outline: '【作者改过的】先写雨夜重逢，再写决裂',
     approach: '多用短句',
     selectedCharacters: [],
     referencedLoreEntries: [],
   };
-  const instruction = buildGenerateInstruction(plan);
+  const instruction = buildChatGenerateInstruction(plan, 1000, false);
   assert.ok(instruction.includes('【作者改过的】先写雨夜重逢，再写决裂'));
   assert.ok(instruction.includes('多用短句'));
   assert.ok(instruction.includes('不要沿用你此前输出的任何版本'));
-  assert.ok(instruction.includes('只输出正文'));
+  assert.ok(instruction.includes('1000 字'));
+  assert.ok(instruction.includes('append_to_chapter'));
 
-  // 无 plan / 空 outline 时退回通用指令
-  assert.ok(buildGenerateInstruction().includes('请按已确认大纲续写小说正文'));
-  assert.ok(
-    buildGenerateInstruction({
-      outline: '  ',
-      approach: '',
-      selectedCharacters: [],
-      referencedLoreEntries: [],
-    }).includes('请按已确认大纲续写小说正文')
-  );
+  const toolFree = buildChatGenerateInstruction(plan, undefined, true);
+  assert.ok(toolFree.includes('<<<CONTENT>>>'));
+  assert.ok(toolFree.includes('【作者改过的】先写雨夜重逢，再写决裂'));
 });
 
 test('parseMemoryBlock：兼容标记、夹带文字、缺字段与垃圾输入', () => {

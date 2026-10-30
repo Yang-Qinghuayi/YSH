@@ -145,7 +145,7 @@ import { mdiClose, mdiStateMachine, mdiUndoVariant } from '@mdi/js';
 import { storeToRefs } from 'pinia';
 
 import { loadStoryState, saveStoryState } from '@/services/storyStateService';
-import { useAgentStore } from '@/store/agentStore';
+import { useNovelUiStore } from '@/store/novelUiStore';
 import type { ChapterMeta, Character } from '@/types/novel';
 import type { CharacterMemory, StoryState } from '@/types/storyState';
 
@@ -161,8 +161,8 @@ const emit = defineEmits<{
   /** 回滚一次长期记忆改写（由父组件改 novel.json 与 story-state.json） */
   revert: [changeId: string];
 }>();
-const agentStore = useAgentStore();
-const { storyState: liveState } = storeToRefs(agentStore);
+const novelUiStore = useNovelUiStore();
+const { storyState: liveState } = storeToRefs(novelUiStore);
 
 const visible = computed({
   get: () => props.modelValue,
@@ -187,7 +187,7 @@ watch(
       return;
     }
     const s = await loadStoryState(props.novelId);
-    agentStore.setStoryState(s);
+    novelUiStore.setStoryState(s);
     original.value = JSON.parse(JSON.stringify(s));
     mainlineDraft.value = s.mainline;
     for (const k of Object.keys(memoryDrafts)) delete memoryDrafts[k];
@@ -262,7 +262,7 @@ async function save() {
       mainline: mainlineChanged ? mainlineDraft.value.trim() : latest.mainline,
       characterMemories: memories,
     });
-    agentStore.setStoryState(saved);
+    novelUiStore.setStoryState(saved);
     visible.value = false;
   } catch (e) {
     console.error('保存故事状态失败：', e);
