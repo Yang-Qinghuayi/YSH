@@ -5,7 +5,7 @@
   "author": "YQHY",
   "type": "module",
   "description": "my spirtual home",
-  "packageManager": "pnpm@10.34.9",
+  "packageManager": "pnpm@12.16.1",
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
   },
