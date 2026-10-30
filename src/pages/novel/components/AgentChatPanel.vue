@@ -1,20 +1,22 @@
 <template>
   <div class="agent-panel d-flex flex-column">
     <!-- ===== 头部 ===== -->
-    <div class="agent-panel__head">
+    <header class="agent-panel__head">
       <span class="title-badge">
         <v-icon :icon="mdiRobotOutline" size="18" />
       </span>
-      <span class="agent-panel__title">Agent</span>
-      <v-chip
-        v-if="chapter"
-        size="x-small"
-        variant="tonal"
-        color="primary"
-        class="agent-panel__target"
-      >
-        《{{ chapter.title }}》
-      </v-chip>
+      <div class="agent-panel__heading">
+        <span class="agent-panel__title">Agent</span>
+        <v-chip
+          v-if="chapter"
+          size="x-small"
+          variant="tonal"
+          color="primary"
+          class="agent-panel__target"
+        >
+          《{{ chapter.title }}》
+        </v-chip>
+      </div>
       <v-spacer />
       <button
         v-if="chapter"
@@ -28,39 +30,40 @@
         {{ chapter.finalizedAt ? '重新定稿' : '本章定稿' }}
       </button>
       <button
-        class="lg-icon-btn"
+        class="lg-icon-btn agent-panel__clear"
         title="清空对话"
         :disabled="!transcript.length"
         @click="$emit('clearChat')"
       >
         <v-icon :icon="mdiDeleteOutline" size="16" />
       </button>
-    </div>
+    </header>
 
-    <!-- ===== 上下文预算 ===== -->
-    <div class="context-meter" :class="{ 'context-meter--warning': contextPercent >= 75 }">
-      <div class="context-meter__top">
-        <span><v-icon :icon="mdiGauge" size="14" /> 上下文</span>
-        <strong>{{ contextPercent }}%</strong>
+    <!-- ===== 上下文预算 + 状态行 ===== -->
+    <div class="agent-panel__meta">
+      <div class="context-meter" :class="{ 'context-meter--warning': contextPercent >= 75 }">
+        <div class="context-meter__top">
+          <span><v-icon :icon="mdiGauge" size="14" /> 上下文</span>
+          <strong>{{ contextPercent }}%</strong>
+        </div>
+        <div class="context-meter__track"><div class="context-meter__fill" :style="{ width: `${contextPercent}%` }" /></div>
+        <div class="context-meter__bottom">
+          <span>{{ formatTokens(contextTokens) }} / {{ formatTokens(contextLimit) }} tokens</span>
+          <span v-if="contextTrimmed">已自动压缩 {{ contextTrimmed }} 条</span>
+          <span v-else>接近上限时自动压缩</span>
+        </div>
       </div>
-      <div class="context-meter__track"><div class="context-meter__fill" :style="{ width: `${contextPercent}%` }" /></div>
-      <div class="context-meter__bottom">
-        <span>{{ formatTokens(contextTokens) }} / {{ formatTokens(contextLimit) }} tokens</span>
-        <span v-if="contextTrimmed">已自动压缩 {{ contextTrimmed }} 条</span>
-        <span v-else>接近上限时自动压缩</span>
-      </div>
-    </div>
 
-    <!-- ===== 状态行 ===== -->
-    <div v-if="chatStore.busy" class="agent-panel__status lg-card--inset">
-      <v-progress-circular indeterminate size="13" width="2" color="primary" />
-      <span class="agent-panel__status-text">{{
-        chatStore.statusText || '正在处理…'
-      }}</span>
+      <div v-if="chatStore.busy" class="agent-panel__status">
+        <v-progress-circular indeterminate size="13" width="2" color="primary" />
+        <span class="agent-panel__status-text">{{
+          chatStore.statusText || '正在处理…'
+        }}</span>
+      </div>
     </div>
 
     <!-- ===== 转录区 ===== -->
-    <div ref="bodyRef" class="agent-panel__body flex-1" @scroll="onScroll">
+    <div ref="bodyRef" class="agent-panel__body flex-1 lg-scroll" @scroll="onScroll">
       <!-- 空状态 -->
       <div v-if="!transcript.length" class="agent-panel__empty">
         <div class="empty-icon">
@@ -94,14 +97,26 @@
 
         <!-- 助手文本 -->
         <div v-else-if="msg.kind === 'assistant'" class="chat-assistant">
-          <div class="chat-assistant__text">
-            {{ msg.text
-            }}<span v-if="msg.streaming" class="chat-cursor">▍</span>
+          <span class="chat-assistant__avatar">
+            <v-icon :icon="mdiRobotOutline" size="14" />
+          </span>
+          <div class="chat-assistant__bubble">
+            <span class="chat-assistant__text"
+              >{{ msg.text
+              }}<span v-if="msg.streaming" class="chat-cursor">▍</span></span
+            >
           </div>
         </div>
 
         <!-- 工具卡片 -->
-        <div v-else-if="msg.kind === 'tool'" class="chat-tool lg-card--inset">
+        <div
+          v-else-if="msg.kind === 'tool'"
+          class="chat-tool lg-card--inset"
+          :class="{
+            'chat-tool--running': msg.status === 'running',
+            'chat-tool--error': msg.status === 'error',
+          }"
+        >
           <div class="chat-tool__head" @click="toggleExpand(msg.id)">
             <v-progress-circular
               v-if="msg.status === 'running'"
@@ -153,7 +168,7 @@
               </button>
             </div>
             <div
-              class="chat-write-preview"
+              class="chat-write-preview lg-scroll"
               :class="{ 'chat-write-preview--streaming': !msg.write }"
             >
               {{ msg.preview }}
@@ -163,7 +178,7 @@
           <!-- 展开细节 -->
           <div
             v-if="expanded.has(msg.id) && msg.resultText"
-            class="chat-tool__detail"
+            class="chat-tool__detail lg-scroll"
           >
             {{ msg.resultText }}
           </div>
@@ -179,7 +194,9 @@
           }"
         >
           <div class="chat-plan__head">
-            <v-icon :icon="mdiPencilOutline" size="15" />
+            <span class="chat-plan__icon">
+              <v-icon :icon="mdiPencilOutline" size="14" />
+            </span>
             <span class="chat-plan__title">章节规划</span>
             <span v-if="msg.status === 'superseded'" class="chat-plan__tag"
               >已更新</span
@@ -283,82 +300,84 @@
       </template>
     </div>
 
-    <!-- ===== 快捷动作 + 目标字数 ===== -->
-    <div class="agent-panel__quick">
-      <div class="length-row">
-        <span class="length-label">目标字数</span>
-        <v-select
-          :model-value="settingStore.agentWriteLength"
-          :items="lengthItems"
-          item-title="title"
-          item-value="value"
-          variant="outlined"
-          density="compact"
-          hide-details
-          rounded="lg"
-          class="length-select"
-          @update:model-value="
-            (v) =>
-              (settingStore.agentWriteLength = v as 500 | 1000 | 1500 | 2000)
-          "
-        />
+    <!-- ===== 底部操作区（快捷动作 + 输入） ===== -->
+    <footer class="agent-panel__foot">
+      <div class="agent-panel__quick">
+        <div class="length-row">
+          <span class="length-label">目标字数</span>
+          <v-select
+            :model-value="settingStore.agentWriteLength"
+            :items="lengthItems"
+            item-title="title"
+            item-value="value"
+            variant="outlined"
+            density="compact"
+            hide-details
+            rounded="lg"
+            class="length-select"
+            @update:model-value="
+              (v) =>
+                (settingStore.agentWriteLength = v as 500 | 1000 | 1500 | 2000)
+            "
+          />
+        </div>
+        <div class="chip-row">
+          <button
+            class="lg-pill quick-chip"
+            :disabled="!chapter || chatStore.busy || canContinuePrev === false"
+            @click="$emit('quickAction', 'continue-prev')"
+          >
+            <v-icon :icon="mdiBookPlusOutline" size="14" /> 续写上一章
+          </button>
+          <button
+            class="lg-pill quick-chip"
+            :disabled="!chapter || chatStore.busy"
+            @click="$emit('quickAction', 'continue-current')"
+          >
+            <v-icon :icon="mdiPen" size="14" /> 续写本章
+          </button>
+        </div>
         <span v-if="chapter && canContinuePrev === false" class="length-hint"
           >「续写上一章」需当前章基本为空</span
         >
       </div>
-      <div class="chip-row">
+
+      <!-- ===== 输入区 ===== -->
+      <div class="agent-panel__input">
+        <MentionTextarea
+          v-model="draft"
+          :characters="novel.characters"
+          :placeholder="inputPlaceholder"
+          :disabled="inputDisabled"
+          variant="plain"
+          density="compact"
+          rows="1"
+          auto-grow
+          max-rows="5"
+          hide-details
+          class="agent-panel__textarea"
+          @menu-open="mentionMenuOpen = $event"
+          @keydown.enter.exact="onEnterKey"
+        />
         <button
-          class="lg-pill quick-chip"
-          :disabled="!chapter || chatStore.busy || canContinuePrev === false"
-          @click="$emit('quickAction', 'continue-prev')"
+          v-if="chatStore.busy"
+          class="send-btn send-btn--stop"
+          title="停止"
+          @click="$emit('stop')"
         >
-          <v-icon :icon="mdiBookPlusOutline" size="14" /> 续写上一章
+          <v-icon :icon="mdiStop" size="18" />
         </button>
         <button
-          class="lg-pill quick-chip"
-          :disabled="!chapter || chatStore.busy"
-          @click="$emit('quickAction', 'continue-current')"
+          v-else
+          class="send-btn"
+          :disabled="inputDisabled || !draft.trim()"
+          title="发送"
+          @click="sendDraft"
         >
-          <v-icon :icon="mdiPen" size="14" /> 续写本章
+          <v-icon :icon="mdiSend" size="18" />
         </button>
       </div>
-    </div>
-
-    <!-- ===== 输入区 ===== -->
-    <div class="agent-panel__input">
-      <MentionTextarea
-        v-model="draft"
-        :characters="novel.characters"
-        :placeholder="inputPlaceholder"
-        :disabled="inputDisabled"
-        variant="plain"
-        density="compact"
-        rows="1"
-        auto-grow
-        max-rows="5"
-        hide-details
-        class="agent-panel__textarea"
-        @menu-open="mentionMenuOpen = $event"
-        @keydown.enter.exact="onEnterKey"
-      />
-      <button
-        v-if="chatStore.busy"
-        class="send-btn send-btn--stop"
-        title="停止"
-        @click="$emit('stop')"
-      >
-        <v-icon :icon="mdiStop" size="18" />
-      </button>
-      <button
-        v-else
-        class="send-btn"
-        :disabled="inputDisabled || !draft.trim()"
-        title="发送"
-        @click="sendDraft"
-      >
-        <v-icon :icon="mdiSend" size="18" />
-      </button>
-    </div>
+    </footer>
   </div>
 </template>
 
@@ -539,48 +558,48 @@ watch([() => transcript.value.length, lastMsgLen], () => {
 </script>
 
 <style scoped>
-.finalize-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  padding: 3px 10px;
-  margin-right: 4px;
-  white-space: nowrap;
-  color: rgb(var(--v-theme-primary));
-}
-.finalize-btn--done {
-  color: rgb(var(--v-theme-success));
-}
-.finalize-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
+/* ============================================================
+ * Agent 交互面板
+ * 结构：头部 / 元信息（上下文+状态） / 滚动转录 / 固定底栏
+ * 所有颜色取自 Vuetify 的 --v-theme-* 变量，跟随调色板与深色模式。
+ * ============================================================ */
 .agent-panel {
+  --ap-line: rgba(var(--v-theme-on-surface), 0.075);
+  --ap-line-strong: rgba(var(--v-theme-on-surface), 0.12);
+  --ap-tint: rgba(var(--v-theme-on-surface), 0.035);
   height: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 10px 10px;
+  overflow: hidden;
+  background: rgb(var(--v-theme-surface));
 }
 
 /* ===== 头部 ===== */
 .agent-panel__head {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 0 4px;
+  gap: 8px;
+  padding: 11px 12px 10px;
   flex-shrink: 0;
+  border-bottom: 1px solid var(--ap-line);
+}
+.agent-panel__heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 .agent-panel__title {
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 600;
-  color: rgba(var(--v-theme-on-surface), 0.85);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  color: rgba(var(--v-theme-on-surface), 0.88);
 }
 .agent-panel__target {
-  font-size: 11px !important;
-  max-width: 130px;
+  font-size: 10.5px !important;
+  max-width: 150px;
 }
 .title-badge {
   display: inline-flex;
@@ -588,46 +607,126 @@ watch([() => transcript.value.length, lastMsgLen], () => {
   justify-content: center;
   width: 30px;
   height: 30px;
+  flex-shrink: 0;
   border-radius: 10px;
-  background: rgba(var(--v-theme-primary), 0.14);
+  background: linear-gradient(
+    135deg,
+    rgba(var(--v-theme-primary), 0.18),
+    rgba(var(--v-theme-primary), 0.08)
+  );
+  box-shadow: inset 0 0 0 1px rgba(var(--v-theme-primary), 0.1);
   color: rgb(var(--v-theme-primary));
 }
 .agent-panel__head .lg-icon-btn {
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
-  margin-left: auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+}
+.finalize-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  padding: 5px 11px;
+  white-space: nowrap;
+  color: rgb(var(--v-theme-primary));
+  background: rgba(var(--v-theme-primary), 0.09);
+  border-color: rgba(var(--v-theme-primary), 0.16);
+}
+.finalize-btn:hover:not(:disabled) {
+  background: rgba(var(--v-theme-primary), 0.16);
+  color: rgb(var(--v-theme-primary));
+}
+.finalize-btn--done {
+  color: rgb(var(--v-theme-success));
+  background: rgba(var(--v-theme-success), 0.09);
+  border-color: rgba(var(--v-theme-success), 0.18);
+}
+.finalize-btn--done:hover:not(:disabled) {
+  background: rgba(var(--v-theme-success), 0.16);
+  color: rgb(var(--v-theme-success));
+}
+.finalize-btn:disabled {
+  opacity: 0.4;
 }
 
-/* ===== 上下文预算 ===== */
-.context-meter {
+/* ===== 上下文预算 + 状态行 ===== */
+.agent-panel__meta {
   flex-shrink: 0;
-  padding: 9px 11px;
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-  border-radius: 12px;
-  background: rgba(var(--v-theme-on-surface), 0.025);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 9px 12px 8px;
+  background: var(--ap-tint);
+  border-bottom: 1px solid var(--ap-line);
 }
-.context-meter__top, .context-meter__bottom { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.context-meter__top { color: rgba(var(--v-theme-on-surface), .68); font-size: 11px; }
-.context-meter__top span { display: flex; align-items: center; gap: 5px; }
-.context-meter__top strong { color: rgb(var(--v-theme-primary)); font-size: 12px; }
-.context-meter__track { height: 5px; margin: 7px 0 5px; border-radius: 5px; overflow: hidden; background: rgba(var(--v-theme-on-surface), .09); }
-.context-meter__fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, rgb(var(--v-theme-primary)), #62c99b); transition: width .35s ease; }
-.context-meter__bottom { color: rgba(var(--v-theme-on-surface), .42); font-size: 10px; }
-.context-meter--warning .context-meter__top strong { color: rgb(var(--v-theme-error)); }
-.context-meter--warning .context-meter__fill { background: linear-gradient(90deg, #e6a23c, rgb(var(--v-theme-error))); }
-
-/* ===== 状态行 ===== */
+.context-meter__top,
+.context-meter__bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.context-meter__top {
+  color: rgba(var(--v-theme-on-surface), 0.6);
+  font-size: 11px;
+}
+.context-meter__top span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.context-meter__top strong {
+  color: rgb(var(--v-theme-primary));
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.context-meter__track {
+  height: 4px;
+  margin: 6px 0 5px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(var(--v-theme-on-surface), 0.1);
+}
+.context-meter__fill {
+  height: 100%;
+  border-radius: inherit;
+  /* 只用主色的明度渐变，避免不同调色板下 tertiary 色相跳变 */
+  background: linear-gradient(
+    90deg,
+    rgba(var(--v-theme-primary), 0.55),
+    rgb(var(--v-theme-primary))
+  );
+  transition: width 0.35s ease;
+}
+.context-meter__bottom {
+  color: rgba(var(--v-theme-on-surface), 0.42);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.context-meter--warning .context-meter__top strong {
+  color: rgb(var(--v-theme-error));
+}
+.context-meter--warning .context-meter__fill {
+  background: linear-gradient(
+    90deg,
+    rgba(var(--v-theme-error), 0.55),
+    rgb(var(--v-theme-error))
+  );
+}
 .agent-panel__status {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
+  padding: 6px 9px;
   flex-shrink: 0;
-  border-width: 1px;
+  border-radius: 10px;
+  background: rgba(var(--v-theme-primary), 0.07);
+  border: 1px solid rgba(var(--v-theme-primary), 0.12);
 }
 .agent-panel__status-text {
-  font-size: 12px;
+  font-size: 11.5px;
   color: rgba(var(--v-theme-on-surface), 0.7);
   white-space: nowrap;
   overflow: hidden;
@@ -640,19 +739,23 @@ watch([() => transcript.value.length, lastMsgLen], () => {
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 2px 4px 8px;
+  gap: 12px;
+  padding: 14px 12px 18px;
   min-height: 0;
+  scroll-padding-bottom: 12px;
 }
 
-/* 空状态 */
+/* 空状态：在剩余空间里垂直居中 */
 .agent-panel__empty {
+  margin: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 36px 16px;
-  gap: 6px;
+  padding: 24px 8px;
+  gap: 7px;
+  width: 100%;
+  max-width: 300px;
 }
 .empty-icon {
   display: flex;
@@ -662,63 +765,97 @@ watch([() => transcript.value.length, lastMsgLen], () => {
   height: 56px;
   border-radius: 18px;
   background: rgba(var(--v-theme-primary), 0.1);
+  box-shadow: inset 0 0 0 1px rgba(var(--v-theme-primary), 0.1);
   color: rgb(var(--v-theme-primary));
   margin-bottom: 4px;
 }
 .empty-title {
-  font-size: 14.5px;
+  font-size: 15px;
   font-weight: 600;
   color: rgba(var(--v-theme-on-surface), 0.85);
 }
 .empty-sub {
   font-size: 12px;
-  color: rgba(var(--v-theme-on-surface), 0.45);
-  line-height: 1.7;
-  max-width: 240px;
+  color: rgba(var(--v-theme-on-surface), 0.48);
+  line-height: 1.75;
 }
 .empty-hints {
-  margin-top: 10px;
+  margin-top: 12px;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  align-items: flex-start;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--ap-line);
+  background: rgba(var(--v-theme-on-surface), 0.02);
 }
 .empty-hint-item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 11.5px;
-  color: rgba(var(--v-theme-on-surface), 0.5);
+  line-height: 1.5;
+  text-align: left;
+  color: rgba(var(--v-theme-on-surface), 0.58);
 }
 .empty-hint-item .v-icon {
-  color: rgba(var(--v-theme-primary), 0.6);
+  flex-shrink: 0;
+  color: rgba(var(--v-theme-primary), 0.65);
 }
 
-/* 用户消息（右对齐胶囊） */
+/* 用户消息（右对齐气泡） */
 .chat-user {
   display: flex;
   justify-content: flex-end;
+  padding-left: 36px;
 }
 .chat-user__bubble {
-  max-width: 88%;
-  padding: 8px 12px;
-  border-radius: 14px 14px 4px 14px;
-  background: rgba(var(--v-theme-primary), 0.13);
-  color: rgba(var(--v-theme-on-surface), 0.88);
-  font-size: 13px;
-  line-height: 1.65;
+  max-width: 100%;
+  padding: 9px 13px;
+  border-radius: 14px 14px 5px 14px;
+  background: rgba(var(--v-theme-primary), 0.12);
+  border: 1px solid rgba(var(--v-theme-primary), 0.1);
+  color: rgba(var(--v-theme-on-surface), 0.9);
+  font-size: 12.8px;
+  line-height: 1.7;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
-/* 助手文本 */
+/* 助手消息（头像 + 左对齐气泡） */
+.chat-assistant {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding-right: 24px;
+}
+.chat-assistant__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  margin-top: 1px;
+  border-radius: 9px;
+  background: rgba(var(--v-theme-primary), 0.1);
+  color: rgb(var(--v-theme-primary));
+}
+.chat-assistant__bubble {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 11px;
+  border-radius: 5px 14px 14px 14px;
+  border: 1px solid var(--ap-line);
+  background: rgba(var(--v-theme-on-surface), 0.04);
+}
 .chat-assistant__text {
-  font-size: 13px;
+  font-size: 12.8px;
   line-height: 1.75;
-  color: rgba(var(--v-theme-on-surface), 0.8);
+  color: rgba(var(--v-theme-on-surface), 0.82);
   white-space: pre-wrap;
   word-break: break-word;
-  padding: 0 2px;
 }
 .chat-cursor {
   color: rgb(var(--v-theme-primary));
@@ -732,58 +869,72 @@ watch([() => transcript.value.length, lastMsgLen], () => {
 
 /* 工具卡片 */
 .chat-tool {
-  padding: 7px 10px;
-  border-width: 1px;
+  padding: 8px 10px;
+  border-radius: 12px;
+}
+.chat-tool--running {
+  border-color: rgba(var(--v-theme-primary), 0.22);
+}
+.chat-tool--error {
+  border-color: rgba(var(--v-theme-error), 0.25);
 }
 .chat-tool__head {
   display: flex;
   align-items: center;
   gap: 7px;
-  cursor: pointer;
+  min-height: 18px;
+  cursor: default;
   user-select: none;
 }
+/* 只有可展开的卡片才显示手型光标 */
+.chat-tool__head:has(.chat-tool__chevron) {
+  cursor: pointer;
+}
 .chat-tool__name {
-  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
+  /* 中文工具名需要 CJK 回退字体，纯 monospace 会显示为方块 */
+  font-family: ui-monospace, 'SF Mono', 'Menlo', var(--font-sans), monospace;
   font-size: 11.5px;
   font-weight: 600;
   color: rgb(var(--v-theme-primary));
   flex-shrink: 0;
 }
 .chat-tool__summary {
-  font-size: 11.5px;
-  color: rgba(var(--v-theme-on-surface), 0.55);
+  font-size: 11px;
+  color: rgba(var(--v-theme-on-surface), 0.5);
   flex: 1;
   min-width: 0;
 }
 .chat-tool__chevron {
-  color: rgba(var(--v-theme-on-surface), 0.3);
+  color: rgba(var(--v-theme-on-surface), 0.32);
   flex-shrink: 0;
 }
 .chat-tool__detail {
-  margin-top: 6px;
-  padding: 7px 9px;
-  border-radius: 9px;
+  margin-top: 7px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--ap-line);
   background: rgba(var(--v-theme-on-surface), 0.04);
   font-size: 11px;
-  line-height: 1.6;
+  line-height: 1.65;
   color: rgba(var(--v-theme-on-surface), 0.62);
   white-space: pre-wrap;
   word-break: break-word;
-  max-height: 180px;
+  max-height: 160px;
   overflow-y: auto;
 }
 
 /* 写章预览 */
 .chat-tool__write {
-  margin-top: 7px;
+  margin-top: 8px;
 }
 .chat-write-meta {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 5px;
-  font-size: 11.5px;
+  font-size: 11px;
   color: rgba(var(--v-theme-on-surface), 0.7);
-  margin-bottom: 5px;
+  margin-bottom: 6px;
 }
 .chat-write-meta .v-icon {
   color: rgb(var(--v-theme-primary));
@@ -798,7 +949,7 @@ watch([() => transcript.value.length, lastMsgLen], () => {
   color: rgba(var(--v-theme-error), 0.85);
   font-size: 11px;
   cursor: pointer;
-  padding: 1px 4px;
+  padding: 2px 6px;
   border-radius: 6px;
   transition: background 0.15s ease;
 }
@@ -810,16 +961,16 @@ watch([() => transcript.value.length, lastMsgLen], () => {
   cursor: default;
 }
 .chat-write-preview {
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(var(--v-theme-primary), 0.14);
-  background: rgba(var(--v-theme-primary), 0.05);
-  font-size: 12.5px;
-  line-height: 1.8;
-  color: rgba(var(--v-theme-on-surface), 0.78);
+  padding: 9px 11px;
+  border-radius: 11px;
+  border: 1px solid rgba(var(--v-theme-primary), 0.16);
+  background: rgba(var(--v-theme-primary), 0.045);
+  font-size: 12.3px;
+  line-height: 1.85;
+  color: rgba(var(--v-theme-on-surface), 0.8);
   white-space: pre-wrap;
   word-break: break-word;
-  max-height: 260px;
+  max-height: 220px;
   overflow-y: auto;
 }
 .chat-write-preview--streaming {
@@ -827,32 +978,43 @@ watch([() => transcript.value.length, lastMsgLen], () => {
 }
 @keyframes chat-pulse {
   50% {
-    border-color: rgba(var(--v-theme-primary), 0.35);
+    border-color: rgba(var(--v-theme-primary), 0.38);
   }
 }
 
-/* plan 卡片 */
+/* 规划卡片 */
 .chat-plan {
-  padding: 10px;
+  padding: 11px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 9px;
+  border-radius: 14px;
 }
 .chat-plan--muted {
-  opacity: 0.55;
+  opacity: 0.6;
 }
 .chat-plan__head {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--ap-line);
 }
-.chat-plan__head .v-icon {
+.chat-plan__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 7px;
+  background: rgba(var(--v-theme-primary), 0.1);
   color: rgb(var(--v-theme-primary));
 }
 .chat-plan__title {
   font-size: 12.5px;
   font-weight: 600;
-  color: rgba(var(--v-theme-on-surface), 0.8);
+  color: rgba(var(--v-theme-on-surface), 0.85);
 }
 .chat-plan__tag {
   font-size: 10px;
@@ -875,19 +1037,31 @@ watch([() => transcript.value.length, lastMsgLen], () => {
   color: rgb(var(--v-theme-primary));
   animation: chat-blink 1.4s ease-in-out infinite;
 }
+.chat-plan__block {
+  min-width: 0;
+}
 .chat-plan__block :deep(.v-field--variant-outlined) {
   border-radius: 11px;
 }
-.chat-plan__outline {
+.chat-plan__block :deep(.v-field) {
+  background: rgb(var(--v-theme-surface));
+}
+.chat-plan__block :deep(.v-field__input) {
   font-size: 12px;
   line-height: 1.7;
-  color: rgba(var(--v-theme-on-surface), 0.7);
+  /* 显式指定文本色：Vuetify 深色主题的继承色与面板实际的浅色底不一致 */
+  color: rgba(var(--v-theme-on-surface), 0.85);
+}
+.chat-plan__outline {
+  font-size: 12px;
+  line-height: 1.75;
+  color: rgba(var(--v-theme-on-surface), 0.72);
   white-space: pre-wrap;
   word-break: break-word;
 }
 .chat-plan__approach {
   font-size: 12px;
-  line-height: 1.65;
+  line-height: 1.7;
   color: rgba(var(--v-theme-on-surface), 0.62);
   white-space: pre-wrap;
 }
@@ -906,68 +1080,123 @@ watch([() => transcript.value.length, lastMsgLen], () => {
 }
 .chat-plan__confirm {
   flex: 1;
-  background: rgba(var(--v-theme-primary), 0.12);
-  color: rgb(var(--v-theme-primary));
-  border-color: rgba(var(--v-theme-primary), 0.25);
+  background: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-on-primary));
+  border-color: transparent;
   font-weight: 600;
+  box-shadow: 0 2px 8px rgba(var(--v-theme-primary), 0.2);
 }
-.chat-plan__confirm:hover {
-  background: rgba(var(--v-theme-primary), 0.18);
+.chat-plan__confirm:hover:not(:disabled) {
+  background: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-on-primary));
+  filter: brightness(1.07);
+  box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.28);
 }
 .chat-plan__cancel {
   flex: 0 0 auto;
+  background: transparent;
+  color: rgba(var(--v-theme-on-surface), 0.6);
 }
 
 /* 系统提示 */
 .chat-system {
+  align-self: center;
   text-align: center;
-  font-size: 11px;
-  color: rgba(var(--v-theme-on-surface), 0.35);
-  padding: 2px 0;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: rgba(var(--v-theme-on-surface), 0.45);
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(var(--v-theme-on-surface), 0.035);
+  border: 1px solid var(--ap-line);
 }
 
-/* ===== 快捷动作 + 目标字数 ===== */
-.agent-panel__quick {
+/* ===== 固定底栏 ===== */
+.agent-panel__foot {
+  position: relative;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--ap-line-strong);
+  background: rgba(var(--v-theme-on-surface), 0.025);
+  box-shadow: 0 -12px 22px -20px rgba(0, 0, 0, 0.35);
+}
+/* 转录区滚到底栏时给一个柔和过渡，避免内容被生硬地切断 */
+.agent-panel__foot::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -14px;
+  height: 14px;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(var(--v-theme-surface), 0),
+    rgb(var(--v-theme-surface))
+  );
+}
+
+/* 快捷动作 + 目标字数：宽面板合成一行，窄面板自然换行 */
+.agent-panel__quick {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
 .length-row {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
+  flex: 0 0 auto;
 }
 .length-label {
   font-size: 11px;
-  color: rgba(var(--v-theme-on-surface), 0.45);
-  flex-shrink: 0;
+  white-space: nowrap;
+  color: rgba(var(--v-theme-on-surface), 0.5);
 }
 .length-select {
-  width: 104px;
+  width: 108px;
   flex-shrink: 0;
 }
 .length-select :deep(.v-field) {
   background: transparent;
+  min-height: 32px;
+  height: 32px;
+}
+.length-select :deep(.v-field__input) {
+  min-height: 32px;
+  padding: 4px 4px 4px 8px;
+  font-size: 11.5px;
+  color: rgba(var(--v-theme-on-surface), 0.8);
+}
+.length-select :deep(.v-select__selection-text) {
+  white-space: nowrap;
+  color: inherit;
 }
 .length-hint {
+  flex: 1 0 100%;
+  text-align: right;
   font-size: 10.5px;
-  color: rgba(var(--v-theme-warning, 255, 179, 0), 0.9);
   line-height: 1.4;
+  color: rgb(var(--v-theme-warning, 230, 162, 60));
 }
 .chip-row {
   display: flex;
   gap: 6px;
+  flex: 1 1 190px;
+  min-width: 0;
+  max-width: 340px;
 }
 .quick-chip {
   flex: 1;
+  min-width: 0;
   font-size: 11.5px;
-  padding: 6px 8px;
-}
-.quick-chip:disabled {
-  opacity: 0.4;
-  cursor: default;
+  padding: 5px 8px;
+  white-space: nowrap;
 }
 
 /* ===== 输入区 ===== */
@@ -975,38 +1204,63 @@ watch([() => transcript.value.length, lastMsgLen], () => {
   flex-shrink: 0;
   display: flex;
   align-items: flex-end;
-  gap: 6px;
-  padding: 8px 10px;
+  gap: 8px;
+  padding: 6px 6px 6px 12px;
   border-radius: 16px;
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
-  background: rgba(var(--v-theme-on-surface), 0.03);
-  transition: border-color 0.2s ease;
+  border: 1px solid var(--ap-line-strong);
+  background: rgb(var(--v-theme-surface));
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 .agent-panel__input:focus-within {
   border-color: rgba(var(--v-theme-primary), 0.45);
+  box-shadow: 0 0 0 3px rgba(var(--v-theme-primary), 0.09);
 }
 .agent-panel__textarea :deep(.v-field__input) {
-  font-size: 13px;
-  padding: 2px 0;
+  font-size: 12.8px;
+  line-height: 1.6;
+  min-height: 34px;
+  padding: 6px 0;
+  color: rgba(var(--v-theme-on-surface), 0.88);
+}
+.agent-panel__textarea :deep(textarea::placeholder) {
+  color: rgba(var(--v-theme-on-surface), 0.38);
+}
+/* 输入区在最底部，@ 提及菜单必须向上弹，否则会被卡片裁掉 */
+.agent-panel__input :deep(.mention-menu) {
+  top: auto;
+  bottom: calc(100% + 10px);
+  z-index: 20;
+  max-height: 180px;
+  padding: 5px;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.14);
 }
 .send-btn {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
   border: none;
   cursor: pointer;
   background: rgb(var(--v-theme-primary));
   color: rgb(var(--v-theme-on-primary));
   transition:
     opacity 0.15s ease,
-    transform 0.15s ease;
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
 .send-btn:hover:not(:disabled) {
-  transform: scale(1.04);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(var(--v-theme-primary), 0.28);
+}
+.send-btn:focus-visible {
+  outline: 2px solid rgba(var(--v-theme-primary), 0.55);
+  outline-offset: 2px;
 }
 .send-btn:disabled {
   opacity: 0.35;
@@ -1015,5 +1269,41 @@ watch([() => transcript.value.length, lastMsgLen], () => {
 .send-btn--stop {
   background: rgba(var(--v-theme-error), 0.14);
   color: rgb(var(--v-theme-error));
+}
+
+/* ===== 面板级自适应（按卡片真实宽度，而非视口） ===== */
+@container agentcard (max-width: 400px) {
+  .agent-panel__head {
+    padding: 10px 10px 9px;
+  }
+  .agent-panel__meta {
+    padding: 8px 10px 7px;
+  }
+  .agent-panel__body {
+    padding: 12px 10px 14px;
+  }
+  .agent-panel__foot {
+    padding: 9px 10px 10px;
+  }
+  .chat-user {
+    padding-left: 24px;
+  }
+  .chat-assistant {
+    padding-right: 8px;
+  }
+}
+@container agentcard (max-width: 350px) {
+  .length-label {
+    display: none;
+  }
+  .agent-panel__target {
+    max-width: 88px;
+  }
+  .finalize-btn {
+    padding: 5px 8px;
+  }
+  .chip-row {
+    flex-basis: 100%;
+  }
 }
 </style>

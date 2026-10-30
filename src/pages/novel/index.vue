@@ -76,7 +76,7 @@
 
       <!-- ===== 右侧栏（可折叠为图标 rail；目录 / Agent 双视图） ===== -->
       <aside
-        class="novel-sidebar"
+        class="novel-sidebar lg-scroll"
         :class="{
           'novel-sidebar--rail': sidebarCollapsed,
           'novel-sidebar--agent': !sidebarCollapsed && sidebarTab === 'agent',
@@ -1569,31 +1569,39 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 4px;
 }
-/* Agent 视图：加宽以容纳聊天 */
+/* Agent 视图：加宽以容纳聊天。
+   这里必须关掉侧栏自身的滚动，否则会和面板内部的转录滚动叠在一起，
+   导致底部输入区跟着一起滚走。 */
 .novel-sidebar--agent {
-  /* Agent 需要同时展示对话、工具卡和上下文预算；桌面端约占屏幕三分之一 */
-  width: clamp(360px, 33.333vw, 560px);
+  width: clamp(360px, 32vw, 520px);
   min-width: 360px;
+  overflow: hidden;
+  padding-bottom: 12px;
 }
 .rail .lg-icon-btn.rail-active {
   background: rgba(var(--v-theme-primary), 0.14);
   color: rgb(var(--v-theme-primary));
 }
 
-/* 视图切换 Tab（目录 / Agent） */
+/* 视图切换 Tab（目录 / Agent）：
+   扁平分段控件，避免和下方大卡片形成「两张带投影的卡叠在一起」。 */
 .sidebar-tabs {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 6px;
+  padding: 4px;
   flex-shrink: 0;
+  border-radius: 14px;
+  border-color: rgba(var(--v-theme-on-surface), 0.06);
+  background: rgba(var(--v-theme-on-surface), 0.035);
+  box-shadow: none;
 }
 .sidebar-tab {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   padding: 5px 12px;
-  border-radius: 999px;
+  border-radius: 10px;
   border: none;
   background: transparent;
   color: rgba(var(--v-theme-on-surface), 0.55);
@@ -1608,9 +1616,10 @@ onBeforeUnmount(() => {
   background: rgba(var(--v-theme-on-surface), 0.05);
 }
 .sidebar-tab--active {
-  background: rgba(var(--v-theme-primary), 0.13);
+  background: rgb(var(--v-theme-surface));
   color: rgb(var(--v-theme-primary));
   font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 .sidebar-tabs .collapse-inline {
   margin-left: auto;
@@ -1623,6 +1632,9 @@ onBeforeUnmount(() => {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+  /* 让内部样式可以按「面板实际宽度」自适应，而不是只看视口宽度 */
+  container-type: inline-size;
+  container-name: agentcard;
 }
 .agent-sidebar-card :deep(.agent-panel) {
   min-height: 0;
@@ -1916,5 +1928,24 @@ onBeforeUnmount(() => {
   font-weight: 600;
   color: rgba(var(--v-theme-on-surface), 0.7);
   margin-bottom: 4px;
+}
+
+/* ====== 窄屏：保证 Agent 面板有可用宽度 ====== */
+@media (max-width: 1180px) {
+  .novel-sidebar--agent {
+    width: clamp(320px, 36vw, 420px);
+    min-width: 320px;
+  }
+}
+@media (max-width: 780px) {
+  /* 视口太窄时不再挤压编辑器，Agent 独占内容区；
+     切回「目录」即可重新看到编辑区。 */
+  .novel-sidebar--agent {
+    width: 100%;
+    min-width: 0;
+  }
+  .novel-page:has(.novel-sidebar--agent) .editor-main {
+    display: none;
+  }
 }
 </style>
