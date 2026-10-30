@@ -1,39 +1,39 @@
-import { EnvConfigType } from '@/services/environment';
+import type { EnvConfigType } from '@/services/environment';
 import env from '@/services/environment';
-import { AppService } from '@/types/system';
+import { useLibraryStore } from '@/store/libraryStore';
 import { useSettingsStore } from '@/store/settingsStore';
-import { useLibraryStore } from "@/store/libraryStore"
+import type { AppService } from '@/types/system';
 
-let appService: AppService | null
+let appService: AppService | null;
 export const envConfig = reactive(env) as EnvConfigType;
 let cachedPromise: Promise<void> | null = null;
 
 const initAppService = async () => {
-  appService = await envConfig.getAppService()
-}
+  appService = await envConfig.getAppService();
+};
 
 export const useAppService = async () => {
   if (appService) {
-    return appService
+    return appService;
   }
   if (!cachedPromise) {
-    cachedPromise = initAppService()
+    cachedPromise = initAppService();
   }
   await cachedPromise;
-  if (!appService) throw new Error("AppService not initialized");
+  if (!appService) throw new Error('AppService not initialized');
   return appService;
-}
+};
 
 let cachedLibraryPromise: Promise<void> | null = null;
 
-export const libraryLoaded = ref(false)
+export const libraryLoaded = ref(false);
 
 export const initLibrary = async () => {
   if (cachedLibraryPromise) return cachedLibraryPromise;
 
   cachedLibraryPromise = (async () => {
-    await initAppService()
-    if (!appService) throw new Error("AppService not initialized");
+    await initAppService();
+    if (!appService) throw new Error('AppService not initialized');
 
     const [settingsData, libraryBooks] = await Promise.all([
       appService.loadSettings(),

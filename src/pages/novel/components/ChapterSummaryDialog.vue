@@ -1,12 +1,12 @@
 <template>
   <v-dialog v-model="visible" max-width="620" scrollable>
-    <v-card rounded="xl" class="lg-dialog" v-if="chapter">
-      <v-card-title class="d-flex align-center gap-3 pt-5 px-5">
+    <v-card v-if="chapter" rounded="xl" class="lg-dialog">
+      <v-card-title class="d-flex align-center ga-3 pt-5 px-5">
         <span class="title-badge">
           <v-icon :icon="mdiTextBoxOutline" size="18" />
         </span>
         <div class="min-w-0">
-          <div class="text-h6 text-truncate">本章概要</div>
+          <div class="text-title-large text-truncate">本章概要</div>
           <div class="sub-title text-truncate">{{ chapter.title }}</div>
         </div>
         <v-spacer />
@@ -47,13 +47,7 @@
         </v-btn>
         <v-spacer />
         <v-btn variant="text" rounded="pill" @click="visible = false">关闭</v-btn>
-        <v-btn
-          color="primary"
-          variant="tonal"
-          rounded="pill"
-          :disabled="!changed"
-          @click="save"
-        >
+        <v-btn color="primary" variant="tonal" rounded="pill" :disabled="!changed" @click="save">
           保存
         </v-btn>
       </v-card-actions>
@@ -62,42 +56,43 @@
 </template>
 
 <script setup lang="ts">
-import { mdiTextBoxOutline, mdiCheckDecagramOutline } from '@mdi/js'
-import type { ChapterMeta } from '@/types/novel'
+import { mdiCheckDecagramOutline, mdiTextBoxOutline } from '@mdi/js';
+
+import type { ChapterMeta } from '@/types/novel';
 
 const props = defineProps<{
-  modelValue: boolean
-  chapter: ChapterMeta | null
+  modelValue: boolean;
+  chapter: ChapterMeta | null;
   /** 正在定稿（按钮 loading） */
-  finalizing?: boolean
+  finalizing?: boolean;
   /** Agent 忙（生成/定稿中），禁用定稿按钮 */
-  busy?: boolean
-}>()
+  busy?: boolean;
+}>();
 
 const emit = defineEmits<{
-  'update:modelValue': [v: boolean]
-  save: [summary: string]
-  finalize: []
-}>()
+  'update:modelValue': [v: boolean];
+  save: [summary: string];
+  finalize: [];
+}>();
 
 const visible = computed({
   get: () => props.modelValue,
   set: (v) => emit('update:modelValue', v),
-})
+});
 
-const draft = ref('')
+const draft = ref('');
 watch(
   () => [props.modelValue, props.chapter?.id, props.chapter?.summary] as const,
   ([open]) => {
-    if (open) draft.value = props.chapter?.summary ?? ''
+    if (open) draft.value = props.chapter?.summary ?? '';
   },
-  { immediate: true },
-)
+  { immediate: true }
+);
 
-const changed = computed(() => draft.value.trim() !== (props.chapter?.summary ?? '').trim())
+const changed = computed(() => draft.value.trim() !== (props.chapter?.summary ?? '').trim());
 
 function save() {
-  emit('save', draft.value.trim())
+  emit('save', draft.value.trim());
 }
 
 function formatTime(ts: number): string {
@@ -106,7 +101,7 @@ function formatTime(ts: number): string {
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
-  })
+  });
 }
 </script>
 

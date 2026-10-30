@@ -1,18 +1,19 @@
 // 书籍阅读器内容配色方案（注入到 foliate 书本 iframe 内）
 // 与 Material You 应用主题系统（utils/materialYou.ts）是两套独立的系统
 
-import tinycolor from 'tinycolor2';
+import { argbFromHex, Hct, hexFromArgb, TonalPalette } from '@material/material-color-utilities';
+
 import { stubTranslation as _ } from '../utils/misc';
 
-export type BaseColor = {
+export interface BaseColor {
   bg: string;
   fg: string;
   primary: string;
-};
+}
 
 export type ThemeMode = 'auto' | 'light' | 'dark';
 
-export type Palette = {
+export interface Palette {
   'base-100': string;
   'base-200': string;
   'base-300': string;
@@ -22,9 +23,9 @@ export type Palette = {
   primary: string;
   secondary: string;
   accent: string;
-};
+}
 
-export type Theme = {
+export interface Theme {
   name: string;
   label: string;
   colors: {
@@ -32,42 +33,65 @@ export type Theme = {
     dark: Palette;
   };
   isCustomizale?: boolean;
-};
+}
 
-export type CustomTheme = {
+export interface CustomTheme {
   name: string;
   label: string;
   colors: {
     light: BaseColor;
     dark: BaseColor;
   };
+}
+
+// ---- HCT 色彩工具（Material 3 官方色彩空间，替代已停止维护的 tinycolor2） ----
+
+const clampTone = (tone: number) => Math.min(100, Math.max(0, tone));
+
+/** 保持色相/彩度，仅按 delta 调整明度（tone 0-100） */
+const shiftTone = (hex: string, delta: number, maxChroma?: number) => {
+  const c = Hct.fromInt(argbFromHex(hex));
+  const chroma = maxChroma === undefined ? c.chroma : Math.min(c.chroma, maxChroma);
+  return hexFromArgb(Hct.from(c.hue, chroma, clampTone(c.tone + delta)).toInt());
+};
+
+/** 由 primary 派生出关联色：旋转色相 + 缩放彩度 + 平移明度 */
+const relatedTone = (hex: string, hueDelta: number, chromaScale: number, toneDelta: number) => {
+  const c = Hct.fromInt(argbFromHex(hex));
+  const palette = TonalPalette.fromHueAndChroma(
+    (c.hue + hueDelta + 360) % 360,
+    Math.max(c.chroma * chromaScale, 8)
+  );
+  return hexFromArgb(palette.tone(clampTone(c.tone + toneDelta)));
 };
 
 export const generateLightPalette = ({ bg, fg, primary }: BaseColor) => {
   return {
     'base-100': bg,
-    'base-200': tinycolor(bg).darken(5).toHexString(),
-    'base-300': tinycolor(bg).darken(12).toHexString(),
+    'base-200': shiftTone(bg, -5),
+    'base-300': shiftTone(bg, -12),
     'base-content': fg,
-    neutral: tinycolor(bg).darken(15).desaturate(20).toHexString(),
-    'neutral-content': tinycolor(fg).lighten(20).desaturate(20).toHexString(),
+    neutral: shiftTone(bg, -15, 6),
+    'neutral-content': shiftTone(fg, 20, 6),
     primary: primary,
-    secondary: tinycolor(primary).lighten(20).toHexString(),
-    accent: tinycolor(primary).analogous()[1]!.toHexString(),
+    secondary: relatedTone(primary, 0, 0.45, 20),
+    // M3 tertiary：色相 +60°，与 primary 形成同族但可区分的强调色
+    accent: relatedTone(primary, 60, 0.85, 0),
   } as Palette;
 };
 
 export const generateDarkPalette = ({ bg, fg, primary }: BaseColor) => {
   return {
     'base-100': bg,
-    'base-200': tinycolor(bg).lighten(5).toHexString(),
-    'base-300': tinycolor(bg).lighten(12).toHexString(),
+    'base-200': shiftTone(bg, 5),
+    'base-300': shiftTone(bg, 12),
     'base-content': fg,
-    neutral: tinycolor(bg).lighten(15).desaturate(20).toHexString(),
-    'neutral-content': tinycolor(fg).darken(20).desaturate(20).toHexString(),
+    neutral: shiftTone(bg, 15, 6),
+    'neutral-content': shiftTone(fg, -20, 6),
     primary: primary,
-    secondary: tinycolor(primary).darken(20).toHexString(),
-    accent: tinycolor(primary).triad()[1]!.toHexString(),
+    secondary: relatedTone(primary, 0, 0.45, -20),
+    // 深色下用 120° 补色作为强调色，保证在暗底上仍然醒目
+    accent: relatedTone(primary, 120, 0.8, 0),
   } as Palette;
 };
 

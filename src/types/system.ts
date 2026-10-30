@@ -1,7 +1,7 @@
-import { SystemSettings } from './settings';
-import { Book, BookConfig, BookContent } from './book';
-import { BookDoc } from '@/libs/document';
-import { ProgressHandler } from '@/utils/transfer';
+import type { BookDoc } from '@/libs/document';
+
+import type { Book, BookConfig, BookContent } from './book';
+import type { SystemSettings } from './settings';
 
 export type AppPlatform = 'web' | 'tauri';
 export type OsPlatform = 'android' | 'ios' | 'macos' | 'windows' | 'linux' | 'unknown';
@@ -52,11 +52,9 @@ export interface AppService {
     saveBook?: boolean,
     saveCover?: boolean,
     overwrite?: boolean,
-    transient?: boolean,
+    transient?: boolean
   ): Promise<Book | null>;
   deleteBook(book: Book, includingUploaded?: boolean): Promise<void>;
-  uploadBook(book: Book, onProgress?: ProgressHandler): Promise<void>;
-  downloadBook(book: Book, onlyCover?: boolean, onProgress?: ProgressHandler): Promise<void>;
   loadBookConfig(book: Book, settings: SystemSettings): Promise<BookConfig>;
   fetchBookDetails(book: Book, settings: SystemSettings): Promise<BookDoc['metadata']>;
   saveBookConfig(book: Book, config: BookConfig, settings?: SystemSettings): Promise<void>;

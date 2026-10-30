@@ -44,7 +44,7 @@ export function usePageFlip(
           if (viewElement) {
             const { screenX } = msg.data;
             const viewRect = viewElement.getBoundingClientRect();
-            let windowStartX = 0;
+            let windowStartX: number;
 
             if (isTauriAppPlatform()) {
               if (appService.value?.isMobile) {

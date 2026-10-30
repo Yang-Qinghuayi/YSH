@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
-import type { SystemSettings } from '@/types/settings';
+
 import type { EnvConfigType } from '@/services/environment';
+import type { SystemSettings } from '@/types/settings';
 
 export const useSettingsStore = defineStore('settings', () => {
   const settings = ref<SystemSettings>({} as SystemSettings);

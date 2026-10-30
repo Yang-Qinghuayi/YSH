@@ -1,5 +1,4 @@
 // 加载css fonts等资源
-import './styles/tailwind.css'; // Tailwind v4
 import './styles/animate.scss';
 import './styles/global.scss';
 import './styles/utility.scss';
