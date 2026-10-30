@@ -29,7 +29,8 @@
 
 - `src/store/chatStore.ts` → `src/store/agentChatStore.ts`：只管理交互面板的 UI 转录状态。
 - `src/types/agentChat.ts`：只描述 UI 消息与会话文件；领域类型统一放到 `src/types/agent.ts`。
-- `tests/agentService.e2e.test.ts` 删除后，新增 `tests/agentModules.test.ts` 覆盖新模块的 8 个边界，测试总数仍为 73。
+- `tests/agentService.e2e.test.ts` 删除后，新增 `tests/agentModules.test.ts` 覆盖新模块的 8 个边界。
+  合并 `ysh` 新增的阅读器用例后，仓库测试总数为 92。
 
 ---
 
@@ -111,13 +112,26 @@ src/services/agent/
 
 ---
 
-## 五、验证结果
+## 五、与 `ysh` 主干的合并
 
-- `corepack pnpm build`：通过（仅有原有的 vueuse `INVALID_ANNOTATION` 与 chunk size 警告）。
-- `npm test`：**73 / 73 通过**。
-- `npx tsc --noEmit --skipLibCheck`：13 个既有错误，与基线一致。
-- `npx vue-tsc --noEmit --skipLibCheck`：13 个既有错误，错误集合与基线完全一致。
-- `npx eslint --fix`：新增 / 重写的 TS、Vue 模块全部通过。
-- `npx prettier --write`：新增文档与源码已格式化；原有历史文档只做最小内容更新，保留原有排版以减少无关 diff。
+本重构最初基于 `ae51962`。合并 `ysh`（13 个新提交）时按「保留拆分结构 + 移植主干语义改动」处理，
+主干那批提交里夹了一次全仓格式化，因此以下列真实语义改动为准：
 
-> 注意：仓库原本就有 13 个与本次重构无关的类型错误；本次要求并达到的是「错误集合无新增」。
+| 主干改动                                                                                     | 在重构后的落点                                                                                                 |
+| -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| 移除 `openai` SDK，改 `fetch` + SSE（新增 `src/types/llm.ts`）                               | `agent/llm.ts` 重写为 `createLlmClient` + `readSseData` + `withTimeout`；其余模块的类型改从 `@/types/llm` 导入 |
+| 测试网络边界从 `openai` 桩改为 `fetch` 桩（`tests/stubs/fetch.mjs`）                         | `agentChat` / `chapterFinalize` e2e 改用 `installFetchStub()`；`tests/stubs/openai.mjs` 删除                   |
+| Vuetify 4 工具类迁移（`flex-1`→`flex-1-1`、`gap-N`→`ga-N`、`text-h6`→`text-title-large` 等） | 拆分出的组件同步改名，并重跑 `scripts/gen-vuetify-utilities.mjs`（产物与主干一致）                             |
+| `chapterFinalize` 未使用赋值清理                                                             | `agent/finalize.ts` 同步                                                                                       |
+| 加载器新增「裸包无扩展名相对路径」解析                                                       | `tests/stubs/loader.mjs` 与本次的「源码省略扩展名」解析合并成一个函数                                          |
+
+---
+
+## 六、验证结果
+
+- `corepack pnpm build`：通过（仅有原有的 chunk size 警告）。
+- `npm test`：**92 / 92 通过**（含主干新增的阅读器用例）。
+- `npx vue-tsc --noEmit`（主干的 CI 门禁，不再 `--skipLibCheck`）：**0 错误**。
+  主干已修掉重构前那 13 个既有类型错误，本次合并后未回退。
+- `npx eslint`：通过（0 error / 0 warning）。
+- `npx prettier --check`：通过，与主干 CI 的检查范围一致。

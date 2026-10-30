@@ -1,7 +1,7 @@
 /**
  * chapterFinalize.e2e.test.ts — 「本章定稿」流水线端到端测试（零网络、零依赖）
  *
- * 复用 Agent e2e 的替身体系（假 openai client + 内存 fs），驱动真实的
+ * 复用 Agent e2e 的替身体系（假 fetch/SSE + 内存 fs），驱动真实的
  * chapterFinalize.runChapterFinalize：
  *   章节概要 → 短期记忆（update_short_term_memory）→ 长期记忆（update_long_term_memory）→ 整体进度
  * 覆盖：
@@ -18,6 +18,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { readJson, resetFs, seedJson } from './stubs/fakeFs.ts';
+import { installFetchStub } from './stubs/fetch.mjs';
 import { createHooks } from './stubs/loader.mjs';
 import {
   lastMessageText,
@@ -32,6 +33,8 @@ import {
 const here = import.meta.dirname;
 const root = path.resolve(here, '..');
 registerHooks(createHooks({ root, stubsDir: path.join(here, 'stubs') }));
+// 网络边界：把 fetch 换成按脚本回放的 SSE 流（原 openai 桩已随 SDK 一起移除）
+installFetchStub();
 
 const { runChapterFinalize } = await import('../src/services/agent/index.ts');
 

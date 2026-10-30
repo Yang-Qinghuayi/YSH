@@ -5,9 +5,8 @@
  * 领域数据结构统一放在 types/agent.ts；本文件只描述 UI 层看到的消息形状。
  */
 
-import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
-
 import type { AgentPlan, ChatWriteData, SessionPhase } from '@/types/agent';
+import type { ChatCompletionMessageParam } from '@/types/llm';
 
 export type { ChatWriteData } from '@/types/agent';
 

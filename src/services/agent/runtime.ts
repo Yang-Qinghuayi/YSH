@@ -4,11 +4,6 @@
  * 不实现具体业务流程；多轮对话与定稿流程都在各自模块中组合这些原语。
  */
 
-import type {
-  ChatCompletionMessageFunctionToolCall,
-  ChatCompletionMessageParam,
-} from 'openai/resources/chat/completions';
-
 import { DEFAULT_CONTEXT_LIMIT_TOKENS, enforceContextBudget } from '@/services/agent/contextBudget';
 import { createOpenAIClient, streamChatWithTools } from '@/services/agent/llm';
 import { findTool, toToolSchemas } from '@/services/agent/tools/registry';
@@ -20,6 +15,10 @@ import type {
   ToolContext,
   ToolResult,
 } from '@/types/agent';
+import type {
+  ChatCompletionMessageFunctionToolCall,
+  ChatCompletionMessageParam,
+} from '@/types/llm';
 
 export interface RunOneTurnOptions {
   tools?: AgentTool[];
@@ -64,9 +63,9 @@ export async function executeToolCalls(
       text: '',
     });
 
-    let args: Record<string, unknown> = {};
+    let args: Record<string, unknown>;
     try {
-      args = JSON.parse(call.function.arguments || '{}');
+      args = JSON.parse(call.function.arguments || '{}') as Record<string, unknown>;
     } catch {
       args = {};
     }

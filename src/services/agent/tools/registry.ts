@@ -4,9 +4,8 @@
  * registry 必须与当轮传给模型的 tools 数组一致。
  */
 
-import type { ChatCompletionTool } from 'openai/resources/chat/completions';
-
 import type { AgentTool } from '@/types/agent';
+import type { ChatCompletionTool } from '@/types/llm';
 
 import { updateLongTermMemoryTool, updateShortTermMemoryTool } from './memory';
 import {

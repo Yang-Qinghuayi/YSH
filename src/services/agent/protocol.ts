@@ -4,9 +4,8 @@
  * 无 IO、无框架依赖，可直接单测。
  */
 
-import type { ChatCompletionMessageFunctionToolCall } from 'openai/resources/chat/completions';
-
 import type { AgentPlan } from '@/types/agent';
+import type { ChatCompletionMessageFunctionToolCall } from '@/types/llm';
 
 /** 兼容旧字段名 selectedSkills（模型可能沿用历史 schema） */
 function pickSelectedCharacters(obj: Record<string, unknown>): AgentPlan['selectedCharacters'] {

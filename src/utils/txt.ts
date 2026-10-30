@@ -116,7 +116,7 @@ export class TxtToEpubConverter {
         const title = matches[j]?.trim() || '';
         const content = matches[j + 1]?.trim() || '';
 
-        let isVolume = false;
+        let isVolume: boolean;
         if (language === 'zh') {
           isVolume = /第[一二三四五六七八九十百千万0-9]+卷/.test(title);
         } else {

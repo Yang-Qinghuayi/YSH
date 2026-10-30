@@ -7,23 +7,23 @@
     class="char-panel"
     @update:model-value="(v) => !v && novelUiStore.closeCharacterPanel()"
   >
-    <div v-if="!selected" class="pa-4 text-body-2 text-medium-emphasis">未选择角色</div>
+    <div v-if="!selected" class="pa-4 text-body-medium text-medium-emphasis">未选择角色</div>
     <div v-else class="d-flex flex-column h-100">
       <!-- 标题 -->
-      <div class="panel-header d-flex align-center gap-2">
+      <div class="panel-header d-flex align-center ga-2">
         <span class="title-badge">
           <v-icon :icon="mdiAccount" size="18" />
         </span>
-        <span class="text-h6">{{ selected.name }}</span>
+        <span class="text-title-large">{{ selected.name }}</span>
         <v-spacer />
         <v-btn icon size="small" variant="text" @click="novelUiStore.closeCharacterPanel()">
           <v-icon :icon="mdiClose" size="18" />
         </v-btn>
       </div>
 
-      <div class="panel-body flex-1 overflow-y-auto pa-4 d-flex flex-column gap-3">
+      <div class="panel-body flex-1-1 overflow-y-auto pa-4 d-flex flex-column ga-3">
         <!-- ===== 长期记忆（Skill） ===== -->
-        <div class="panel-block lg-card--inset pa-3 d-flex flex-column gap-2">
+        <div class="panel-block lg-card--inset pa-3 d-flex flex-column ga-2">
           <div class="lg-section-label">长期记忆（Skill）· TA 是谁</div>
           <v-textarea
             v-model="skillDraft"
@@ -36,7 +36,7 @@
             rounded="xl"
             @blur="emitSkill"
           />
-          <div class="text-caption text-medium-emphasis">
+          <div class="text-body-small text-medium-emphasis">
             重大事件后，「本章定稿」时 Agent 可能改写这里<template v-if="changeCount">
               （已改写 {{ changeCount }} 次，可在「故事状态」回滚）</template
             >。
@@ -44,10 +44,10 @@
         </div>
 
         <!-- ===== 短期记忆（POV） ===== -->
-        <div class="panel-block lg-card--inset pa-3 d-flex flex-column gap-2">
+        <div class="panel-block lg-card--inset pa-3 d-flex flex-column ga-2">
           <div class="lg-section-label">
             短期记忆（POV）· TA 此刻知道什么
-            <span v-if="memoryChapterTitle" class="text-caption text-medium-emphasis">
+            <span v-if="memoryChapterTitle" class="text-body-small text-medium-emphasis">
               · 截至《{{ memoryChapterTitle }}》
             </span>
           </div>

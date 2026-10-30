@@ -3,7 +3,6 @@
     <Transition name="search-modal">
       <div v-if="visible" class="search-backdrop" @click.self="close">
         <div class="search-panel" @keydown="handleKeydown">
-
           <!-- 搜索框 -->
           <div class="search-input-row">
             <v-icon :icon="mdiMagnify" size="17" class="search-icon" />
@@ -59,7 +58,6 @@
             <span><kbd class="lg-kbd">Enter</kbd> 跳转</span>
             <span><kbd class="lg-kbd">Esc</kbd> 关闭</span>
           </div>
-
         </div>
       </div>
     </Transition>
@@ -67,50 +65,51 @@
 </template>
 
 <script setup lang="ts">
-import { mdiMagnify } from '@mdi/js'
-import type { ChapterMeta, SearchResult } from '@/types/novel'
+import { mdiMagnify } from '@mdi/js';
+
+import type { ChapterMeta, SearchResult } from '@/types/novel';
 
 const props = defineProps<{
-  visible: boolean
-  chapters: ChapterMeta[]
-  searchFn: (chapters: ChapterMeta[], query: string) => Promise<SearchResult[]>
-}>()
+  visible: boolean;
+  chapters: ChapterMeta[];
+  searchFn: (chapters: ChapterMeta[], query: string) => Promise<SearchResult[]>;
+}>();
 
 const emit = defineEmits<{
-  'update:visible': [v: boolean]
-  jump: [result: SearchResult]
-}>()
+  'update:visible': [v: boolean];
+  jump: [result: SearchResult];
+}>();
 
-const query = ref('')
-const results = ref<SearchResult[]>([])
-const selectedIndex = ref(0)
-const isSearching = ref(false)
-const inputRef = ref<HTMLInputElement | null>(null)
-const listRef = ref<HTMLElement | null>(null)
+const query = ref('');
+const results = ref<SearchResult[]>([]);
+const selectedIndex = ref(0);
+const isSearching = ref(false);
+const inputRef = ref<HTMLInputElement | null>(null);
+const listRef = ref<HTMLElement | null>(null);
 
-let debounceTimer: ReturnType<typeof setTimeout> | null = null
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 // 搜索（带 debounce）
 watch(query, (q) => {
-  if (debounceTimer) clearTimeout(debounceTimer)
+  if (debounceTimer) clearTimeout(debounceTimer);
   if (!q.trim()) {
-    results.value = []
-    selectedIndex.value = 0
-    return
+    results.value = [];
+    selectedIndex.value = 0;
+    return;
   }
-  debounceTimer = setTimeout(() => doSearch(q), 300)
-})
+  debounceTimer = setTimeout(() => doSearch(q), 300);
+});
 
 async function doSearch(q: string) {
-  isSearching.value = true
+  isSearching.value = true;
   try {
-    const res = await props.searchFn(props.chapters, q)
-    results.value = res
-    selectedIndex.value = 0
+    const res = await props.searchFn(props.chapters, q);
+    results.value = res;
+    selectedIndex.value = 0;
   } catch {
-    results.value = []
+    results.value = [];
   } finally {
-    isSearching.value = false
+    isSearching.value = false;
   }
 }
 
@@ -119,65 +118,65 @@ watch(
   () => props.visible,
   (v) => {
     if (v) {
-      query.value = ''
-      results.value = []
-      selectedIndex.value = 0
-      nextTick(() => inputRef.value?.focus())
+      query.value = '';
+      results.value = [];
+      selectedIndex.value = 0;
+      nextTick(() => inputRef.value?.focus());
     }
-  },
-)
+  }
+);
 
 function close() {
-  emit('update:visible', false)
+  emit('update:visible', false);
 }
 
 function selectResult(result: SearchResult) {
-  emit('jump', result)
+  emit('jump', result);
 }
 
 function handleKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') {
-    e.preventDefault()
-    close()
-    return
+    e.preventDefault();
+    close();
+    return;
   }
   if (e.key === 'ArrowDown') {
-    e.preventDefault()
-    selectedIndex.value = Math.min(selectedIndex.value + 1, results.value.length - 1)
-    scrollSelectedIntoView()
-    return
+    e.preventDefault();
+    selectedIndex.value = Math.min(selectedIndex.value + 1, results.value.length - 1);
+    scrollSelectedIntoView();
+    return;
   }
   if (e.key === 'ArrowUp') {
-    e.preventDefault()
-    selectedIndex.value = Math.max(selectedIndex.value - 1, 0)
-    scrollSelectedIntoView()
-    return
+    e.preventDefault();
+    selectedIndex.value = Math.max(selectedIndex.value - 1, 0);
+    scrollSelectedIntoView();
+    return;
   }
   if (e.key === 'Enter') {
-    e.preventDefault()
-    const r = results.value[selectedIndex.value]
-    if (r) selectResult(r)
+    e.preventDefault();
+    const r = results.value[selectedIndex.value];
+    if (r) selectResult(r);
   }
 }
 
 function scrollSelectedIntoView() {
   nextTick(() => {
-    const el = listRef.value?.querySelector('.result-item--active')
-    el?.scrollIntoView({ block: 'nearest' })
-  })
+    const el = listRef.value?.querySelector('.result-item--active');
+    el?.scrollIntoView({ block: 'nearest' });
+  });
 }
 
 // 高亮匹配词
 function highlightMatch(result: SearchResult): string {
-  const { lineContent, matchStart, matchEnd } = result
-  const pre = escapeHtml(lineContent.slice(0, matchStart))
-  const match = escapeHtml(lineContent.slice(matchStart, matchEnd))
-  const post = escapeHtml(lineContent.slice(matchEnd))
-  return `${pre}<mark>${match}</mark>${post}`
+  const { lineContent, matchStart, matchEnd } = result;
+  const pre = escapeHtml(lineContent.slice(0, matchStart));
+  const match = escapeHtml(lineContent.slice(matchStart, matchEnd));
+  const post = escapeHtml(lineContent.slice(matchEnd));
+  return `${pre}<mark>${match}</mark>${post}`;
 }
 
 function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 </script>
 
@@ -302,7 +301,7 @@ function escapeHtml(s: string): string {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: "Noto Serif SC", "Source Han Serif", "Georgia", serif;
+  font-family: 'Noto Serif SC', 'Source Han Serif', 'Georgia', serif;
 }
 
 /* 高亮匹配词 */
@@ -356,7 +355,9 @@ kbd {
 
 .search-modal-enter-active .search-panel,
 .search-modal-leave-active .search-panel {
-  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.18s ease;
+  transition:
+    transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.18s ease;
 }
 
 .search-modal-enter-from,

@@ -1,8 +1,9 @@
-import { onMounted, onBeforeUnmount, watch, type Ref } from 'vue';
+import { storeToRefs } from 'pinia';
+import { onBeforeUnmount, onMounted, type Ref, watch } from 'vue';
+
+import { useBookIdStore } from '@/store/bookIdStore';
 import { useReaderStore } from '@/store/readerStore';
 import type { FoliateView } from '@/types/view';
-import { useBookIdStore } from '@/store/bookIdStore';
-import { storeToRefs } from 'pinia';
 
 interface IframeTouch {
   clientX: number;
@@ -15,10 +16,8 @@ interface IframeTouchEvent {
   targetTouches: IframeTouch[];
 }
 
-export function useClickEvent(
-  handlePageFlip: (msg: MessageEvent) => void
-) {
-  const { bookId } = storeToRefs(useBookIdStore())
+export function useClickEvent(handlePageFlip: (msg: MessageEvent) => void) {
+  const { bookId } = storeToRefs(useBookIdStore());
   const bindEvent = () => {
     window.addEventListener('message', handlePageFlip);
   };
@@ -30,20 +29,15 @@ export function useClickEvent(
   onMounted(bindEvent);
   onBeforeUnmount(unbindEvent);
 
-  watch(
-    bookId,
-    () => {
-      unbindEvent();
-      bindEvent();
-    }
-  );
+  watch(bookId, () => {
+    unbindEvent();
+    bindEvent();
+  });
 }
 
 // === useTouchEvent: 监听 touch 消息 ===
-export function useTouchEvent(
-  viewRef: Ref<FoliateView | null>
-) {
-  const { bookId } = storeToRefs(useBookIdStore())
+export function useTouchEvent(viewRef: Ref<FoliateView | null>) {
+  const { bookId } = storeToRefs(useBookIdStore());
   const store = useReaderStore();
   const { hoveredBookKey, setHoveredBookKey, getViewSettings } = store;
   const viewSettings = getViewSettings(bookId.value)!;
@@ -76,7 +70,6 @@ export function useTouchEvent(
       }
     }
   };
-
 
   const handleTouch = (msg: MessageEvent) => {
     if (msg.data && msg.data.bookKey === bookId.value) {

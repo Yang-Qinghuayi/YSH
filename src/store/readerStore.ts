@@ -1,15 +1,17 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
-import { useSettingsStore } from './settingsStore';
+import { computed, ref } from 'vue';
+
+import { useAppService } from '@/hooks/useEnv';
+import type { BookDoc, SectionItem, TOCItem } from '@/libs/document';
+import { DocumentLoader } from '@/libs/document';
+import type { BookConfig, BookContent, BookProgress, PageInfo, ViewSettings } from '@/types/book';
+import type { FoliateView } from '@/types/view';
+import { getPrimaryLanguage } from '@/utils/book';
+import { updateTocCFI, updateTocID } from '@/utils/toc';
+
 import { useBookDataStore } from './bookDataStore';
 import { useLibraryStore } from './libraryStore';
-import { updateTocCFI, updateTocID } from '@/utils/toc';
-import { getPrimaryLanguage } from '@/utils/book';
-
-import type { ViewSettings, BookProgress, PageInfo, BookConfig, BookContent } from '@/types/book';
-import type { FoliateView } from '@/types/view';
-import { BookDoc, DocumentLoader, SectionItem, TOCItem } from '@/libs/document';
-import { useAppService } from '@/hooks/useEnv';
+import { useSettingsStore } from './settingsStore';
 
 interface ViewState {
   key: string;
@@ -26,15 +28,15 @@ export const useReaderStore = defineStore('reader', () => {
   const viewStates = ref<Record<string, ViewState>>({});
   const bookKeys = ref<string[]>([]);
   const hoveredBookKey = ref<string | null>(null);
-  const showMenu = ref<boolean>(false)
+  const showMenu = ref<boolean>(false);
 
   const switchShowMenu = () => {
     showMenu.value = !showMenu.value;
-  }
+  };
 
   const closeMenu = () => {
     showMenu.value = false;
-  }
+  };
 
   const setBookKeys = (keys: string[]) => {
     bookKeys.value = keys;
@@ -57,14 +59,14 @@ export const useReaderStore = defineStore('reader', () => {
 
   const getViews = computed(() => {
     return Object.values(viewStates.value)
-      .map(v => v.view)
+      .map((v) => v.view)
       .filter(Boolean) as FoliateView[];
   });
 
   const getViewsById = (id: string) => {
     return Object.values(viewStates.value)
-      .filter(v => v.key.startsWith(id))
-      .map(v => v.view!)
+      .filter((v) => v.key.startsWith(id))
+      .map((v) => v.view!)
       .filter(Boolean);
   };
 
@@ -122,7 +124,7 @@ export const useReaderStore = defineStore('reader', () => {
     const progress: [number, number] = [(pageinfo.next ?? pageinfo.current) + 1, pageinfo.total];
 
     const libraryStore = useLibraryStore();
-    const idx = libraryStore.library.findIndex(b => b.hash === id);
+    const idx = libraryStore.library.findIndex((b) => b.hash === id);
 
     if (idx !== -1) {
       const updatedBook = {
@@ -167,7 +169,7 @@ export const useReaderStore = defineStore('reader', () => {
 
   const initViewState = async (id: string, isPrimary = true) => {
     const bookDataStore = useBookDataStore();
-    let bookData = bookDataStore.booksData[id];
+    const bookData = bookDataStore.booksData[id];
 
     viewStates.value[id] = {
       key: '',
@@ -182,11 +184,11 @@ export const useReaderStore = defineStore('reader', () => {
 
     try {
       if (!bookData) {
-        const appService = await useAppService()
+        const appService = await useAppService();
         const { settings } = useSettingsStore();
         const { library } = useLibraryStore();
 
-        const book = library.find(b => b.hash === id);
+        const book = library.find((b) => b.hash === id);
         if (!book) throw new Error('Book not found');
 
         const content = (await appService.loadBookContent(book, settings)) as BookContent;

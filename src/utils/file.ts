@@ -1,4 +1,6 @@
-import { FileHandle, open, BaseDirectory, SeekMode } from '@tauri-apps/plugin-fs';
+import type { BaseDirectory, FileHandle } from '@tauri-apps/plugin-fs';
+import { open, SeekMode } from '@tauri-apps/plugin-fs';
+
 import { getOSPlatform } from './misc';
 
 class DeferredBlob extends Blob {
@@ -187,11 +189,13 @@ export class NativeFile extends File implements ClosableFile {
     return new DeferredBlob(dataPromise, contentType);
   }
 
-  override stream(): ReadableStream<Uint8Array> {
+  // 注意：新版 TS lib 中 Blob.stream() 返回 ReadableStream<Uint8Array<ArrayBuffer>>，
+  // 这里必须声明成同样的泛型，否则 NativeFile 无法赋值给 File
+  override stream(): ReadableStream<Uint8Array<ArrayBuffer>> {
     const CHUNK_SIZE = 1024 * 1024;
     let offset = 0;
 
-    return new ReadableStream<Uint8Array>({
+    return new ReadableStream<Uint8Array<ArrayBuffer>>({
       pull: async (controller) => {
         if (!this.#handle) {
           controller.error(new Error('File handle is not open'));

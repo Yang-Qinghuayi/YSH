@@ -21,7 +21,6 @@ Default permissions for the plugin
 <th>Description</th>
 </tr>
 
-
 <tr>
 <td>
 
@@ -229,5 +228,4 @@ Denies the set_system_ui_visibility command without any pre-configured scope.
 
 </td>
 </tr>
-
 </table>

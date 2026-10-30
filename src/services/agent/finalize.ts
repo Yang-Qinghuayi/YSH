@@ -13,8 +13,6 @@
  * 解析后仍交给同一套工具执行器（合并逻辑单一来源）。
  */
 
-import type { ChatCompletionMessageFunctionToolCall } from 'openai/resources/chat/completions';
-
 import { supportsToolCalling } from '@/services/agent/llm';
 import {
   buildChapterSummaryInstruction,
@@ -46,6 +44,7 @@ import type {
   AgentTool,
   ContextTrimInfo,
 } from '@/types/agent';
+import type { ChatCompletionMessageFunctionToolCall } from '@/types/llm';
 import type { ChapterMeta, Novel } from '@/types/novel';
 import type { LongTermChange, StoryState } from '@/types/storyState';
 
@@ -261,7 +260,7 @@ export async function runChapterFinalize(
   });
   const mainline = cleanMainline(mainlineTurn.text);
   if (mainline) {
-    state = await saveStoryState({
+    await saveStoryState({
       ...state,
       mainline,
       mainlineUpdatedChapterId: chapter.id,

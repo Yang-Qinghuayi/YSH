@@ -1,7 +1,6 @@
 <template>
   <div class="workspace-init">
     <div class="glass-card">
-
       <!-- 图标 -->
       <div class="icon-wrap">
         <v-icon :icon="mdiBookshelf" size="36" color="primary" />
@@ -9,9 +8,7 @@
 
       <!-- 标题 -->
       <h2 class="card-title">打开你的小说</h2>
-      <p class="card-desc">
-        一个文件夹就是一部小说。
-      </p>
+      <p class="card-desc">一个文件夹就是一部小说。</p>
 
       <!-- 主要操作：打开文件夹 -->
       <v-btn
@@ -36,7 +33,6 @@
 
       <!-- 新建小说（仅 Tauri，需选父目录） -->
       <template v-if="isTauri">
-
         <button class="secondary-btn" @click="showCreateInput = !showCreateInput">
           <v-icon :icon="mdiPlus" size="16" class="mr-1" />
           新建小说
@@ -73,7 +69,6 @@
 
       <!-- Web 兜底：使用默认存储位置 -->
       <template v-else>
-
         <button class="secondary-btn" @click="showDefaultInput = !showDefaultInput">
           <v-icon :icon="mdiPlus" size="16" class="mr-1" />
           使用默认存储位置
@@ -112,79 +107,80 @@
       <transition name="slide-down">
         <div v-if="selectedPath" class="selected-wrap">
           <div class="selected-path">
-            <v-icon :icon="mdiCheckCircleOutline" size="16" color="success" class="mr-2 flex-shrink-0" />
+            <v-icon
+              :icon="mdiCheckCircleOutline"
+              size="16"
+              color="success"
+              class="mr-2 flex-shrink-0"
+            />
             <span class="path-text">{{ selectedPath }}</span>
           </div>
         </div>
       </transition>
-
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { mdiBookshelf, mdiFolderOpenOutline, mdiCheckCircleOutline, mdiPlus } from '@mdi/js'
-import { useSettingStore } from '@/store/setting'
-import {
-  pickWorkspaceDir,
-  setWorkspaceDir,
-  createNovelFolder,
-} from '@/services/workspaceService'
-import { isTauriAppPlatform } from '@/services/environment'
+import { mdiBookshelf, mdiCheckCircleOutline, mdiFolderOpenOutline, mdiPlus } from '@mdi/js';
 
-const settingStore = useSettingStore()
-const isTauri = isTauriAppPlatform()
-const picking = ref(false)
-const creating = ref(false)
-const selectedPath = ref<string | null>(null)
-const showCreateInput = ref(false)
-const newTitle = ref('')
-const showDefaultInput = ref(false)
-const defaultTitle = ref('')
+import { isTauriAppPlatform } from '@/services/environment';
+import { createNovelFolder, pickWorkspaceDir, setWorkspaceDir } from '@/services/workspaceService';
+import { useSettingStore } from '@/store/setting';
 
-const emit = defineEmits<{ done: [title?: string] }>()
+const settingStore = useSettingStore();
+const isTauri = isTauriAppPlatform();
+const picking = ref(false);
+const creating = ref(false);
+const selectedPath = ref<string | null>(null);
+const showCreateInput = ref(false);
+const newTitle = ref('');
+const showDefaultInput = ref(false);
+const defaultTitle = ref('');
+
+const emit = defineEmits<{ done: [title?: string] }>();
 
 /** 打开已有小说文件夹 */
 async function handlePickFolder() {
-  picking.value = true
+  picking.value = true;
   try {
-    const dir = await pickWorkspaceDir()
+    const dir = await pickWorkspaceDir();
     if (dir) {
-      setWorkspaceDir(dir)
-      emit('done')
+      setWorkspaceDir(dir);
+      emit('done');
     }
   } catch (e) {
-    console.error('选择文件夹失败：', e)
+    console.error('选择文件夹失败：', e);
   } finally {
-    picking.value = false
+    picking.value = false;
   }
 }
 
 /** 新建小说：输入标题 → 选父目录 → 创建以标题命名的文件夹 */
 async function handleCreate() {
-  const title = newTitle.value.trim()
-  if (!title) return
-  creating.value = true
+  const title = newTitle.value.trim();
+  if (!title) return;
+  creating.value = true;
   try {
     // 选父目录（复用文件夹选择器）
-    const parent = await pickWorkspaceDir()
-    if (!parent) return
-    const target = await createNovelFolder(parent, title)
-    selectedPath.value = target
-    emit('done')
+    const parent = await pickWorkspaceDir();
+    if (!parent) return;
+    const target = await createNovelFolder(parent, title);
+    selectedPath.value = target;
+    emit('done');
   } catch (e) {
-    console.error('创建小说失败：', e)
+    console.error('创建小说失败：', e);
   } finally {
-    creating.value = false
+    creating.value = false;
   }
 }
 
 /** Web 兜底：使用默认存储位置（AppData），需输入小说标题 */
 function handleUseDefault() {
-  const title = defaultTitle.value.trim()
-  if (!title) return
-  settingStore.workspaceDir = ''
-  emit('done', title)
+  const title = defaultTitle.value.trim();
+  if (!title) return;
+  settingStore.workspaceDir = '';
+  emit('done', title);
 }
 </script>
 
@@ -274,7 +270,9 @@ function handleUseDefault() {
   font-size: 13px;
   color: rgba(var(--v-theme-on-surface), 0.65);
   cursor: pointer;
-  transition: background 0.18s ease, border-color 0.18s ease;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease;
   font-weight: 450;
   display: inline-flex;
   align-items: center;
@@ -335,10 +333,14 @@ function handleUseDefault() {
 
 /* 动画 */
 .slide-down-enter-active {
-  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .slide-down-leave-active {
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
 }
 .slide-down-enter-from,
 .slide-down-leave-to {

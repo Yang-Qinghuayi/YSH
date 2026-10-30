@@ -2,11 +2,11 @@
   <v-dialog v-model="visible" max-width="760" scrollable>
     <v-card v-if="loaded" rounded="xl" class="lg-dialog">
       <!-- 标题栏 -->
-      <v-card-title class="d-flex align-center gap-3 pt-5 px-5">
+      <v-card-title class="d-flex align-center ga-3 pt-5 px-5">
         <span class="title-badge">
           <v-icon :icon="mdiStateMachine" size="18" />
         </span>
-        <span class="text-h6">故事状态</span>
+        <span class="text-title-large">故事状态</span>
         <span v-if="liveState?.updatedAt" class="updated-hint">
           最近更新 {{ formatTime(liveState.updatedAt) }}
         </span>

@@ -20,13 +20,16 @@
       </div>
 
       <!-- 主体：左右两栏 -->
-      <div class="lore-page d-flex flex-1 overflow-hidden">
+      <div class="lore-page d-flex flex-1-1 overflow-hidden">
         <!-- ===== 左侧栏 ===== -->
-        <div class="lore-sidebar d-flex flex-column gap-2">
+        <div class="lore-sidebar d-flex flex-column ga-2">
           <!-- 条目列表 -->
-          <div v-if="lore" class="lore-section lore-entries lg-card--inset pa-2 d-flex flex-column flex-1">
+          <div
+            v-if="lore"
+            class="lore-section lore-entries lg-card--inset pa-2 d-flex flex-column flex-1-1"
+          >
             <div class="lg-section-label px-1 mb-1">条目</div>
-            <div class="flex-1 overflow-y-auto lore-entries-scroll">
+            <div class="flex-1-1 overflow-y-auto lore-entries-scroll">
               <EntryList
                 :entries="filteredEntries"
                 :current-entry-id="currentEntry?.id"
@@ -39,17 +42,20 @@
           </div>
 
           <!-- 加载状态 -->
-          <div v-else class="d-flex align-center justify-center flex-1 text-medium-emphasis text-body-2">
+          <div
+            v-else
+            class="d-flex align-center justify-center flex-1-1 text-medium-emphasis text-body-medium"
+          >
             加载中…
           </div>
         </div>
 
         <!-- ===== 主内容区 ===== -->
-        <div class="lore-main flex-1 d-flex flex-column overflow-hidden">
+        <div class="lore-main flex-1-1 d-flex flex-column overflow-hidden">
           <!-- 未选择时的占位 -->
           <div
             v-if="!currentEntry"
-            class="lore-empty d-flex flex-column align-center justify-center h-100 gap-3"
+            class="lore-empty d-flex flex-column align-center justify-center h-100 ga-3"
           >
             <div class="lore-empty-icon lg-card--inset">
               <v-icon :icon="mdiBookmarkMultipleOutline" size="40" />
@@ -58,7 +64,11 @@
               {{ !lore || lore.entries.length === 0 ? '开始构建资料库' : '选择一个条目' }}
             </div>
             <div class="lore-empty-sub">
-              {{ !lore || lore.entries.length === 0 ? '从左侧「新增条目」开始构建资料库' : '从左侧选择一个条目进行编辑' }}
+              {{
+                !lore || lore.entries.length === 0
+                  ? '从左侧「新增条目」开始构建资料库'
+                  : '从左侧选择一个条目进行编辑'
+              }}
             </div>
           </div>
 
@@ -82,185 +92,187 @@
 </template>
 
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
-import { mdiBookmarkMultipleOutline, mdiClose } from '@mdi/js'
-import { useLoreStore } from '@/store/loreStore'
+import { mdiBookmarkMultipleOutline, mdiClose } from '@mdi/js';
+import { storeToRefs } from 'pinia';
+
+import EntryEditor from '@/pages/lore/components/EntryEditor.vue';
+import EntryList from '@/pages/lore/components/EntryList.vue';
 import {
-  loadOrCreateLore,
-  loadEntryContent,
-  saveEntryContent,
   createEntry,
-  updateEntryMeta,
   deleteEntry,
-} from '@/services/loreService'
-import type { EntryMeta } from '@/types/lore'
-import type { Novel } from '@/types/novel'
-import EntryList from '@/pages/lore/components/EntryList.vue'
-import EntryEditor from '@/pages/lore/components/EntryEditor.vue'
+  loadEntryContent,
+  loadOrCreateLore,
+  saveEntryContent,
+  updateEntryMeta,
+} from '@/services/loreService';
+import { useLoreStore } from '@/store/loreStore';
+import type { EntryMeta } from '@/types/lore';
+import type { Novel } from '@/types/novel';
 
-const props = defineProps<{ novel: Novel; visible: boolean; focusEntryId?: string | null }>()
+const props = defineProps<{ novel: Novel; visible: boolean; focusEntryId?: string | null }>();
 const emit = defineEmits<{
-  'update:visible': [v: boolean]
-  saved: []
-}>()
+  'update:visible': [v: boolean];
+  saved: [];
+}>();
 
-const loreStore = useLoreStore()
+const loreStore = useLoreStore();
 
 const { lore, currentEntry, currentEntryContent, isDirty, filteredEntries } =
-  storeToRefs(loreStore)
+  storeToRefs(loreStore);
 
-const showError = ref(false)
-const errorMessage = ref('')
+const showError = ref(false);
+const errorMessage = ref('');
 
 // 自动保存定时器
-let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
+let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
 // 打开或切小说时加载资料库
 async function loadLore(novel: Novel) {
   try {
-    const loreMeta = await loadOrCreateLore(novel)
-    loreStore.openNovel(novel, loreMeta)
+    const loreMeta = await loadOrCreateLore(novel);
+    loreStore.openNovel(novel, loreMeta);
   } catch (e) {
-    showErrorMsg('加载资料库失败：' + (e instanceof Error ? e.message : String(e)))
+    showErrorMsg('加载资料库失败：' + (e instanceof Error ? e.message : String(e)));
   }
 }
 
 /** 定位到指定条目（供父组件 chip 点击跳转） */
 async function focusEntry(entryId: string | null | undefined) {
-  if (!entryId || !lore.value) return
-  const entry = lore.value.entries.find((e) => e.id === entryId)
-  if (!entry) return
-  if (currentEntry.value?.id === entry.id) return
-  await trySaveCurrent()
+  if (!entryId || !lore.value) return;
+  const entry = lore.value.entries.find((e) => e.id === entryId);
+  if (!entry) return;
+  if (currentEntry.value?.id === entry.id) return;
+  await trySaveCurrent();
   try {
-    const content = await loadEntryContent(entry.filename)
-    loreStore.openEntry(entry, content)
+    const content = await loadEntryContent(entry.filename);
+    loreStore.openEntry(entry, content);
   } catch (e) {
-    showErrorMsg('加载条目失败：' + (e instanceof Error ? e.message : String(e)))
+    showErrorMsg('加载条目失败：' + (e instanceof Error ? e.message : String(e)));
   }
 }
 
 // 弹窗打开时加载；切小说时重新加载
 watch(
   () => [props.visible, props.novel?.id] as const,
-  async ([vis, novelId], [prevVis]) => {
+  async ([vis, novelId], previous?: readonly [boolean, string]) => {
+    const prevVis = previous?.[0];
     if (vis && novelId) {
       if (!prevVis || !lore.value || lore.value.id !== novelId) {
-        await loadLore(props.novel)
+        await loadLore(props.novel);
         // 加载完成后若指定了定位条目，则选中
-        if (props.focusEntryId) await focusEntry(props.focusEntryId)
+        if (props.focusEntryId) await focusEntry(props.focusEntryId);
       }
     } else if (!vis) {
       // 关闭时落盘未保存内容
-      await trySaveCurrent()
+      await trySaveCurrent();
       if (autoSaveTimer) {
-        clearTimeout(autoSaveTimer)
-        autoSaveTimer = null
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = null;
       }
     }
   },
-  { immediate: true },
-)
+  { immediate: true }
+);
 
 // 打开期间 focusEntryId 变化时定位
 watch(
   () => props.focusEntryId,
   (id) => {
-    if (props.visible && id) focusEntry(id)
-  },
-)
+    if (props.visible && id) focusEntry(id);
+  }
+);
 
 // ===== 条目操作 =====
 async function handleSelectEntry(entry: EntryMeta) {
-  if (currentEntry.value?.id === entry.id) return
-  await trySaveCurrent()
+  if (currentEntry.value?.id === entry.id) return;
+  await trySaveCurrent();
   try {
-    const content = await loadEntryContent(entry.filename)
-    loreStore.openEntry(entry, content)
+    const content = await loadEntryContent(entry.filename);
+    loreStore.openEntry(entry, content);
   } catch (e) {
-    showErrorMsg('加载条目失败：' + (e instanceof Error ? e.message : String(e)))
+    showErrorMsg('加载条目失败：' + (e instanceof Error ? e.message : String(e)));
   }
 }
 
 async function handleCreateEntry(name: string) {
-  if (!lore.value) return
+  if (!lore.value) return;
   try {
-    const { lore: updatedLore, entry } = await createEntry(lore.value, { name })
-    loreStore.updateLore(updatedLore)
-    loreStore.openEntry(entry, '')
-    emit('saved')
+    const { lore: updatedLore, entry } = await createEntry(lore.value, { name });
+    loreStore.updateLore(updatedLore);
+    loreStore.openEntry(entry, '');
+    emit('saved');
   } catch (e) {
-    showErrorMsg('创建条目失败：' + (e instanceof Error ? e.message : String(e)))
+    showErrorMsg('创建条目失败：' + (e instanceof Error ? e.message : String(e)));
   }
 }
 
 async function handleDeleteEntry(entryId: string) {
-  if (!lore.value) return
+  if (!lore.value) return;
   try {
-    const updatedLore = await deleteEntry(lore.value, entryId)
-    loreStore.updateLore(updatedLore)
+    const updatedLore = await deleteEntry(lore.value, entryId);
+    loreStore.updateLore(updatedLore);
     if (currentEntry.value?.id === entryId) {
-      loreStore.openEntry(null as unknown as EntryMeta, '')
+      loreStore.openEntry(null as unknown as EntryMeta, '');
     }
-    emit('saved')
+    emit('saved');
   } catch (e) {
-    showErrorMsg('删除条目失败：' + (e instanceof Error ? e.message : String(e)))
+    showErrorMsg('删除条目失败：' + (e instanceof Error ? e.message : String(e)));
   }
 }
 
 async function handleRenameEntry(entryId: string, name: string) {
-  if (!lore.value) return
+  if (!lore.value) return;
   try {
-    const updatedLore = await updateEntryMeta(lore.value, entryId, { name })
-    loreStore.updateLore(updatedLore)
+    const updatedLore = await updateEntryMeta(lore.value, entryId, { name });
+    loreStore.updateLore(updatedLore);
     if (currentEntry.value?.id === entryId) {
-      loreStore.updateCurrentEntryMeta({ name })
+      loreStore.updateCurrentEntryMeta({ name });
     }
-    emit('saved')
+    emit('saved');
   } catch (e) {
-    showErrorMsg('重命名失败：' + (e instanceof Error ? e.message : String(e)))
+    showErrorMsg('重命名失败：' + (e instanceof Error ? e.message : String(e)));
   }
 }
 
 // ===== 内容编辑 =====
 function handleContentChange(content: string) {
-  loreStore.updateContent(content)
-  if (autoSaveTimer) clearTimeout(autoSaveTimer)
-  autoSaveTimer = setTimeout(() => handleSave(), 2000)
+  loreStore.updateContent(content);
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => handleSave(), 2000);
 }
 
 async function handleMetaChange(patch: Partial<EntryMeta>) {
-  if (!lore.value || !currentEntry.value) return
-  loreStore.updateCurrentEntryMeta(patch)
+  if (!lore.value || !currentEntry.value) return;
+  loreStore.updateCurrentEntryMeta(patch);
   try {
-    const updatedLore = await updateEntryMeta(lore.value, currentEntry.value.id, patch)
-    loreStore.updateLore(updatedLore)
-    emit('saved')
+    const updatedLore = await updateEntryMeta(lore.value, currentEntry.value.id, patch);
+    loreStore.updateLore(updatedLore);
+    emit('saved');
   } catch (e) {
-    showErrorMsg('保存元数据失败：' + (e instanceof Error ? e.message : String(e)))
+    showErrorMsg('保存元数据失败：' + (e instanceof Error ? e.message : String(e)));
   }
 }
 
 async function handleSave() {
-  if (!lore.value || !currentEntry.value) return
+  if (!lore.value || !currentEntry.value) return;
   try {
-    await saveEntryContent(currentEntry.value.filename, currentEntryContent.value)
-    loreStore.markSaved()
+    await saveEntryContent(currentEntry.value.filename, currentEntryContent.value);
+    loreStore.markSaved();
   } catch (e) {
-    showErrorMsg('保存失败：' + (e instanceof Error ? e.message : String(e)))
+    showErrorMsg('保存失败：' + (e instanceof Error ? e.message : String(e)));
   }
 }
 
 async function trySaveCurrent() {
   if (isDirty.value && lore.value && currentEntry.value) {
-    await handleSave()
+    await handleSave();
   }
 }
 
 // ===== 工具 =====
 function showErrorMsg(msg: string) {
-  errorMessage.value = msg
-  showError.value = true
+  errorMessage.value = msg;
+  showError.value = true;
 }
 </script>
 

@@ -153,8 +153,9 @@ pnpm test           # 73 个用例：协议 / 人物记忆 / 上下文预算 / A
 `tests/` 使用 Node 内建 test runner（零测试依赖）。其中 `*.e2e.test.ts` 会驱动真实的
 `agent/chat/engine.ts` / `agent/finalize.ts` / `agent/tools/*` / `storyStateService` 跑完整链路（规划 → 确认 → 生成；定稿四步），
 `agentModules.test.ts` 覆盖拆分后的文本、prompt、会话、转录裁剪与工具注册表边界。
-只把三个模块替换为替身：`openai`（网络边界，改由脚本化的假模型驱动）、`@/hooks/useEnv`（内存
-文件系统）、`@/services/workspaceService`（固定路径）——因此不联网、不写真实磁盘。
+网络边界用 `tests/stubs/fetch.mjs` 替换全局 `fetch`（按脚本回放的 SSE 流，假的仍是真实的
+SSE 解析与 chunk 聚合）；另有两个加载器替身：`@/hooks/useEnv`（内存文件系统）、
+`@/services/workspaceService`（固定路径）——因此不联网、不写真实磁盘。
 
 ## 发布
 

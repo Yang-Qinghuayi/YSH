@@ -9,11 +9,7 @@
       @click="syncMentionState"
       @blur="onBlur"
     />
-    <div
-      v-if="menuOpen && filtered.length"
-      class="mention-menu lg-card"
-      role="listbox"
-    >
+    <div v-if="menuOpen && filtered.length" class="mention-menu lg-card" role="listbox">
       <button
         v-for="(char, i) in filtered"
         :key="char.id"
@@ -24,124 +20,122 @@
         @mousedown.prevent="selectCharacter(char)"
       >
         <span class="mention-name">@{{ char.name }}</span>
-        <span v-if="char.skill" class="mention-detail">{{
-          char.skill
-        }}</span>
+        <span v-if="char.skill" class="mention-detail">{{ char.skill }}</span>
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { Character } from '@/types/novel'
-import type { VTextarea } from 'vuetify/components'
+import type { VTextarea } from 'vuetify/components';
 
-defineOptions({ inheritAttrs: false })
+import type { Character } from '@/types/novel';
+
+defineOptions({ inheritAttrs: false });
 
 const props = defineProps<{
-  modelValue: string
-  characters: Character[]
-}>()
+  modelValue: string;
+  characters: Character[];
+}>();
 
 const emit = defineEmits<{
-  'update:modelValue': [value: string]
+  'update:modelValue': [value: string];
   /** @提及菜单开合（供父组件区分 Enter 是「选提及」还是「发送」） */
-  'menu-open': [open: boolean]
-}>()
+  'menu-open': [open: boolean];
+}>();
 
-const textareaRef = ref<VTextarea | null>(null)
-const menuOpen = ref(false)
-const activeIndex = ref(0)
-const mentionFrom = ref(0)
-const mentionQuery = ref('')
+const textareaRef = ref<VTextarea | null>(null);
+const menuOpen = ref(false);
+const activeIndex = ref(0);
+const mentionFrom = ref(0);
+const mentionQuery = ref('');
 
 const filtered = computed(() => {
-  const q = mentionQuery.value.toLowerCase()
-  if (!q) return props.characters
-  return props.characters.filter((c) => c.name.toLowerCase().includes(q))
-})
+  const q = mentionQuery.value.toLowerCase();
+  if (!q) return props.characters;
+  return props.characters.filter((c) => c.name.toLowerCase().includes(q));
+});
 
 function getTextareaEl(): HTMLTextAreaElement | null {
-  const comp = textareaRef.value
-  if (!comp) return null
-  return comp.$el?.querySelector('textarea') ?? null
+  const comp = textareaRef.value;
+  if (!comp) return null;
+  return comp.$el?.querySelector('textarea') ?? null;
 }
 
 /** 检测光标前是否有未完成的 @提及 */
 function detectMention(text: string, cursor: number) {
-  const before = text.slice(0, cursor)
-  const match = before.match(/@([一-龥\w]*)$/)
-  if (!match) return null
-  return { from: cursor - match[0].length, query: match[1] }
+  const before = text.slice(0, cursor);
+  const match = before.match(/@([一-龥\w]*)$/);
+  if (!match) return null;
+  return { from: cursor - match[0].length, query: match[1] };
 }
 
 function syncMentionState() {
-  const el = getTextareaEl()
+  const el = getTextareaEl();
   if (!el) {
-    menuOpen.value = false
-    return
+    menuOpen.value = false;
+    return;
   }
-  const hit = detectMention(el.value, el.selectionStart)
+  const hit = detectMention(el.value, el.selectionStart);
   if (!hit || !props.characters.length) {
-    menuOpen.value = false
-    return
+    menuOpen.value = false;
+    return;
   }
-  mentionFrom.value = hit.from
-  mentionQuery.value = hit.query
-  activeIndex.value = 0
-  menuOpen.value = true
+  mentionFrom.value = hit.from;
+  mentionQuery.value = hit.query;
+  activeIndex.value = 0;
+  menuOpen.value = true;
 }
 
 function onInput(value: string) {
-  emit('update:modelValue', value)
-  nextTick(syncMentionState)
+  emit('update:modelValue', value);
+  nextTick(syncMentionState);
 }
 
 function selectCharacter(char: Character) {
-  const el = getTextareaEl()
-  if (!el) return
-  const cursor = el.selectionStart
-  const before = props.modelValue.slice(0, mentionFrom.value)
-  const after = props.modelValue.slice(cursor)
-  const inserted = `@${char.name}`
-  const next = before + inserted + after
-  emit('update:modelValue', next)
-  menuOpen.value = false
+  const el = getTextareaEl();
+  if (!el) return;
+  const cursor = el.selectionStart;
+  const before = props.modelValue.slice(0, mentionFrom.value);
+  const after = props.modelValue.slice(cursor);
+  const inserted = `@${char.name}`;
+  const next = before + inserted + after;
+  emit('update:modelValue', next);
+  menuOpen.value = false;
   nextTick(() => {
-    const ta = getTextareaEl()
-    if (!ta) return
-    const pos = mentionFrom.value + inserted.length
-    ta.focus()
-    ta.setSelectionRange(pos, pos)
-  })
+    const ta = getTextareaEl();
+    if (!ta) return;
+    const pos = mentionFrom.value + inserted.length;
+    ta.focus();
+    ta.setSelectionRange(pos, pos);
+  });
 }
 
 function onKeydown(e: KeyboardEvent) {
-  if (!menuOpen.value || !filtered.value.length) return
+  if (!menuOpen.value || !filtered.value.length) return;
 
   if (e.key === 'ArrowDown') {
-    e.preventDefault()
-    activeIndex.value = (activeIndex.value + 1) % filtered.value.length
+    e.preventDefault();
+    activeIndex.value = (activeIndex.value + 1) % filtered.value.length;
   } else if (e.key === 'ArrowUp') {
-    e.preventDefault()
-    activeIndex.value =
-      (activeIndex.value - 1 + filtered.value.length) % filtered.value.length
+    e.preventDefault();
+    activeIndex.value = (activeIndex.value - 1 + filtered.value.length) % filtered.value.length;
   } else if (e.key === 'Enter' || e.key === 'Tab') {
-    e.preventDefault()
-    selectCharacter(filtered.value[activeIndex.value])
+    e.preventDefault();
+    selectCharacter(filtered.value[activeIndex.value]);
   } else if (e.key === 'Escape') {
-    e.preventDefault()
-    menuOpen.value = false
+    e.preventDefault();
+    menuOpen.value = false;
   }
 }
 
 function onBlur() {
   setTimeout(() => {
-    menuOpen.value = false
-  }, 120)
+    menuOpen.value = false;
+  }, 120);
 }
 
-watch(menuOpen, (v) => emit('menu-open', v))
+watch(menuOpen, (v) => emit('menu-open', v));
 </script>
 
 <style scoped>

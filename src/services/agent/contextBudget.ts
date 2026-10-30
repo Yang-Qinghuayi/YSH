@@ -12,7 +12,7 @@
  * 一律保留。
  */
 
-import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
+import type { ChatCompletionMessageParam } from '@/types/llm';
 
 /** 模型上下文窗口（DeepSeek 为 64K） */
 export const DEFAULT_CONTEXT_LIMIT_TOKENS = 65536;

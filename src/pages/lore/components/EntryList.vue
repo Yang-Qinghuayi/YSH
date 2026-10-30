@@ -1,5 +1,5 @@
 <template>
-  <div class="entry-list d-flex flex-column gap-1">
+  <div class="entry-list d-flex flex-column ga-1">
     <!-- 条目列表 -->
     <div
       v-for="entry in entries"
@@ -16,12 +16,7 @@
         color="warning"
         class="entry-star"
       />
-      <v-icon
-        v-else
-        :icon="mdiCircleSmall"
-        size="16"
-        class="entry-dot"
-      />
+      <v-icon v-else :icon="mdiCircleSmall" size="16" class="entry-dot" />
 
       <!-- 名称：已选中时点击进入内联编辑 -->
       <input
@@ -45,11 +40,7 @@
       />
 
       <!-- 删除按钮（悬停显示） -->
-      <button
-        class="entry-del"
-        tabindex="-1"
-        @click.stop="emit('delete', entry.id)"
-      >
+      <button class="entry-del" tabindex="-1" @click.stop="emit('delete', entry.id)">
         <v-icon :icon="mdiClose" size="13" />
       </button>
     </div>
@@ -75,76 +66,80 @@
 </template>
 
 <script setup lang="ts">
-import { mdiStar, mdiCircleSmall, mdiClose, mdiPlus, mdiEyeOffOutline } from '@mdi/js'
-import type { EntryMeta } from '@/types/lore'
+import { mdiCircleSmall, mdiClose, mdiEyeOffOutline, mdiPlus, mdiStar } from '@mdi/js';
+
+import type { EntryMeta } from '@/types/lore';
 
 const props = defineProps<{
-  entries: EntryMeta[]
-  currentEntryId?: string
-}>()
+  entries: EntryMeta[];
+  currentEntryId?: string;
+}>();
 
 const emit = defineEmits<{
-  select: [entry: EntryMeta]
-  delete: [entryId: string]
-  create: [name: string]
-  rename: [entryId: string, name: string]
-}>()
+  select: [entry: EntryMeta];
+  delete: [entryId: string];
+  create: [name: string];
+  rename: [entryId: string, name: string];
+}>();
 
 // ---- 新增条目 ----
-const showCreateInput = ref(false)
-const newEntryName = ref('')
-const createInputRef = ref<HTMLInputElement | null>(null)
+const showCreateInput = ref(false);
+const newEntryName = ref('');
+const createInputRef = ref<HTMLInputElement | null>(null);
 
 function openCreate() {
-  showCreateInput.value = true
-  nextTick(() => createInputRef.value?.focus())
+  showCreateInput.value = true;
+  nextTick(() => createInputRef.value?.focus());
 }
 
 function confirmCreate() {
-  const name = newEntryName.value.trim()
-  if (!name) { cancelCreate(); return }
-  emit('create', name)
-  cancelCreate()
+  const name = newEntryName.value.trim();
+  if (!name) {
+    cancelCreate();
+    return;
+  }
+  emit('create', name);
+  cancelCreate();
 }
 
 function cancelCreate() {
-  showCreateInput.value = false
-  newEntryName.value = ''
+  showCreateInput.value = false;
+  newEntryName.value = '';
 }
 
 // ---- 条目点击 ----
 function handleItemClick(entry: EntryMeta) {
   if (entry.id === props.currentEntryId) {
     // 已选中 → 进入名称编辑
-    startRename(entry)
+    startRename(entry);
   } else {
-    emit('select', entry)
+    emit('select', entry);
   }
 }
 
 // ---- 名称内联编辑 ----
-const editingEntryId = ref<string | null>(null)
-const editingName = ref('')
-const nameInputRef = ref<HTMLInputElement | null>(null)
+const editingEntryId = ref<string | null>(null);
+const editingName = ref('');
+const nameInputRef = ref<HTMLInputElement | null>(null);
 
 function startRename(entry: EntryMeta) {
-  editingEntryId.value = entry.id
-  editingName.value = entry.name
-  nextTick(() => nameInputRef.value?.select())
+  editingEntryId.value = entry.id;
+  editingName.value = entry.name;
+  nextTick(() => nameInputRef.value?.select());
 }
 
 function commitRename() {
-  const name = editingName.value.trim()
+  const name = editingName.value.trim();
   if (name && editingEntryId.value) {
-    emit('rename', editingEntryId.value, name)
+    emit('rename', editingEntryId.value, name);
   }
-  editingEntryId.value = null
-  editingName.value = ''
+  editingEntryId.value = null;
+  editingName.value = '';
 }
 
 function cancelRename() {
-  editingEntryId.value = null
-  editingName.value = ''
+  editingEntryId.value = null;
+  editingName.value = '';
 }
 </script>
 
@@ -157,7 +152,9 @@ function cancelRename() {
   padding: 6px 8px;
   cursor: pointer;
   user-select: none;
-  transition: background 0.18s ease, box-shadow 0.18s ease;
+  transition:
+    background 0.18s ease,
+    box-shadow 0.18s ease;
   gap: 7px;
 }
 .entry-item:hover {
@@ -228,7 +225,9 @@ function cancelRename() {
   cursor: pointer;
   padding: 0;
   color: rgba(var(--v-theme-error), 0.7);
-  transition: opacity 0.18s ease, background 0.15s ease;
+  transition:
+    opacity 0.18s ease,
+    background 0.15s ease;
   flex-shrink: 0;
 }
 .entry-item:hover .entry-del {

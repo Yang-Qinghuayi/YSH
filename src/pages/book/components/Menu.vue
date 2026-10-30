@@ -1,49 +1,74 @@
 <template>
   <v-dialog v-model="showMenu">
-    <v-card :class="[smAndUp ? 'w-[560px] p-10' : 'w-full p-4']" color="surface" class="flex items-center flex-col mx-auto">
+    <v-card
+      :class="[smAndUp ? 'menu-card--wide' : 'w-100 pa-4']"
+      color="surface"
+      class="d-flex align-center flex-column mx-auto"
+    >
       <v-card-title class="text-center">菜单</v-card-title>
-      <FontSizeSlider class="w-full mt-4" />
-      <FontWeightSlider class="w-full mt-4" />
+      <FontSizeSlider class="w-100 mt-4" />
+      <FontWeightSlider class="w-100 mt-4" />
 
-      <div class="w-full mt-4">
-        <div
-          class="flex justify-between items-center px-3 py-3 bg-gray-300/30 backdrop-blur-3xl shadow-md rounded-lg border border-gray-300">
+      <div class="w-100 mt-4">
+        <div class="menu-row d-flex justify-space-between align-center px-3 py-3">
           <div>
-            <p class="text-gray-700">连续滚动</p>
-            <p class="text-xs text-gray-400">像信息流一样上下滑动翻页</p>
+            <p class="text-high-emphasis">连续滚动</p>
+            <p class="text-body-small text-medium-emphasis">像信息流一样上下滑动翻页</p>
           </div>
-          <v-switch v-model="scrollMode" hide-details density="compact" color="primary" inset></v-switch>
+          <v-switch
+            v-model="scrollMode"
+            hide-details
+            density="compact"
+            color="primary"
+            inset
+          ></v-switch>
         </div>
       </div>
 
-      <div class="w-full mt-4">
-        <div
-          class="flex justify-between items-center px-3 py-3 bg-gray-300/30 backdrop-blur-3xl shadow-md rounded-lg border border-gray-300">
-          <p class="text-gray-700 ">双列显示</p>
-          <v-switch v-model="setTwoColumn" hide-details class="" density="compact" color="primary" inset></v-switch>
+      <div class="w-100 mt-4">
+        <div class="menu-row d-flex justify-space-between align-center px-3 py-3">
+          <p class="text-high-emphasis">双列显示</p>
+          <v-switch
+            v-model="setTwoColumn"
+            hide-details
+            class=""
+            density="compact"
+            color="primary"
+            inset
+          ></v-switch>
         </div>
       </div>
 
-      <div class="w-full mt-4">
-        <div
-          class="flex justify-between items-center px-3 py-3 bg-gray-300/30 backdrop-blur-3xl shadow-md rounded-lg border border-gray-300">
-          <p class="text-gray-700 ">覆盖字体</p>
-          <v-switch v-model="overrideFont" hide-details class="" density="compact" color="primary" inset></v-switch>
+      <div class="w-100 mt-4">
+        <div class="menu-row d-flex justify-space-between align-center px-3 py-3">
+          <p class="text-high-emphasis">覆盖字体</p>
+          <v-switch
+            v-model="overrideFont"
+            hide-details
+            class=""
+            density="compact"
+            color="primary"
+            inset
+          ></v-switch>
         </div>
       </div>
 
-      <div class="w-full mt-4">
-        <div
-          class="flex justify-between items-center px-3 py-3 bg-gray-300/30 backdrop-blur-3xl shadow-md rounded-lg border border-gray-300">
-          <p class="text-gray-700 ">选择字体</p>
+      <div class="w-100 mt-4">
+        <div class="menu-row d-flex justify-space-between align-center px-3 py-3">
+          <p class="text-high-emphasis">选择字体</p>
           <v-menu>
-            <template v-slot:activator="{ props }">
-              <v-chip class="text-[#777c7a] my-1" v-bind="props">{{ defaultCJKFont }}</v-chip>
+            <template #activator="{ props }">
+              <v-chip class="text-medium-emphasis my-1" v-bind="props">{{ defaultCJKFont }}</v-chip>
             </template>
 
-            <v-list elevation="6" class="p-0">
-              <v-list-item class="px-6 py-4 text-center" v-for="(item, index) in CJKFonts" :key="index" :value="index"
-                @click="defaultCJKFont = item">
+            <v-list elevation="6" class="pa-0">
+              <v-list-item
+                v-for="(item, index) in CJKFonts"
+                :key="index"
+                class="px-6 py-4 text-center"
+                :value="index"
+                @click="defaultCJKFont = item"
+              >
                 {{ item }}
               </v-list-item>
             </v-list>
@@ -51,7 +76,12 @@
         </div>
       </div>
 
-      <v-btn class="w-[50vw] mt-8" variant="tonal" color="secondary" @click.prevent="switchShowMenu">
+      <v-btn
+        class="menu-close-btn mt-8"
+        variant="tonal"
+        color="secondary"
+        @click.prevent="switchShowMenu"
+      >
         关闭
       </v-btn>
     </v-card>
@@ -59,6 +89,8 @@
 </template>
 
 <script setup lang="ts">
+import { useDisplay } from 'vuetify';
+
 import {
   ANDROID_FONTS,
   CJK_EXCLUDE_PATTENS,
@@ -71,19 +103,19 @@ import {
   MACOS_FONTS,
   WINDOWS_FONTS,
 } from '@/services/constants';
-import { getSysFontsList } from '@/utils/bridge';
-import FontSizeSlider from "./FontSizeSlider.vue"
-import FontWeightSlider from "./FontWeightSlider.vue"
 import { isTauriAppPlatform } from '@/services/environment';
-import { useDisplay } from "vuetify";
+import { getSysFontsList } from '@/utils/bridge';
+
+import FontSizeSlider from './FontSizeSlider.vue';
+import FontWeightSlider from './FontWeightSlider.vue';
 const { smAndUp } = useDisplay();
 
-import { getOSPlatform } from '@/utils/misc';
 import { useViewSettings } from '@/hooks/useViewSettings';
 import { useReaderStore } from '@/store/readerStore';
-const readerStore = useReaderStore()
-const { switchShowMenu } = readerStore
-const { viewSettings, updateSetting } = useViewSettings()
+import { getOSPlatform } from '@/utils/misc';
+const readerStore = useReaderStore();
+const { switchShowMenu } = readerStore;
+const { viewSettings, updateSetting } = useViewSettings();
 const osPlatform = getOSPlatform();
 let defaultSysFonts: string[] = [];
 switch (osPlatform) {
@@ -105,15 +137,15 @@ switch (osPlatform) {
   default:
     break;
 }
-const showMenu = defineModel<boolean>("showMenu", { required: true });
-const overrideFont = ref(false)
+const showMenu = defineModel<boolean>('showMenu', { required: true });
+const overrideFont = ref(false);
 
-const sysFonts = ref<string[]>(defaultSysFonts)
-const defaultCJKFont = ref('')
+const sysFonts = ref<string[]>(defaultSysFonts);
+const defaultCJKFont = ref('');
 
-const scrollMode = ref(false)
-const setTwoColumn = ref(false)
-const maxColumnCount = computed(() => setTwoColumn.value ? 2 : 1)
+const scrollMode = ref(false);
+const setTwoColumn = ref(false);
+const maxColumnCount = computed(() => (setTwoColumn.value ? 2 : 1));
 
 const genCJKFontsList = (sysFonts: string[]) => {
   return Array.from(new Set([...sysFonts, ...CJK_SERIF_FONTS, ...CJK_SANS_SERIF_FONTS]))
@@ -122,7 +154,7 @@ const genCJKFontsList = (sysFonts: string[]) => {
     .sort((a, b) => a.localeCompare(b));
 };
 // 使用 computed 保持响应性：Tauri 异步回填 sysFonts 后自动重算
-const CJKFonts = computed(() => genCJKFontsList(sysFonts.value))
+const CJKFonts = computed(() => genCJKFontsList(sysFonts.value));
 
 const isSymbolicFontName = (font: string) =>
   /emoji|icons|symbol|dingbats|ornaments|webdings|wingdings|miuiex/i.test(font);
@@ -130,12 +162,12 @@ const isSymbolicFontName = (font: string) =>
 // 当 viewSettings 就绪（或被外部路径更新）时同步到本地 ref
 watchEffect(() => {
   if (viewSettings.value) {
-    overrideFont.value = viewSettings.value.overrideFont ?? false
-    defaultCJKFont.value = viewSettings.value.defaultCJKFont ?? ''
-    setTwoColumn.value = viewSettings.value.maxColumnCount === 2
-    scrollMode.value = viewSettings.value.scrolled ?? false
+    overrideFont.value = viewSettings.value.overrideFont ?? false;
+    defaultCJKFont.value = viewSettings.value.defaultCJKFont ?? '';
+    setTwoColumn.value = viewSettings.value.maxColumnCount === 2;
+    scrollMode.value = viewSettings.value.scrolled ?? false;
   }
-})
+});
 
 // 加载系统字体（Tauri 平台）
 if (isTauriAppPlatform()) {
@@ -154,18 +186,38 @@ watch(scrollMode, (val) => {
   updateSetting('scrolled', val);
   // continuousScroll 控制到章节边界时自动加载前后章节
   updateSetting('continuousScroll', val);
-})
+});
 
 watch(overrideFont, () => {
   updateSetting('overrideFont', overrideFont.value);
-})
+});
 
 watch(defaultCJKFont, () => {
-  updateSetting('defaultCJKFont', defaultCJKFont.value)
-})
+  updateSetting('defaultCJKFont', defaultCJKFont.value);
+});
 
 watch(setTwoColumn, () => {
-  updateSetting('maxColumnCount', maxColumnCount.value)
-})
-
+  updateSetting('maxColumnCount', maxColumnCount.value);
+});
 </script>
+
+<style scoped>
+/* 菜单里的开关行：毛玻璃卡片（原 Tailwind 的 bg-gray-300/30 + backdrop-blur + shadow） */
+.menu-row {
+  background: rgb(var(--v-theme-surface-variant) / 55%);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgb(var(--v-theme-outline) / 55%);
+  border-radius: 8px;
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 10%),
+    0 2px 4px -2px rgb(0 0 0 / 10%);
+}
+
+.menu-card--wide {
+  width: 560px;
+}
+
+.menu-close-btn {
+  width: 50vw;
+}
+</style>

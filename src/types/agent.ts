@@ -5,24 +5,14 @@
  * 这一层只描述数据，不依赖任何 service / store / Vue，避免 UI 状态类型反向依赖引擎实现。
  */
 
-import type {
-  ChatCompletionFunctionTool,
-  ChatCompletionMessageParam,
-} from 'openai/resources/chat/completions';
-
+import type { ChatCompletionFunctionTool, ChatCompletionMessageParam } from '@/types/llm';
 import type { ChapterMeta, Mention, Novel } from '@/types/novel';
 
 export type DeepSeekModel = 'deepseek-chat' | 'deepseek-reasoner';
 
 /** Agent 会话的生命周期阶段 */
 export type SessionPhase =
-  | 'idle'
-  | 'planning'
-  | 'awaiting_confirmation'
-  | 'generating'
-  | 'finalizing'
-  | 'done'
-  | 'canceled';
+  'idle' | 'planning' | 'awaiting_confirmation' | 'generating' | 'finalizing' | 'done' | 'canceled';
 
 /** 模型输出并由作者确认的章节规划 */
 export interface AgentPlan {

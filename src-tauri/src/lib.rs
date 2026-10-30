@@ -1,13 +1,5 @@
 #[cfg(target_os = "macos")]
-#[macro_use]
-extern crate cocoa;
-
-#[cfg(target_os = "macos")]
-#[macro_use]
-extern crate objc;
-
-#[cfg(target_os = "macos")]
-use tauri::TitleBarStyle;
+use tauri::{LogicalPosition, TitleBarStyle};
 
 #[cfg(desktop)]
 use std::path::PathBuf;
@@ -18,10 +10,7 @@ use tauri_plugin_fs::FsExt;
 
 #[cfg(target_os = "macos")]
 mod macos;
-mod transfer_file;
-use tauri::{command, Emitter, WebviewUrl, WebviewWindowBuilder, Window};
-use tauri_plugin_oauth::start;
-use transfer_file::{download_file, upload_file};
+use tauri::{Emitter, WebviewUrl, WebviewWindowBuilder};
 
 #[cfg(desktop)]
 fn allow_file_in_scopes(app: &AppHandle, files: Vec<PathBuf>) {
@@ -95,16 +84,6 @@ fn set_rounded_window(app: &AppHandle, rounded: bool) {
     }
 }
 
-#[command]
-async fn start_server(window: Window) -> Result<u16, String> {
-    start(move |url| {
-        // Because of the unprotected localhost port, you must verify the URL here.
-        // Preferebly send back only the token, or nothing at all if you can handle everything else in Rust.
-        let _ = window.emit("redirect_uri", url);
-    })
-    .map_err(|err| err.to_string())
-}
-
 #[derive(Clone, serde::Serialize)]
 #[allow(dead_code)]
 struct Payload {
@@ -116,18 +95,6 @@ struct Payload {
 pub fn run() {
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_oauth::init())
-        .invoke_handler(tauri::generate_handler![
-            start_server,
-            download_file,
-            upload_file,
-            #[cfg(target_os = "macos")]
-            macos::safari_auth::auth_with_safari,
-            #[cfg(target_os = "macos")]
-            macos::apple_auth::start_apple_sign_in,
-            #[cfg(target_os = "macos")]
-            macos::traffic_light::set_traffic_lights,
-        ])
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_http::init())
@@ -156,12 +123,6 @@ pub fn run() {
 
     #[cfg(desktop)]
     let builder = builder.plugin(tauri_plugin_window_state::Builder::default().build());
-
-    #[cfg(target_os = "macos")]
-    let builder = builder.plugin(macos::traffic_light::init());
-
-    #[cfg(target_os = "macos")]
-    let builder = builder.plugin(macos::safari_auth::init());
 
     #[cfg(target_os = "ios")]
     let builder = builder.plugin(tauri_plugin_sign_in_with_apple::init());
@@ -248,6 +209,9 @@ pub fn run() {
                 .decorations(true)
                 .title_bar_style(TitleBarStyle::Overlay)
                 .hidden_title(true)
+                // 内置 API 会在窗口尺寸变化时自动保持红绿灯位置，
+                // 替代原先 388 行的 NSWindowDelegate 钩子（objc/cocoa/rand）
+                .traffic_light_position(LogicalPosition::new(10.0, 22.0))
                 .title("YSH");
 
             #[cfg(all(not(target_os = "macos"), desktop))]

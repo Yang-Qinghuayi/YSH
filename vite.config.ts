@@ -1,8 +1,4 @@
-/* eslint-disable import/no-unresolved */
-import tailwindcss from '@tailwindcss/postcss';
 import vue from '@vitejs/plugin-vue';
-import vueJsx from '@vitejs/plugin-vue-jsx';
-import autoprefixer from 'autoprefixer';
 import path from 'path';
 import AutoImport from 'unplugin-auto-import/vite';
 import Components from 'unplugin-vue-components/vite';
@@ -25,11 +21,13 @@ export default defineConfig(({ command }) => {
     plugins: [
       vue(),
       vuetify({
+        // 按需注册：只把模板里用到的 <v-*> 组件及其样式打进产物，
+        // 而不是 `import * as components` 全量 100+ 组件（首屏 -50%）。
+        autoImport: true,
         styles: {
           configFile: './src/styles/settings.scss',
         },
       }),
-      vueJsx(),
       // https://github.com/antfu/unplugin-auto-import
       AutoImport({
         imports: ['vue', 'vue-router', '@vueuse/core'],
@@ -67,9 +65,6 @@ export default defineConfig(({ command }) => {
     },
 
     css: {
-      postcss: {
-        plugins: [tailwindcss, autoprefixer],
-      },
       preprocessorOptions: {
         sass: {
           api: 'modern',

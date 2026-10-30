@@ -1,7 +1,7 @@
 /**
  * agentChat.e2e.test.ts — 交互面板（chat 模式）引擎的端到端测试（零网络、零依赖）
  *
- * 复用 Agent e2e 的替身体系（假 openai client + 内存 fs），
+ * 复用 Agent e2e 的替身体系（假 fetch/SSE + 内存 fs），
  * 驱动真实的 agentChat 多轮循环：
  *   - 概要 → 调研工具 → PLAN 闸门（awaiting_confirmation）
  *   - 确认后生成轮：append_to_chapter 工具落盘 + 实时预览事件（写完即 done，不自动更新记忆）
@@ -17,6 +17,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { fakeFs, readJson, resetFs, seedFile, seedJson } from './stubs/fakeFs.ts';
+import { installFetchStub } from './stubs/fetch.mjs';
 import { createHooks } from './stubs/loader.mjs';
 import {
   lastMessageText,
@@ -29,6 +30,8 @@ import {
 const here = import.meta.dirname;
 const root = path.resolve(here, '..');
 registerHooks(createHooks({ root, stubsDir: path.join(here, 'stubs') }));
+// 网络边界：把 fetch 换成按脚本回放的 SSE 流（原 openai 桩已随 SDK 一起移除）
+installFetchStub();
 
 const {
   createChatSession,

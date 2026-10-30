@@ -1,15 +1,15 @@
 <template>
   <div class="overview-bar lg-card">
     <!-- 标题简介 -->
-    <div class="overview-title-wrap" v-if="novel">
+    <div v-if="novel" class="overview-title-wrap">
       <div class="overview-title text-truncate">{{ novel.title }}</div>
-      <div class="overview-synopsis text-truncate" v-if="novel.synopsis">{{ novel.synopsis }}</div>
+      <div v-if="novel.synopsis" class="overview-synopsis text-truncate">{{ novel.synopsis }}</div>
     </div>
 
     <v-spacer />
 
     <!-- 中：统计胶囊组 -->
-    <div class="stat-group" v-if="novel">
+    <div v-if="novel" class="stat-group">
       <div class="stat-pill" :title="`章节数 ${chapterCount}`">
         <v-icon :icon="mdiBookOpenVariant" size="14" />
         <span class="stat-num">{{ chapterCount }}</span>
@@ -26,13 +26,8 @@
     </div>
 
     <!-- 右：操作按钮组 -->
-    <div class="action-group" v-if="novel">
-      <button
-        v-if="isTauri"
-        class="action-btn"
-        title="在文件夹中打开"
-        @click="emit('open-folder')"
-      >
+    <div v-if="novel" class="action-group">
+      <button v-if="isTauri" class="action-btn" title="在文件夹中打开" @click="emit('open-folder')">
         <v-icon :icon="mdiFolderOpen" size="16" />
       </button>
       <button
@@ -44,61 +39,53 @@
       >
         <v-icon :icon="mdiTextBoxOutline" size="16" />
       </button>
-      <button
-        class="action-btn"
-        title="查看故事状态"
-        @click="emit('view-state')"
-      >
+      <button class="action-btn" title="查看故事状态" @click="emit('view-state')">
         <v-icon :icon="mdiStateMachine" size="16" />
       </button>
-      <button
-        class="action-btn"
-        title="编辑器设置"
-        @click="emit('open-settings')"
-      >
+      <button class="action-btn" title="编辑器设置" @click="emit('open-settings')">
         <v-icon :icon="mdiCog" size="16" />
       </button>
-
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import {
-  mdiBookOpenVariant,
-  mdiCounter,
   mdiAccountGroupOutline,
+  mdiBookOpenVariant,
+  mdiCog,
+  mdiCounter,
   mdiFolderOpen,
   mdiStateMachine,
   mdiTextBoxOutline,
-  mdiCog,
-} from '@mdi/js'
-import { formatTotalWordCount } from '@/services/novelService'
-import { isTauriAppPlatform } from '@/services/environment'
-import type { Novel } from '@/types/novel'
+} from '@mdi/js';
+
+import { isTauriAppPlatform } from '@/services/environment';
+import { formatTotalWordCount } from '@/services/novelService';
+import type { Novel } from '@/types/novel';
 
 const props = defineProps<{
-  novel: Novel | null
+  novel: Novel | null;
   /** 是否已打开章节（「本章概要」按钮依赖） */
-  hasChapter?: boolean
-}>()
+  hasChapter?: boolean;
+}>();
 
 const emit = defineEmits<{
-  'open-folder': []
-  'view-state': []
-  'view-summary': []
-  'switch-novel': []
-  'open-settings': []
-}>()
+  'open-folder': [];
+  'view-state': [];
+  'view-summary': [];
+  'switch-novel': [];
+  'open-settings': [];
+}>();
 
-const isTauri = isTauriAppPlatform()
+const isTauri = isTauriAppPlatform();
 
-const chapterCount = computed(() => props.novel?.chapters.length ?? 0)
-const characterCount = computed(() => props.novel?.characters.length ?? 0)
+const chapterCount = computed(() => props.novel?.chapters.length ?? 0);
+const characterCount = computed(() => props.novel?.characters.length ?? 0);
 const totalWordCount = computed(() => {
-  const n = props.novel?.chapters.reduce((sum, c) => sum + (c.wordCount ?? 0), 0) ?? 0
-  return formatTotalWordCount(n)
-})
+  const n = props.novel?.chapters.reduce((sum, c) => sum + (c.wordCount ?? 0), 0) ?? 0;
+  return formatTotalWordCount(n);
+});
 </script>
 
 <style scoped>
@@ -146,7 +133,9 @@ const totalWordCount = computed(() => {
   color: rgba(var(--v-theme-on-surface), 0.6);
   font-size: 11.5px;
   line-height: 1; /* 让文字高度 = 字号，使图标与文字几何中心真正对齐 */
-  transition: background 0.18s ease, color 0.18s ease;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease;
 }
 .stat-pill:hover {
   background: rgba(var(--v-theme-on-surface), 0.09);
@@ -182,7 +171,9 @@ const totalWordCount = computed(() => {
   background: transparent;
   color: rgba(var(--v-theme-on-surface), 0.55);
   cursor: pointer;
-  transition: background 0.18s ease, color 0.18s ease;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease;
 }
 .action-btn:hover {
   background: rgba(var(--v-theme-on-surface), 0.08);

@@ -4,8 +4,6 @@
  * 只通过 ChatTurnCallbacks 把事件交给页面编排层，不直接接触 Pinia / DOM。
  */
 
-import type { ChatCompletionMessageFunctionToolCall } from 'openai/resources/chat/completions';
-
 import { supportsToolCalling } from '@/services/agent/llm';
 import {
   buildChatContinuationInstruction,
@@ -37,6 +35,7 @@ import type {
   ToolContext,
   ToolResult,
 } from '@/types/agent';
+import type { ChatCompletionMessageFunctionToolCall } from '@/types/llm';
 
 /** 单轮对话的最大工具轮数 */
 const CHAT_TURN_MAX_TOOL_ROUNDS = 8;
@@ -109,9 +108,9 @@ async function executeChatToolCalls(
 
   for (const tc of toolCalls) {
     const tool = findTool(tc.function.name, registry);
-    let args: Record<string, unknown> = {};
+    let args: Record<string, unknown>;
     try {
-      args = JSON.parse(tc.function.arguments || '{}');
+      args = JSON.parse(tc.function.arguments || '{}') as Record<string, unknown>;
     } catch {
       args = {};
     }

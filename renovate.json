@@ -1,0 +1,81 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":dependencyDashboard", ":semanticCommits"],
+  "timezone": "Asia/Shanghai",
+  "schedule": ["before 9am on saturday"],
+  "prHourlyLimit": 4,
+  "prConcurrentLimit": 8,
+  "rangeStrategy": "bump",
+  "separateMajorMinor": true,
+  "ignorePresets": [":prHourlyLimit2"],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 9am on the first day of the month"]
+  },
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "schedule": ["at any time"],
+    "labels": ["security"]
+  },
+  "packageRules": [
+    {
+      "description": "Vue 全家桶同批升级，避免版本错位",
+      "matchPackageNames": ["vue", "vue-router", "pinia", "@vueuse/core"],
+      "groupName": "Vue 生态"
+    },
+    {
+      "description": "Vuetify 与构建期插件必须同批",
+      "matchPackageNames": ["vuetify", "vite-plugin-vuetify"],
+      "groupName": "Vuetify"
+    },
+    {
+      "description": "Tauri 的 JS / CLI / Rust 三处版本要一起动",
+      "matchPackageNames": [
+        "@tauri-apps/api",
+        "@tauri-apps/cli",
+        "@tauri-apps/plugin-**",
+        "tauri",
+        "tauri-build",
+        "tauri-plugin-**"
+      ],
+      "groupName": "Tauri"
+    },
+    {
+      "description": "ESLint 10 之后 parser/plugin 必须同步，单独成组",
+      "matchPackageNames": [
+        "eslint",
+        "@eslint/js",
+        "eslint-**",
+        "typescript-eslint",
+        "vue-eslint-parser"
+      ],
+      "groupName": "ESLint"
+    },
+    {
+      "description": "CodeMirror 各子包版本互相耦合",
+      "matchPackageNames": ["@codemirror/**", "codemirror"],
+      "groupName": "CodeMirror"
+    },
+    {
+      "description": "Material 3 色彩工具",
+      "matchPackageNames": ["@material/material-color-utilities"],
+      "groupName": "Material 3"
+    },
+    {
+      "description": "GitHub Actions 只接受 digest 固定的 patch/minor",
+      "matchManagers": ["github-actions"],
+      "groupName": "GitHub Actions",
+      "pinDigests": true
+    },
+    {
+      "description": "Vite 8 / TS 6 之上的大版本升级先人工评估（CI 走 Node 22）",
+      "matchPackageNames": ["vite", "typescript", "vue-tsc"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "被 vendored 进 src/foliate-js 的依赖不在 npm 里管理",
+      "matchPackageNames": ["pdfjs-dist"],
+      "enabled": false
+    }
+  ]
+}

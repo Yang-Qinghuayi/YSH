@@ -4,59 +4,58 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, watch, shallowRef } from 'vue'
-import { EditorView, keymap, ViewUpdate, placeholder } from '@codemirror/view'
-import { EditorState } from '@codemirror/state'
-import {
-  autocompletion,
-  type CompletionContext,
-} from '@codemirror/autocomplete'
-import { markdown } from '@codemirror/lang-markdown'
-import { oneDark } from '@codemirror/theme-one-dark'
-import { useTheme } from 'vuetify'
-import { useSettingStore } from '@/store/setting'
-import type { ChapterMeta, Character } from '@/types/novel'
+import { autocompletion, type CompletionContext } from '@codemirror/autocomplete';
+import { markdown } from '@codemirror/lang-markdown';
+import { EditorState } from '@codemirror/state';
+import { oneDark } from '@codemirror/theme-one-dark';
+import type { ViewUpdate } from '@codemirror/view';
+import { EditorView, keymap, placeholder } from '@codemirror/view';
+import { onBeforeUnmount, onMounted, shallowRef, watch } from 'vue';
+import { useTheme } from 'vuetify';
+
+import { useSettingStore } from '@/store/setting';
+import type { ChapterMeta, Character } from '@/types/novel';
 
 const props = defineProps<{
-  chapter: ChapterMeta | null
-  content: string
-  characters: Character[]
-  isGenerating: boolean
-}>()
+  chapter: ChapterMeta | null;
+  content: string;
+  characters: Character[];
+  isGenerating: boolean;
+}>();
 
 const emit = defineEmits<{
-  'update:content': [content: string]
-  stopGenerate: []
-  'open-search': []
-}>()
+  'update:content': [content: string];
+  stopGenerate: [];
+  'open-search': [];
+}>();
 
-const editorContainer = ref<HTMLElement | null>(null)
-const editorView = shallowRef<EditorView | null>(null)
+const editorContainer = ref<HTMLElement | null>(null);
+const editorView = shallowRef<EditorView | null>(null);
 
-const vuetifyTheme = useTheme()
-const settingStore = useSettingStore()
-const isDark = computed(() => vuetifyTheme.global.current.value.dark)
+const vuetifyTheme = useTheme();
+const settingStore = useSettingStore();
+const isDark = computed(() => vuetifyTheme.global.current.value.dark);
 
 /** @角色 补全：输入 @ 后按角色提示（附长期记忆摘要），选中即写入 @角色名（供 Agent 强制指定） */
 function mentionCompletion(context: CompletionContext) {
-  const before = context.matchBefore(/@[\u4e00-\u9fff\w]*/)
-  if (!before) return null
-  if (before.from === before.to && !context.explicit) return null
+  const before = context.matchBefore(/@[\u4e00-\u9fff\w]*/);
+  if (!before) return null;
+  if (before.from === before.to && !context.explicit) return null;
   const options = props.characters.map((c) => ({
     label: `@${c.name}`,
     detail: c.skill?.slice(0, 24) || undefined,
     type: 'variable',
-  }))
-  if (!options.length) return null
+  }));
+  if (!options.length) return null;
   return {
     from: before.from,
     options,
     validFor: /^@[\u4e00-\u9fff\w]*$/,
-  }
+  };
 }
 
 function createEditor(content: string) {
-  if (!editorContainer.value) return
+  if (!editorContainer.value) return;
 
   const lightTheme = EditorView.theme({
     '&': {
@@ -82,7 +81,7 @@ function createEditor(content: string) {
     '.cm-selectionBackground': {
       background: 'rgba(var(--v-theme-primary), 0.15) !important',
     },
-  })
+  });
 
   const extensions = [
     markdown(),
@@ -91,24 +90,24 @@ function createEditor(content: string) {
         key: 'Escape',
         run: () => {
           if (props.isGenerating) {
-            emit('stopGenerate')
-            return true
+            emit('stopGenerate');
+            return true;
           }
-          return false
+          return false;
         },
       },
       {
         // Cmd+Shift+F（Mac）或 Ctrl+Shift+F（Win/Linux）唤起全局搜索
         key: 'Mod-Shift-f',
         run: () => {
-          emit('open-search')
-          return true
+          emit('open-search');
+          return true;
         },
       },
     ]),
     EditorView.updateListener.of((update: ViewUpdate) => {
       if (update.docChanged) {
-        emit('update:content', update.state.doc.toString())
+        emit('update:content', update.state.doc.toString());
       }
     }),
     EditorView.lineWrapping,
@@ -120,86 +119,86 @@ function createEditor(content: string) {
     placeholder('写下来吧……'),
     lightTheme,
     ...(isDark.value ? [oneDark] : []),
-  ]
+  ];
 
-  const state = EditorState.create({ doc: content, extensions })
-  editorView.value = new EditorView({ state, parent: editorContainer.value })
+  const state = EditorState.create({ doc: content, extensions });
+  editorView.value = new EditorView({ state, parent: editorContainer.value });
 }
 
 function appendContent(text: string) {
-  const view = editorView.value
-  if (!view) return
-  const pos = view.state.selection.main.head
+  const view = editorView.value;
+  if (!view) return;
+  const pos = view.state.selection.main.head;
   view.dispatch({
     changes: { from: pos, insert: text },
     selection: { anchor: pos + text.length },
     effects: EditorView.scrollIntoView(pos + text.length, { y: 'center' }),
-  })
+  });
 }
 
 /** 外部（Agent 写章/撤销）整体替换文档：不重建编辑器，光标置底并滚动到末尾 */
 function replaceContent(content: string) {
-  const view = editorView.value
-  if (!view) return
-  const doc = view.state.doc
+  const view = editorView.value;
+  if (!view) return;
+  const doc = view.state.doc;
   view.dispatch({
     changes: { from: 0, to: doc.length, insert: content },
     selection: { anchor: content.length },
     effects: EditorView.scrollIntoView(content.length, { y: 'end' }),
-  })
+  });
 }
 
 /** 跳转到指定行（0-indexed），滚动到视口中央并聚焦 */
 function jumpToLine(lineIndex: number) {
-  const view = editorView.value
-  if (!view) return
-  const doc = view.state.doc
-  const lineNo = Math.max(1, Math.min(lineIndex + 1, doc.lines))
-  const line = doc.line(lineNo)
+  const view = editorView.value;
+  if (!view) return;
+  const doc = view.state.doc;
+  const lineNo = Math.max(1, Math.min(lineIndex + 1, doc.lines));
+  const line = doc.line(lineNo);
   view.dispatch({
     selection: { anchor: line.from },
     effects: EditorView.scrollIntoView(line.from, { y: 'center' }),
-  })
-  view.focus()
+  });
+  view.focus();
 }
 
-defineExpose({ appendContent, replaceContent, jumpToLine })
+defineExpose({ appendContent, replaceContent, jumpToLine });
 
 watch(
   () => [props.chapter?.id, props.content],
   ([newChapterId], [oldChapterId]) => {
     if (newChapterId !== oldChapterId) {
-      editorView.value?.destroy()
-      editorView.value = null
-      nextTick(() => createEditor(props.content))
+      editorView.value?.destroy();
+      editorView.value = null;
+      nextTick(() => createEditor(props.content));
     }
-  },
-)
+  }
+);
 
 watch(isDark, () => {
-  const content = editorView.value?.state.doc.toString() ?? props.content
-  editorView.value?.destroy()
-  editorView.value = null
-  nextTick(() => createEditor(content))
-})
+  const content = editorView.value?.state.doc.toString() ?? props.content;
+  editorView.value?.destroy();
+  editorView.value = null;
+  nextTick(() => createEditor(content));
+});
 
 watch(
   () => settingStore.editorFontSize,
   () => {
-    const content = editorView.value?.state.doc.toString() ?? props.content
-    editorView.value?.destroy()
-    editorView.value = null
-    nextTick(() => createEditor(content))
-  },
-)
+    const content = editorView.value?.state.doc.toString() ?? props.content;
+    editorView.value?.destroy();
+    editorView.value = null;
+    nextTick(() => createEditor(content));
+  }
+);
 
 onMounted(() => {
-  if (props.chapter) createEditor(props.content)
-})
+  if (props.chapter) createEditor(props.content);
+});
 
 onBeforeUnmount(() => {
-  editorView.value?.destroy()
-})
+  editorView.value?.destroy();
+});
 </script>
 
 <style scoped>

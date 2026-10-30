@@ -1,4 +1,4 @@
-import { ViewSettings } from '@/types/book';
+import type { ViewSettings } from '@/types/book';
 
 export const getMaxInlineSize = (viewSettings: ViewSettings) => {
   const isScrolled = viewSettings.scrolled!;

@@ -1,9 +1,9 @@
-import { type Ref, watch, onMounted } from 'vue';
+import { onMounted, type Ref, watch } from 'vue';
+
 import { useBookDataStore } from '@/store/bookDataStore';
 import { useReaderStore } from '@/store/readerStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { throttle } from '@/utils/throttle';
-
 
 export function useProgressAutoSave(bookKeyRef: Ref<string>) {
   const bookDataStore = useBookDataStore();
@@ -34,6 +34,6 @@ export function useProgressAutoSave(bookKeyRef: Ref<string>) {
     () => readerStore.getProgress(bookKeyRef.value),
     () => {
       saveBookConfig();
-    },
+    }
   );
 }
