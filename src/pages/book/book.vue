@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <div class="flex justify-center items-center w-full h-[94vh]">
+  <div class="reader-page">
+    <div class="flex justify-center items-center w-full h-full">
       <!-- 桌面端目录按钮 -->
       <v-btn
         v-if="lgAndUp"
@@ -40,11 +40,7 @@
       </div>
 
       <!-- 桌面端：侧边目录面板 -->
-      <transition
-        name="fade"
-        enter-active-class="fade-enter-active"
-        leave-active-class="fade-leave-active"
-      >
+      <transition name="toc-fade">
         <TOCView
           v-if="bookDoc && showBigCatalog && lgAndUp"
           :book-id
@@ -73,7 +69,7 @@
 import '@/foliate-js/view.js';
 
 import { useMediaQuery } from '@vueuse/core';
-import { useDisplay } from 'vuetify';
+import { useDisplay, useTheme } from 'vuetify';
 
 import { transformContent } from '@/services/transformService';
 import type { FoliateView } from '@/types/view';
@@ -88,12 +84,13 @@ import {
   handleTouchStart,
   handleWheel,
 } from '@/utils/iframeEventHandlers';
-import { mountAdditionalFonts, transformStylesheet } from '@/utils/style';
+import { getStyles, mountAdditionalFonts, transformStylesheet } from '@/utils/style';
 import { applyRendererSettings } from '@/utils/viewSettingsHelper';
 
 import Menu from './components/Menu.vue';
 import TOCView from './components/TOCView.vue';
-const { lgAndUp, smAndUp } = useDisplay();
+const { lgAndUp } = useDisplay();
+const theme = useTheme();
 const isMobile = useMediaQuery('(max-width: 960px)');
 const showMobileTOC = ref(false);
 import { storeToRefs } from 'pinia';
@@ -137,6 +134,22 @@ const bookDoc = ref<BookDoc | null>();
 const appService = ref<AppService | null>(null);
 
 const pageInfo = ref('');
+
+// EPUB 文档在 iframe 内，应用主题变化时需要重新注入样式。
+watch(
+  () => [
+    theme.current.value.dark,
+    theme.current.value.colors.background,
+    theme.current.value.colors['on-background'],
+    theme.current.value.colors.primary,
+  ],
+  async () => {
+    await nextTick();
+    const settings = getViewSettings(bookId.value);
+    if (settings && viewRef.value?.renderer)
+      viewRef.value.renderer.setStyles?.(getStyles(settings));
+  }
+);
 
 const { copyParagraph } = useCopyParagraph();
 const { handlePageFlip } = usePageFlip(viewRef, containerRef, appService, copyParagraph);
@@ -282,17 +295,20 @@ const initBook = async () => {
 };
 </script>
 
-<style>
-/* 目录悬浮按钮现在直接用 Tailwind 的 fixed / top-5 / right-5：
-   styles/tailwind.css 里把 Tailwind 的 utilities 层排在了 Vuetify 组件层之后，
-   同优先级下 utilities 胜出，不再需要未分层的兜底规则压 .v-btn 的 position。 */
-
-/* 目录面板淡入淡出 */
-.fade-enter-active {
-  transition: opacity 0.3s ease-out;
+<style scoped>
+.reader-page {
+  flex: 1 1 0;
+  min-height: 0;
+  background: var(--color-background);
 }
 
-.fade-leave-active {
-  transition: opacity 0.3s ease-in;
+/* 独立的动画名避免继承全局 fade-enter-active 的 position:absolute。 */
+.toc-fade-enter-active,
+.toc-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.toc-fade-enter-from,
+.toc-fade-leave-to {
+  opacity: 0;
 }
 </style>
