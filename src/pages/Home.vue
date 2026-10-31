@@ -95,7 +95,7 @@ $transition-time: 350ms;
 
 .v-player {
   //border-radius: 20px;
-  // border: 8px solid rgba(var(--v-theme-primary), 0.2);
+  // border: 8px solid color-mix(in srgb, var(--color-primary) 20%, transparent);
   transform: scale(1);
   overflow-y: hidden;
   overflow-x: hidden;
@@ -109,6 +109,6 @@ $transition-time: 350ms;
 <style scoped>
 /* 移动端底部导航：细描边 + 半透明分隔 */
 .nav-bottom-border {
-  border-top: 1px solid rgb(var(--v-theme-outline) / 30%);
+  border-top: 1px solid color-mix(in srgb, var(--color-outline) 30%, transparent);
 }
 </style>

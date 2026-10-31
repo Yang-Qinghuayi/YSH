@@ -103,7 +103,7 @@ watch(
 <style scoped>
 /* 展开箭头：旋转动画 + 继承文字颜色 */
 .toc-caret {
-  color: rgb(var(--v-theme-on-surface));
+  color: var(--color-on-surface);
   transition: transform 0.15s ease;
   transform: rotate(0deg);
 }

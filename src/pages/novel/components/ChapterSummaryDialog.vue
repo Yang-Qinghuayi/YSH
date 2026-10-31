@@ -107,7 +107,7 @@ function formatTime(ts: number): string {
 
 <style scoped>
 .lg-dialog {
-  background: rgb(var(--v-theme-surface));
+  background: var(--color-surface);
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
 }
 .title-badge {
@@ -118,33 +118,33 @@ function formatTime(ts: number): string {
   height: 34px;
   flex-shrink: 0;
   border-radius: 11px;
-  background: rgba(var(--v-theme-primary), 0.14);
-  color: rgb(var(--v-theme-primary));
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  color: var(--color-primary);
 }
 .min-w-0 {
   min-width: 0;
 }
 .sub-title {
   font-size: 12px;
-  color: rgba(var(--v-theme-on-surface), 0.5);
+  color: color-mix(in srgb, var(--color-on-surface) 50%, transparent);
   line-height: 1.3;
 }
 .status-chip {
   font-size: 11px;
   padding: 3px 9px;
   border-radius: 999px;
-  background: rgba(var(--v-theme-on-surface), 0.06);
-  color: rgba(var(--v-theme-on-surface), 0.55);
+  background: color-mix(in srgb, var(--color-on-surface) 6%, transparent);
+  color: color-mix(in srgb, var(--color-on-surface) 55%, transparent);
   white-space: nowrap;
 }
 .status-chip--done {
-  background: rgba(var(--v-theme-success), 0.12);
-  color: rgb(var(--v-theme-success));
+  background: color-mix(in srgb, var(--color-success) 12%, transparent);
+  color: var(--color-success);
 }
 .hint {
   margin-top: 10px;
   font-size: 12px;
   line-height: 1.6;
-  color: rgba(var(--v-theme-on-surface), 0.5);
+  color: color-mix(in srgb, var(--color-on-surface) 50%, transparent);
 }
 </style>

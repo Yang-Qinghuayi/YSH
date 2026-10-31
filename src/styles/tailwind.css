@@ -2,39 +2,53 @@
  * Tailwind v4 入口（由 @tailwindcss/vite 插件接管，不走 PostCSS 链）
  *
  * 1. 层顺序：这里先声明 Vuetify 的层、再声明 Tailwind 的层。
- *    CSS 级联层的优先级由「层名第一次出现的顺序」决定，所以只要这条
- *    @layer 语句排在 Vuetify 的 core.css 之前（或 Vuetify 尚未声明时），
- *    Tailwind 的 utilities 就永远压得住 Vuetify 组件样式 —— 否则会出现
+ *    CSS 级联层的优先级由「层名第一次出现的顺序」决定，所以 Tailwind 的
+ *    utilities 永远压得住 Vuetify 组件样式 —— 否则会出现
  *    `.v-btn { position: relative }` 压制 `.fixed` 这类问题（book.vue 里
- *    曾为此写过未分层的兜底规则）。
- *    注意：一旦顺序在这里钉死，文件 import 的先后就不再影响结果。
+ *    曾为此写过未分层的兜底规则）。顺序一旦在这里钉死，文件 import 的先后
+ *    就不再影响结果。
  *
- * 2. 主题桥接：@theme 里把 Vuetify 的 Material You 变量（--v-theme-*）
- *    接成 Tailwind 的颜色，这样 bg-surface / text-primary / border-outline
- *    这些类直接跟随换肤，不用再写 bg-[rgb(var(--v-theme-surface))]。
+ * 2. 颜色：见下方 @theme。
  * ============================================================ */
 @layer vuetify-core, vuetify-components, vuetify-overrides, vuetify-utilities, vuetify-final, theme, base, components, utilities;
 
 @import 'tailwindcss';
 
-@theme {
-  /* 字体：沿用 global.scss 定义的中文字体栈（--font-sans） */
+/* ------------------------------------------------------------------
+ * 颜色令牌：@theme（注意不是 @theme inline）
+ *
+ * 每个 --color-* 都直接指向 Vuetify 的主题变量 --v-theme-*（RGB 三元组，
+ * 所以要包一层 rgb()）。色值本身只有一个来源：utils/materialYou.ts 用
+ * Material You 算法从种子色算出的那套角色色，写进 Vuetify 响应式主题后由
+ * Vuetify 烘焙成 --v-theme-*。这里只做「取名 + 包格式」，不产生任何色值。
+ *
+ * 为什么必须用 @theme 而不是 @theme inline（Tailwind 4.3.3 实测）：
+ *   · @theme      + rgb(var(--v-theme-x))  → text-x/60 生成
+ *                  color-mix(in srgb, rgb(var(--v-theme-x)) 60%, transparent) ✅
+ *   · @theme inline + var(--x)             → 透明度修饰符被静默丢弃 ❌
+ *   · @theme inline + rgb(var(--v-theme-x))→ 直接报 CssSyntaxError ❌
+ *   而且两者不能同时出现在同一个文件里：inline 的处理方式会连累后面的
+ *   @theme 块，把 rgb(var(...)) 也判成非法声明。
+ *
+ * 必须是 @theme static（普通 @theme 会把没被任何工具类用到的令牌摇掉，
+ * 组件里手写的 var(--color-success-container) 之类就会取到空值）：
+ *
+ * 用 @theme 的另一个好处：--color-* 会作为真实变量输出到 :root，
+ * 组件里手写的 CSS 可以直接 var(--color-on-surface)，和 Tailwind 类共用
+ * 同一个令牌，不需要再维护第二份平行的变量表。
+ *
+ * ⚠️ 这份清单必须与 utils/materialYou.ts 里 getMaterialYouThemeColors()
+ *    返回的 key 一一对应（key 直接就是这里的后缀）。漏一个，对应的
+ *    Tailwind 类（text-success / bg-tertiary-container …）不会报错，
+ *    只是静默失效 —— 和之前的 w-64 是同一类坑。
+ *    tests/theme-tokens.test.ts 会自动校验两边是否一致。
+ * ------------------------------------------------------------------ */
+@theme static {
+  /* 字体：沿用 global.scss 的中文字体栈（--font-sans） */
   --default-font-family: var(--font-sans);
   --default-mono-font-family: var(--font-sans);
 
-  /* ------------------------------------------------------------------
-   * 颜色：全部指向 Vuetify 主题变量（--v-theme-*，RGB 三元组格式）。
-   *
-   * ⚠️ 这份清单必须覆盖 hooks/useMaterialYouTheme.ts 里 syncVuetifyTheme()
-   *    写进 Vuetify theme 的每一个颜色 key —— Vuetify 只会为「theme 里有
-   *    定义的 key」生成 --v-theme-* 变量。漏一个，对应的 Tailwind 类
-   *    （text-success / bg-tertiary-container …）不会报错，只是静默失效，
-   *    和之前 w-64 那次是同一类坑。
-   *    命名规则：Vuetify 把 camelCase 的 key 转成 kebab-case，
-   *    例如 onPrimaryContainer → --v-theme-on-primary-container。
-   * ------------------------------------------------------------------ */
-
-  /* M3 主体角色色 */
+  /* —— M3 主体角色色 —— */
   --color-primary: rgb(var(--v-theme-primary));
   --color-on-primary: rgb(var(--v-theme-on-primary));
   --color-primary-container: rgb(var(--v-theme-primary-container));
@@ -48,7 +62,7 @@
   --color-tertiary-container: rgb(var(--v-theme-tertiary-container));
   --color-on-tertiary-container: rgb(var(--v-theme-on-tertiary-container));
 
-  /* 表面 / 背景 / 描边 */
+  /* —— 表面 / 背景 / 描边 —— */
   --color-background: rgb(var(--v-theme-background));
   --color-on-background: rgb(var(--v-theme-on-background));
   --color-surface: rgb(var(--v-theme-surface));
@@ -61,10 +75,10 @@
   --color-inverse-on-surface: rgb(var(--v-theme-inverse-on-surface));
   --color-inverse-primary: rgb(var(--v-theme-inverse-primary));
 
-  /* 语义色（M3 没有这些 role，由 syncVuetifyTheme 补齐） */
+  /* —— 语义色 —— */
   --color-error: rgb(var(--v-theme-error));
-  --color-on-error: rgb(var(--v-theme-on-error));
   --color-error-container: rgb(var(--v-theme-error-container));
+  --color-on-error: rgb(var(--v-theme-on-error));
   --color-on-error-container: rgb(var(--v-theme-on-error-container));
   --color-success: rgb(var(--v-theme-success));
   --color-on-success: rgb(var(--v-theme-on-success));

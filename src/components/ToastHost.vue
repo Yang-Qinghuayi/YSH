@@ -60,18 +60,18 @@ const iconOf = (kind: ToastKind) => ICONS[kind];
   box-shadow: 0 6px 20px rgb(0 0 0 / 18%);
   font-size: 0.9rem;
   line-height: 1.4;
-  color: rgb(var(--v-theme-on-primary));
-  background: rgb(var(--v-theme-inverse-surface, 50 50 50));
+  color: var(--color-on-primary);
+  background: var(--color-inverse-surface, rgb(50 50 50));
   pointer-events: auto;
   cursor: pointer;
 }
 
 .toast-item--success {
-  background: rgb(var(--v-theme-success, 47 107 79));
+  background: var(--color-success, rgb(47 107 79));
 }
 
 .toast-item--error {
-  background: rgb(var(--v-theme-error, 179 38 30));
+  background: var(--color-error, rgb(179 38 30));
 }
 
 .toast-icon {

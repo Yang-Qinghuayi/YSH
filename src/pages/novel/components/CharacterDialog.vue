@@ -167,7 +167,7 @@ function confirmDelete(characterId: string) {
 
 <style scoped>
 .lg-dialog {
-  background: rgb(var(--v-theme-surface));
+  background: var(--color-surface);
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
 }
 .title-badge {
@@ -177,8 +177,8 @@ function confirmDelete(characterId: string) {
   width: 34px;
   height: 34px;
   border-radius: 11px;
-  background: rgba(var(--v-theme-primary), 0.14);
-  color: rgb(var(--v-theme-primary));
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  color: var(--color-primary);
 }
 .character-item {
   padding: 12px;
@@ -199,7 +199,7 @@ function confirmDelete(characterId: string) {
 .native-label-text {
   font-size: 13px;
   font-weight: 500;
-  color: rgba(var(--v-theme-on-surface), 0.7);
+  color: color-mix(in srgb, var(--color-on-surface) 70%, transparent);
   padding-left: 4px;
 }
 .native-input {
@@ -208,18 +208,18 @@ function confirmDelete(characterId: string) {
   font-size: 14px;
   font-family: inherit;
   line-height: 1.5;
-  color: rgb(var(--v-theme-on-surface));
-  background: rgba(var(--v-theme-on-surface), 0.04);
+  color: var(--color-on-surface);
+  background: color-mix(in srgb, var(--color-on-surface) 4%, transparent);
   border: none;
   border-radius: 14px;
   outline: none;
   transition: box-shadow 0.2s;
 }
 .native-input::placeholder {
-  color: rgba(var(--v-theme-on-surface), 0.4);
+  color: color-mix(in srgb, var(--color-on-surface) 40%, transparent);
 }
 .native-input:focus {
-  box-shadow: 0 0 0 2px rgba(var(--v-theme-primary), 0.45);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 45%, transparent);
 }
 .native-textarea {
   resize: vertical;
@@ -228,7 +228,7 @@ function confirmDelete(characterId: string) {
 .native-hint {
   font-size: 12px;
   line-height: 1.5;
-  color: rgba(var(--v-theme-on-surface), 0.5);
+  color: color-mix(in srgb, var(--color-on-surface) 50%, transparent);
   padding-left: 4px;
 }
 </style>

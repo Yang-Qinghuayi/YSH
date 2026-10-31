@@ -635,16 +635,16 @@ watch(step, (s) => {
 }
 
 .import-header {
-  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-on-surface) 8%, transparent);
 }
 .import-title {
   font-size: 15px;
   font-weight: 600;
-  color: rgba(var(--v-theme-on-surface), 0.87);
+  color: color-mix(in srgb, var(--color-on-surface) 87%, transparent);
 }
 .import-subtitle {
   font-size: 12px;
-  color: rgba(var(--v-theme-on-surface), 0.45);
+  color: color-mix(in srgb, var(--color-on-surface) 45%, transparent);
 }
 
 .import-body {
@@ -660,7 +660,7 @@ watch(step, (s) => {
 .native-label-text {
   font-size: 13px;
   font-weight: 500;
-  color: rgba(var(--v-theme-on-surface), 0.7);
+  color: color-mix(in srgb, var(--color-on-surface) 70%, transparent);
   padding-left: 4px;
 }
 .native-input {
@@ -669,8 +669,8 @@ watch(step, (s) => {
   font-size: 14px;
   font-family: inherit;
   line-height: 1.5;
-  color: rgb(var(--v-theme-on-surface));
-  background: rgba(var(--v-theme-on-surface), 0.04);
+  color: var(--color-on-surface);
+  background: color-mix(in srgb, var(--color-on-surface) 4%, transparent);
   border: none;
   border-radius: 14px;
   outline: none;
@@ -678,10 +678,10 @@ watch(step, (s) => {
   box-sizing: border-box;
 }
 .native-input::placeholder {
-  color: rgba(var(--v-theme-on-surface), 0.4);
+  color: color-mix(in srgb, var(--color-on-surface) 40%, transparent);
 }
 .native-input:focus {
-  box-shadow: 0 0 0 2px rgba(var(--v-theme-primary), 0.45);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 45%, transparent);
 }
 .native-input-sm {
   padding: 7px 10px;
@@ -711,13 +711,13 @@ watch(step, (s) => {
   align-items: center;
   cursor: pointer;
   padding: 6px 14px;
-  background: rgba(var(--v-theme-primary), 0.12);
-  color: rgb(var(--v-theme-primary));
-  border: 1px solid rgba(var(--v-theme-primary), 0.2);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  color: var(--color-primary);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 20%, transparent);
   font-size: 13px;
 }
 .import-file-btn:hover {
-  background: rgba(var(--v-theme-primary), 0.18);
+  background: color-mix(in srgb, var(--color-primary) 18%, transparent);
 }
 .import-file-input {
   display: none;
@@ -745,13 +745,13 @@ watch(step, (s) => {
   font-size: 13px;
 }
 .chapter-check-item:hover {
-  background: rgba(var(--v-theme-on-surface), 0.05);
+  background: color-mix(in srgb, var(--color-on-surface) 5%, transparent);
 }
 .chapter-check-item--off {
   opacity: 0.45;
 }
 .chapter-check-box {
-  accent-color: rgb(var(--v-theme-primary));
+  accent-color: var(--color-primary);
   flex-shrink: 0;
 }
 .chapter-check-title {
@@ -760,19 +760,19 @@ watch(step, (s) => {
 }
 .chapter-check-meta {
   font-size: 11px;
-  color: rgba(var(--v-theme-on-surface), 0.4);
+  color: color-mix(in srgb, var(--color-on-surface) 40%, transparent);
   flex-shrink: 0;
 }
 
 .import-mini-btn {
   padding: 3px 10px;
   font-size: 12px;
-  background: rgba(var(--v-theme-on-surface), 0.06);
-  color: rgba(var(--v-theme-on-surface), 0.7);
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+  background: color-mix(in srgb, var(--color-on-surface) 6%, transparent);
+  color: color-mix(in srgb, var(--color-on-surface) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-on-surface) 10%, transparent);
 }
 .import-mini-btn:hover {
-  background: rgba(var(--v-theme-on-surface), 0.1);
+  background: color-mix(in srgb, var(--color-on-surface) 10%, transparent);
 }
 
 /* 人物/设定行 */
@@ -781,7 +781,7 @@ watch(step, (s) => {
   gap: 8px;
   padding: 10px;
   border-radius: 12px;
-  background: rgba(var(--v-theme-on-surface), 0.03);
+  background: color-mix(in srgb, var(--color-on-surface) 3%, transparent);
   margin-bottom: 8px;
   align-items: flex-start;
 }
@@ -797,14 +797,14 @@ watch(step, (s) => {
   width: 26px;
   height: 26px;
   border-radius: 8px;
-  color: rgba(var(--v-theme-error), 0.7);
+  color: color-mix(in srgb, var(--color-error) 70%, transparent);
 }
 .char-row__del:hover {
-  background: rgba(var(--v-theme-error), 0.1);
+  background: color-mix(in srgb, var(--color-error) 10%, transparent);
 }
 
 .import-footer {
-  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  border-top: 1px solid color-mix(in srgb, var(--color-on-surface) 8%, transparent);
 }
 
 /* 完成 */
@@ -818,16 +818,16 @@ watch(step, (s) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(var(--v-theme-success), 0.1);
+  background: color-mix(in srgb, var(--color-success) 10%, transparent);
 }
 .import-done-title {
   font-size: 18px;
   font-weight: 600;
-  color: rgba(var(--v-theme-on-surface), 0.87);
+  color: color-mix(in srgb, var(--color-on-surface) 87%, transparent);
 }
 .import-done-sub {
   font-size: 13px;
-  color: rgba(var(--v-theme-on-surface), 0.5);
+  color: color-mix(in srgb, var(--color-on-surface) 50%, transparent);
   line-height: 1.8;
 }
 

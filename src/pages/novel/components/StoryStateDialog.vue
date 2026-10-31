@@ -283,7 +283,7 @@ function formatTime(ts: number): string {
 
 <style scoped>
 .lg-dialog {
-  background: rgb(var(--v-theme-surface));
+  background: var(--color-surface);
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
 }
 .title-badge {
@@ -293,20 +293,20 @@ function formatTime(ts: number): string {
   width: 34px;
   height: 34px;
   border-radius: 11px;
-  background: rgba(var(--v-theme-primary), 0.14);
-  color: rgb(var(--v-theme-primary));
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  color: var(--color-primary);
 }
 .updated-hint {
   margin-left: auto;
   font-size: 11px;
-  color: rgba(var(--v-theme-on-surface), 0.4);
+  color: color-mix(in srgb, var(--color-on-surface) 40%, transparent);
   font-weight: 400;
 }
 .intro-hint {
   font-size: 12px;
   line-height: 1.6;
-  color: rgba(var(--v-theme-on-surface), 0.55);
-  background: rgba(var(--v-theme-primary), 0.06);
+  color: color-mix(in srgb, var(--color-on-surface) 55%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 6%, transparent);
   border-radius: 12px;
   padding: 8px 12px;
   margin-bottom: 16px;
@@ -324,22 +324,22 @@ function formatTime(ts: number): string {
 .section-label {
   font-size: 13px;
   font-weight: 600;
-  color: rgba(var(--v-theme-on-surface), 0.7);
+  color: color-mix(in srgb, var(--color-on-surface) 70%, transparent);
 }
 .section-meta {
   font-size: 11px;
-  color: rgba(var(--v-theme-on-surface), 0.42);
+  color: color-mix(in srgb, var(--color-on-surface) 42%, transparent);
 }
 .empty-hint {
   font-size: 12px;
-  color: rgba(var(--v-theme-on-surface), 0.35);
+  color: color-mix(in srgb, var(--color-on-surface) 35%, transparent);
   padding: 6px 4px;
 }
 
 .sub-card {
   position: relative;
-  background: rgba(var(--v-theme-on-surface), 0.035);
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.06);
+  background: color-mix(in srgb, var(--color-on-surface) 3.5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-on-surface) 6%, transparent);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   border-radius: 14px;
   padding: 12px;
@@ -365,19 +365,19 @@ function formatTime(ts: number): string {
 .change-reason {
   font-size: 12px;
   line-height: 1.6;
-  color: rgba(var(--v-theme-on-surface), 0.7);
+  color: color-mix(in srgb, var(--color-on-surface) 70%, transparent);
   white-space: pre-wrap;
 }
 .reverted-tag {
   font-size: 11px;
-  color: rgba(var(--v-theme-on-surface), 0.5);
+  color: color-mix(in srgb, var(--color-on-surface) 50%, transparent);
 }
 .add-link {
   display: inline-flex;
   align-items: center;
   gap: 3px;
   font-size: 11px;
-  color: rgb(var(--v-theme-primary));
+  color: var(--color-primary);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -391,14 +391,14 @@ function formatTime(ts: number): string {
 }
 .diff-label {
   font-size: 11px;
-  color: rgba(var(--v-theme-on-surface), 0.45);
+  color: color-mix(in srgb, var(--color-on-surface) 45%, transparent);
   margin-bottom: 4px;
 }
 .diff-text {
   font-size: 12px;
   line-height: 1.6;
   white-space: pre-wrap;
-  background: rgba(var(--v-theme-on-surface), 0.04);
+  background: color-mix(in srgb, var(--color-on-surface) 4%, transparent);
   border-radius: 10px;
   padding: 8px 10px;
   max-height: 240px;
@@ -414,12 +414,12 @@ function formatTime(ts: number): string {
   border-radius: 50%;
   border: none;
   background: transparent;
-  color: rgba(var(--v-theme-error), 0.7);
+  color: color-mix(in srgb, var(--color-error) 70%, transparent);
   cursor: pointer;
   flex-shrink: 0;
   transition: background 0.15s ease;
 }
 .del-btn:hover {
-  background: rgba(var(--v-theme-error), 0.1);
+  background: color-mix(in srgb, var(--color-error) 10%, transparent);
 }
 </style>

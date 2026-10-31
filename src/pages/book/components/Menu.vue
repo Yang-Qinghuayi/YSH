@@ -204,9 +204,9 @@ watch(setTwoColumn, () => {
 <style scoped>
 /* 菜单里的开关行：毛玻璃卡片（原 Tailwind 的 bg-gray-300/30 + backdrop-blur + shadow） */
 .menu-row {
-  background: rgb(var(--v-theme-surface-variant) / 55%);
+  background: color-mix(in srgb, var(--color-surface-variant) 55%, transparent);
   backdrop-filter: blur(24px);
-  border: 1px solid rgb(var(--v-theme-outline) / 55%);
+  border: 1px solid color-mix(in srgb, var(--color-outline) 55%, transparent);
   border-radius: 8px;
   box-shadow:
     0 4px 6px -1px rgb(0 0 0 / 10%),

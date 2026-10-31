@@ -35,7 +35,7 @@
       <div>
         <div class="font-bold mb-3">阅读</div>
         <div
-          class="flex justify-between items-center px-3 py-3 bg-surface-variant shadow-md rounded-lg"
+          class="flex justify-between items-center px-3 py-3 bg-surface-variant text-on-surface-variant shadow-md rounded-lg"
         >
           <div>
             <p class="mb-0">三击复制段落</p>

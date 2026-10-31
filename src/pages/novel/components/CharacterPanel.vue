@@ -145,7 +145,7 @@ function emitMemory() {
 <style scoped>
 .panel-header {
   padding: 14px 16px;
-  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-on-surface) 8%, transparent);
 }
 .panel-body {
   gap: 12px;
@@ -157,8 +157,8 @@ function emitMemory() {
   width: 34px;
   height: 34px;
   border-radius: 11px;
-  background: rgba(var(--v-theme-primary), 0.14);
-  color: rgb(var(--v-theme-primary));
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  color: var(--color-primary);
 }
 .panel-block :deep(.v-field--variant-outlined) {
   border-radius: 14px;

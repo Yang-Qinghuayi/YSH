@@ -155,7 +155,7 @@ function removeLastKeyword(e: KeyboardEvent) {
 .native-label-text {
   font-size: 13px;
   font-weight: 500;
-  color: rgba(var(--v-theme-on-surface), 0.7);
+  color: color-mix(in srgb, var(--color-on-surface) 70%, transparent);
   padding-left: 4px;
 }
 .native-input {
@@ -164,8 +164,8 @@ function removeLastKeyword(e: KeyboardEvent) {
   font-size: 14px;
   font-family: inherit;
   line-height: 1.5;
-  color: rgb(var(--v-theme-on-surface));
-  background: rgba(var(--v-theme-on-surface), 0.04);
+  color: var(--color-on-surface);
+  background: color-mix(in srgb, var(--color-on-surface) 4%, transparent);
   border: none;
   border-radius: 14px;
   outline: none;
@@ -173,10 +173,10 @@ function removeLastKeyword(e: KeyboardEvent) {
   box-sizing: border-box;
 }
 .native-input::placeholder {
-  color: rgba(var(--v-theme-on-surface), 0.4);
+  color: color-mix(in srgb, var(--color-on-surface) 40%, transparent);
 }
 .native-input:focus {
-  box-shadow: 0 0 0 2px rgba(var(--v-theme-primary), 0.45);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 45%, transparent);
 }
 .native-input-sm {
   padding: 7px 10px;
@@ -201,14 +201,14 @@ function removeLastKeyword(e: KeyboardEvent) {
   gap: 6px;
   padding: 8px 12px;
   min-height: 42px;
-  background: rgba(var(--v-theme-on-surface), 0.04);
+  background: color-mix(in srgb, var(--color-on-surface) 4%, transparent);
   border: none;
   border-radius: 14px;
   cursor: text;
   transition: box-shadow 0.2s;
 }
 .native-tags-wrapper:focus-within {
-  box-shadow: 0 0 0 2px rgba(var(--v-theme-primary), 0.45);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 45%, transparent);
 }
 .native-tags-sm {
   padding: 4px 8px;
@@ -222,8 +222,8 @@ function removeLastKeyword(e: KeyboardEvent) {
   padding: 2px 8px;
   font-size: 12px;
   line-height: 1.6;
-  color: rgb(var(--v-theme-primary));
-  background: rgba(var(--v-theme-primary), 0.12);
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
   border-radius: 10px;
   white-space: nowrap;
 }
@@ -246,7 +246,7 @@ function removeLastKeyword(e: KeyboardEvent) {
 }
 .native-tag-remove:hover {
   opacity: 1;
-  background: rgba(var(--v-theme-primary), 0.2);
+  background: color-mix(in srgb, var(--color-primary) 20%, transparent);
 }
 .native-tags-input {
   flex: 1;
@@ -254,13 +254,13 @@ function removeLastKeyword(e: KeyboardEvent) {
   padding: 2px 4px;
   font-size: 13px;
   font-family: inherit;
-  color: rgb(var(--v-theme-on-surface));
+  color: var(--color-on-surface);
   background: transparent;
   border: none;
   outline: none;
 }
 .native-tags-input::placeholder {
-  color: rgba(var(--v-theme-on-surface), 0.4);
+  color: color-mix(in srgb, var(--color-on-surface) 40%, transparent);
 }
 
 /* ---- 自定义启用切换 ---- */
@@ -279,8 +279,8 @@ function removeLastKeyword(e: KeyboardEvent) {
   width: 36px;
   height: 20px;
   border-radius: 10px;
-  border: 1.5px solid rgba(var(--v-theme-on-surface), 0.28);
-  background: rgba(var(--v-theme-on-surface), 0.07);
+  border: 1.5px solid color-mix(in srgb, var(--color-on-surface) 28%, transparent);
+  background: color-mix(in srgb, var(--color-on-surface) 7%, transparent);
   position: relative;
   flex-shrink: 0;
   transition:
@@ -288,7 +288,7 @@ function removeLastKeyword(e: KeyboardEvent) {
     border-color 0.22s ease;
 }
 .is-on .et-track {
-  background: rgb(var(--v-theme-primary));
+  background: var(--color-primary);
   border-color: transparent;
 }
 
@@ -299,7 +299,7 @@ function removeLastKeyword(e: KeyboardEvent) {
   width: 13px;
   height: 13px;
   border-radius: 50%;
-  background: rgba(var(--v-theme-on-surface), 0.4);
+  background: color-mix(in srgb, var(--color-on-surface) 40%, transparent);
   transition:
     left 0.22s ease,
     background 0.22s ease;
@@ -312,10 +312,10 @@ function removeLastKeyword(e: KeyboardEvent) {
 .et-label {
   font-size: 12.5px;
   font-weight: 500;
-  color: rgba(var(--v-theme-on-surface), 0.45);
+  color: color-mix(in srgb, var(--color-on-surface) 45%, transparent);
   transition: color 0.22s ease;
 }
 .is-on .et-label {
-  color: rgb(var(--v-theme-primary));
+  color: var(--color-primary);
 }
 </style>

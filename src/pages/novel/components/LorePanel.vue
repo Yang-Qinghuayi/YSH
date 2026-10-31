@@ -277,21 +277,21 @@ function showErrorMsg(msg: string) {
 .lore-dialog-card {
   overflow: hidden;
   border-radius: 20px;
-  background: rgb(var(--v-theme-surface));
+  background: var(--color-surface);
 }
 
 /* 标题栏 */
 .lore-dialog-header {
-  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.06);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-on-surface) 6%, transparent);
 }
 .lore-dialog-title {
   font-size: 15px;
   font-weight: 600;
-  color: rgba(var(--v-theme-on-surface), 0.88);
+  color: color-mix(in srgb, var(--color-on-surface) 88%, transparent);
 }
 .lore-dialog-subtitle {
   font-size: 11.5px;
-  color: rgba(var(--v-theme-on-surface), 0.45);
+  color: color-mix(in srgb, var(--color-on-surface) 45%, transparent);
   max-width: 240px;
 }
 
@@ -325,7 +325,7 @@ function showErrorMsg(msg: string) {
 
 /* 空状态 */
 .lore-empty {
-  color: rgba(var(--v-theme-on-surface), 0.45);
+  color: color-mix(in srgb, var(--color-on-surface) 45%, transparent);
 }
 .lore-empty-icon {
   width: 72px;
@@ -334,15 +334,15 @@ function showErrorMsg(msg: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(var(--v-theme-primary), 0.7);
+  color: color-mix(in srgb, var(--color-primary) 70%, transparent);
 }
 .lore-empty-title {
   font-size: 17px;
   font-weight: 600;
-  color: rgba(var(--v-theme-on-surface), 0.78);
+  color: color-mix(in srgb, var(--color-on-surface) 78%, transparent);
 }
 .lore-empty-sub {
   font-size: 13px;
-  color: rgba(var(--v-theme-on-surface), 0.45);
+  color: color-mix(in srgb, var(--color-on-surface) 45%, transparent);
 }
 </style>
