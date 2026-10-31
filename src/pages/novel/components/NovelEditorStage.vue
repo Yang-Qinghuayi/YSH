@@ -13,9 +13,6 @@
 
     <div v-if="!currentChapter" class="empty-stage">
       <div class="empty-card lg-card">
-        <div class="empty-icon">
-          <v-icon :icon="currentNovel ? mdiPenPlus : mdiBookPlus" size="44" />
-        </div>
         <div class="empty-title">
           {{ currentNovel ? '开始创作新章节' : '开启你的第一部小说' }}
         </div>
@@ -54,7 +51,7 @@
 </template>
 
 <script setup lang="ts">
-import { mdiBookPlus, mdiImport, mdiPenPlus, mdiPlus } from '@mdi/js';
+import { mdiImport, mdiPlus } from '@mdi/js';
 
 import {
   useChapterEditingContext,
