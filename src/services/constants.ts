@@ -7,7 +7,11 @@ import type {
   ViewSettings,
 } from '@/types/book';
 import type { ReadSettings, SystemSettings } from '@/types/settings';
-import { getDefaultMaxBlockSize, getDefaultMaxInlineSize } from '@/utils/config';
+import {
+  DEFAULT_CONTENT_WIDTH,
+  getDefaultMaxBlockSize,
+  getDefaultMaxInlineSize,
+} from '@/utils/config';
 import { stubTranslation as _ } from '@/utils/misc';
 
 export const LOCAL_BOOKS_SUBDIR = 'YSH/Books';
@@ -71,6 +75,7 @@ export const DEFAULT_BOOK_LAYOUT: BookLayout = {
   swapClickArea: false,
   continuousScroll: false,
   maxColumnCount: 1,
+  contentWidth: DEFAULT_CONTENT_WIDTH,
   maxInlineSize: getDefaultMaxInlineSize(),
   maxBlockSize: getDefaultMaxBlockSize(),
   animated: false,

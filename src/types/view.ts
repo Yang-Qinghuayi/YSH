@@ -38,7 +38,9 @@ export interface FoliateView extends HTMLElement {
     end: number;
     primaryIndex: number;
     setAttribute: (name: string, value: string | number) => void;
+    getAttribute: (name: string) => string | null;
     removeAttribute: (name: string) => void;
+    getBoundingClientRect: () => DOMRect;
     next: () => Promise<void>;
     prev: () => Promise<void>;
     goTo?: (params: { index: number; anchor: number }) => void;

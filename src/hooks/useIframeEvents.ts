@@ -39,8 +39,7 @@ export function useClickEvent(handlePageFlip: (msg: MessageEvent) => void) {
 export function useTouchEvent(viewRef: Ref<FoliateView | null>) {
   const { bookId } = storeToRefs(useBookIdStore());
   const store = useReaderStore();
-  const { hoveredBookKey, setHoveredBookKey, getViewSettings } = store;
-  const viewSettings = getViewSettings(bookId.value)!;
+  const { setHoveredBookKey, getViewSettings } = store;
 
   let touchStart: IframeTouch | null = null;
   let touchEnd: IframeTouch | null = null;
@@ -57,7 +56,8 @@ export function useTouchEvent(viewRef: Ref<FoliateView | null>) {
     const touch = e.targetTouches[0];
     if (touch) touchEnd = touch;
 
-    if (hoveredBookKey && touchEnd) {
+    const viewSettings = getViewSettings(bookId.value);
+    if (store.hoveredBookKey && touchEnd && viewSettings) {
       const deltaY = touchEnd.screenY - touchStart.screenY;
       const deltaX = touchEnd.screenX - touchStart.screenX;
 

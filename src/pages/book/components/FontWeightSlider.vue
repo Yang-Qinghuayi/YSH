@@ -1,36 +1,29 @@
 <template>
-  <div class="w-full px-3">
-    <div class="flex justify-between items-center mb-1">
-      <span class="text-sm text-on-surface-variant">字重</span>
-      <span class="text-sm text-on-surface-variant">{{ fontWeight }}</span>
-    </div>
-    <v-slider
-      v-model="fontWeight"
-      :min="200"
-      :max="900"
-      :step="100"
-      color="primary"
-      track-color="outline"
-      thumb-color="primary"
-      hide-details
-    />
-  </div>
+  <ReadingSlider
+    v-model="fontWeight"
+    label="字重"
+    :icon="mdiFormatBold"
+    :min="200"
+    :max="900"
+    :step="100"
+    min-label="细"
+    max-label="粗"
+    :disabled="!viewSettings"
+  />
 </template>
 
-<script lang="ts" setup>
+<script setup lang="ts">
+import { mdiFormatBold } from '@mdi/js';
+import { computed } from 'vue';
+
 import { useViewSettings } from '@/hooks/useViewSettings';
 import { DEFAULT_BOOK_FONT } from '@/services/constants';
 
+import ReadingSlider from './ReadingSlider.vue';
+
 const { viewSettings, updateSetting } = useViewSettings();
-const fontWeight = ref(DEFAULT_BOOK_FONT.fontWeight);
-
-watchEffect(() => {
-  if (viewSettings.value) {
-    fontWeight.value = viewSettings.value.fontWeight ?? DEFAULT_BOOK_FONT.fontWeight;
-  }
-});
-
-watch(fontWeight, async () => {
-  await updateSetting('fontWeight', fontWeight.value);
+const fontWeight = computed({
+  get: () => viewSettings.value?.fontWeight ?? DEFAULT_BOOK_FONT.fontWeight,
+  set: (value: number) => void updateSetting('fontWeight', value),
 });
 </script>
