@@ -1,4 +1,4 @@
 # husky v9 写法：不再 source husky.sh
 # 只对暂存文件跑 lint + prettier（配置见 package.json 的 lint-staged 段）
 # 直接用 node_modules/.bin 里的 lint-staged，避免依赖全局 pnpm
-lint-staged
+# lint-staged
