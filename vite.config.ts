@@ -6,7 +6,9 @@ import Components from 'unplugin-vue-components/vite';
 import { defineConfig } from 'vite';
 import vuetify from 'vite-plugin-vuetify';
 
-import { dependencies, devDependencies, name, version } from './package.json';
+import packageJson from './package.json' with { type: 'json' };
+
+const { dependencies, devDependencies, name, version } = packageJson;
 
 const __APP_INFO__ = {
   pkg: { dependencies, devDependencies, name, version },
@@ -17,8 +19,8 @@ const __APP_INFO__ = {
 export default defineConfig(({ command }) => {
   const isDevelopment = command === 'serve';
   return {
-    envDir: path.resolve(__dirname, './'),
-    root: __dirname,
+    envDir: path.resolve(import.meta.dirname, './'),
+    root: import.meta.dirname,
     plugins: [
       // Tailwind v4 走 Vite 插件，不再需要 postcss / autoprefixer / @tailwindcss/postcss
       tailwindcss(),
