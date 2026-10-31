@@ -1,6 +1,7 @@
 // 加载css fonts等资源
 import './styles/animate.scss';
 import './styles/global.scss';
+import './styles/tailwind.css';
 import './styles/utility.scss';
 
 import { createApp } from 'vue';

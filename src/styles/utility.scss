@@ -14,8 +14,8 @@
 /* —— 卡片基底 —— */
 .lg-card {
   position: relative;
-  background: rgb(var(--v-theme-surface));
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  background: var(--color-surface);
+  border: 1px solid color-mix(in srgb, var(--color-on-surface) 8%, transparent);
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.06),
     0 2px 8px rgba(0, 0, 0, 0.04);
@@ -27,15 +27,15 @@
    避免 2px 主色描边在深色 / 其他调色板下显得过重。 */
 .lg-card--inset {
   border-radius: 14px;
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.075);
-  background: rgba(var(--v-theme-on-surface), 0.022);
+  border: 1px solid color-mix(in srgb, var(--color-on-surface) 7.5%, transparent);
+  background: color-mix(in srgb, var(--color-on-surface) 2.2%, transparent);
 }
 
 /* —— 细滚动条（全局 ::-webkit-scrollbar 会把滚动条完全隐藏，
    需要滚动的区域显式挂这个类） —— */
 .lg-scroll {
   scrollbar-width: thin;
-  scrollbar-color: rgba(var(--v-theme-on-surface), 0.2) transparent;
+  scrollbar-color: color-mix(in srgb, var(--color-on-surface) 20%, transparent) transparent;
   overscroll-behavior: contain;
 }
 .lg-scroll::-webkit-scrollbar {
@@ -47,10 +47,10 @@
 }
 .lg-scroll::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(var(--v-theme-on-surface), 0.16);
+  background: color-mix(in srgb, var(--color-on-surface) 16%, transparent);
 }
 .lg-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(var(--v-theme-on-surface), 0.3);
+  background: color-mix(in srgb, var(--color-on-surface) 30%, transparent);
 }
 
 /* —— 胶囊按钮 —— */
@@ -61,9 +61,9 @@
   gap: 6px;
   padding: 7px 14px;
   border-radius: 999px;
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
-  background: rgb(var(--v-theme-surface));
-  color: rgba(var(--v-theme-on-surface), 0.78);
+  border: 1px solid color-mix(in srgb, var(--color-on-surface) 10%, transparent);
+  background: var(--color-surface);
+  color: color-mix(in srgb, var(--color-on-surface) 78%, transparent);
   font-size: 12.5px;
   font-weight: 500;
   cursor: pointer;
@@ -75,8 +75,8 @@
     box-shadow 0.2s ease;
 }
 .lg-pill:hover:not(:disabled) {
-  background: rgba(var(--v-theme-on-surface), 0.06);
-  color: rgba(var(--v-theme-on-surface), 0.92);
+  background: color-mix(in srgb, var(--color-on-surface) 6%, transparent);
+  color: color-mix(in srgb, var(--color-on-surface) 92%, transparent);
 }
 .lg-pill:active:not(:disabled) {
   transform: scale(0.97);
@@ -88,7 +88,7 @@
 }
 .lg-pill:focus-visible,
 .lg-icon-btn:focus-visible {
-  outline: 2px solid rgba(var(--v-theme-primary), 0.55);
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 55%, transparent);
   outline-offset: 2px;
 }
 
@@ -103,15 +103,15 @@
   border: none;
   background: transparent;
   cursor: pointer;
-  color: rgba(var(--v-theme-on-surface), 0.55);
+  color: color-mix(in srgb, var(--color-on-surface) 55%, transparent);
   transition:
     background 0.18s ease,
     color 0.18s ease;
   padding: 0;
 }
 .lg-icon-btn:hover:not(:disabled) {
-  background: rgba(var(--v-theme-on-surface), 0.07);
-  color: rgba(var(--v-theme-on-surface), 0.85);
+  background: color-mix(in srgb, var(--color-on-surface) 7%, transparent);
+  color: color-mix(in srgb, var(--color-on-surface) 85%, transparent);
 }
 .lg-icon-btn:disabled {
   opacity: 0.35;
@@ -124,27 +124,27 @@
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: rgba(var(--v-theme-on-surface), 0.4);
+  color: color-mix(in srgb, var(--color-on-surface) 40%, transparent);
 }
 
 /* —— 统一键盘按键样式 —— */
 .lg-kbd {
   display: inline-block;
-  background: rgba(var(--v-theme-on-surface), 0.07);
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+  background: color-mix(in srgb, var(--color-on-surface) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-on-surface) 12%, transparent);
   border-bottom-width: 2px;
   border-radius: 6px;
   padding: 0 5px;
   font-size: 10.5px;
   font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
-  color: rgba(var(--v-theme-on-surface), 0.6);
+  color: color-mix(in srgb, var(--color-on-surface) 60%, transparent);
   line-height: 1.6;
 }
 
 /* —— 角色面板抽屉（Vuetify 内部根元素，需全局覆盖） —— */
 .char-panel.v-navigation-drawer {
-  background: rgb(var(--v-theme-surface));
-  border-left: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  background: var(--color-surface);
+  border-left: 1px solid color-mix(in srgb, var(--color-on-surface) 8%, transparent);
   border-top-left-radius: 20px;
   border-bottom-left-radius: 20px;
 }

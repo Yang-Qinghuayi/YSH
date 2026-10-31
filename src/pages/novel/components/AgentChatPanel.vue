@@ -1,5 +1,5 @@
 <template>
-  <div class="agent-panel d-flex flex-column">
+  <div class="agent-panel flex flex-col">
     <AgentHeader
       :chapter="chapter"
       :content-length="contentLength"

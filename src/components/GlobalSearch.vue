@@ -199,8 +199,8 @@ function escapeHtml(s: string): string {
   max-width: calc(100vw - 48px);
   max-height: 480px;
   border-radius: 20px;
-  background: rgb(var(--v-theme-surface));
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+  background: var(--color-surface);
+  border: 1px solid color-mix(in srgb, var(--color-on-surface) 10%, transparent);
   box-shadow:
     0 24px 64px rgba(0, 0, 0, 0.28),
     0 4px 16px rgba(0, 0, 0, 0.12);
@@ -218,7 +218,7 @@ function escapeHtml(s: string): string {
 }
 
 .search-icon {
-  color: rgba(var(--v-theme-on-surface), 0.4);
+  color: color-mix(in srgb, var(--color-on-surface) 40%, transparent);
   flex-shrink: 0;
 }
 
@@ -228,18 +228,18 @@ function escapeHtml(s: string): string {
   border: none;
   outline: none;
   font-size: 15px;
-  color: rgba(var(--v-theme-on-surface), 0.9);
+  color: color-mix(in srgb, var(--color-on-surface) 90%, transparent);
   font-family: inherit;
-  caret-color: rgb(var(--v-theme-primary));
+  caret-color: var(--color-primary);
 }
 
 .search-input::placeholder {
-  color: rgba(var(--v-theme-on-surface), 0.3);
+  color: color-mix(in srgb, var(--color-on-surface) 30%, transparent);
 }
 
 .result-count {
   font-size: 11px;
-  color: rgba(var(--v-theme-on-surface), 0.35);
+  color: color-mix(in srgb, var(--color-on-surface) 35%, transparent);
   flex-shrink: 0;
   white-space: nowrap;
 }
@@ -247,7 +247,7 @@ function escapeHtml(s: string): string {
 /* ====== 分割线 ====== */
 .search-divider {
   height: 1px;
-  background: rgba(var(--v-theme-on-surface), 0.07);
+  background: color-mix(in srgb, var(--color-on-surface) 7%, transparent);
   flex-shrink: 0;
 }
 
@@ -269,12 +269,12 @@ function escapeHtml(s: string): string {
 }
 
 .result-item:hover {
-  background: rgba(var(--v-theme-on-surface), 0.05);
+  background: color-mix(in srgb, var(--color-on-surface) 5%, transparent);
 }
 
 .result-item--active {
-  background: rgba(var(--v-theme-primary), 0.1);
-  box-shadow: inset 0 0 0 1px rgba(var(--v-theme-primary), 0.18);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 18%, transparent);
 }
 
 .result-meta {
@@ -287,17 +287,17 @@ function escapeHtml(s: string): string {
 .result-chapter {
   font-size: 11px;
   font-weight: 600;
-  color: rgba(var(--v-theme-primary), 0.85);
+  color: color-mix(in srgb, var(--color-primary) 85%, transparent);
 }
 
 .result-line-no {
   font-size: 10.5px;
-  color: rgba(var(--v-theme-on-surface), 0.35);
+  color: color-mix(in srgb, var(--color-on-surface) 35%, transparent);
 }
 
 .result-line {
   font-size: 13px;
-  color: rgba(var(--v-theme-on-surface), 0.75);
+  color: color-mix(in srgb, var(--color-on-surface) 75%, transparent);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -306,8 +306,8 @@ function escapeHtml(s: string): string {
 
 /* 高亮匹配词 */
 .result-line :deep(mark) {
-  background: rgba(var(--v-theme-warning), 0.35);
-  color: rgba(var(--v-theme-on-surface), 0.9);
+  background: color-mix(in srgb, var(--color-warning) 35%, transparent);
+  color: color-mix(in srgb, var(--color-on-surface) 90%, transparent);
   border-radius: 2px;
   padding: 0 1px;
 }
@@ -319,30 +319,30 @@ function escapeHtml(s: string): string {
   justify-content: center;
   padding: 32px 16px;
   font-size: 13px;
-  color: rgba(var(--v-theme-on-surface), 0.35);
+  color: color-mix(in srgb, var(--color-on-surface) 35%, transparent);
 }
 
 /* ====== 底部提示 ====== */
 .search-footer {
   flex-shrink: 0;
   padding: 8px 16px;
-  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.06);
+  border-top: 1px solid color-mix(in srgb, var(--color-on-surface) 6%, transparent);
   display: flex;
   gap: 14px;
   font-size: 11px;
-  color: rgba(var(--v-theme-on-surface), 0.3);
+  color: color-mix(in srgb, var(--color-on-surface) 30%, transparent);
 }
 
 kbd {
   display: inline-block;
-  background: rgba(var(--v-theme-on-surface), 0.07);
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+  background: color-mix(in srgb, var(--color-on-surface) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-on-surface) 12%, transparent);
   border-bottom-width: 2px;
   border-radius: 4px;
   padding: 0 4px;
   font-size: 10px;
   font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
-  color: rgba(var(--v-theme-on-surface), 0.5);
+  color: color-mix(in srgb, var(--color-on-surface) 50%, transparent);
   line-height: 1.6;
   margin-right: 1px;
 }

@@ -107,12 +107,7 @@
       <transition name="slide-down">
         <div v-if="selectedPath" class="selected-wrap">
           <div class="selected-path">
-            <v-icon
-              :icon="mdiCheckCircleOutline"
-              size="16"
-              color="success"
-              class="mr-2 flex-shrink-0"
-            />
+            <v-icon :icon="mdiCheckCircleOutline" size="16" color="success" class="mr-2 shrink-0" />
             <span class="path-text">{{ selectedPath }}</span>
           </div>
         </div>
@@ -192,7 +187,7 @@ function handleUseDefault() {
   justify-content: center;
   height: 100%;
   width: 100%;
-  background: rgba(var(--v-theme-background), 1);
+  background: color-mix(in srgb, var(--color-background) 100%, transparent);
 }
 
 /* 卡片 */
@@ -201,12 +196,12 @@ function handleUseDefault() {
   max-width: 92%;
   padding: 36px 32px 28px;
   border-radius: 20px;
-  background: rgb(var(--v-theme-surface));
+  background: var(--color-surface);
   box-shadow:
-    0 2px 0 1px rgba(var(--v-theme-on-surface), 0.04),
+    0 2px 0 1px color-mix(in srgb, var(--color-on-surface) 4%, transparent),
     0 8px 32px rgba(0, 0, 0, 0.08),
     0 1px 3px rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.07);
+  border: 1px solid color-mix(in srgb, var(--color-on-surface) 7%, transparent);
   text-align: center;
 }
 
@@ -215,7 +210,7 @@ function handleUseDefault() {
   width: 64px;
   height: 64px;
   border-radius: 16px;
-  background: rgba(var(--v-theme-primary), 0.1);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -226,14 +221,14 @@ function handleUseDefault() {
 .card-title {
   font-size: 18px;
   font-weight: 600;
-  color: rgba(var(--v-theme-on-surface), 0.88);
+  color: color-mix(in srgb, var(--color-on-surface) 88%, transparent);
   margin: 0 0 8px;
   letter-spacing: -0.01em;
 }
 
 .card-desc {
   font-size: 13px;
-  color: rgba(var(--v-theme-on-surface), 0.5);
+  color: color-mix(in srgb, var(--color-on-surface) 50%, transparent);
   margin: 0 0 24px;
   line-height: 1.6;
 }
@@ -253,11 +248,11 @@ function handleUseDefault() {
 .divider-line {
   flex: 1;
   height: 1px;
-  background: rgba(var(--v-theme-on-surface), 0.1);
+  background: color-mix(in srgb, var(--color-on-surface) 10%, transparent);
 }
 .divider-text {
   font-size: 11.5px;
-  color: rgba(var(--v-theme-on-surface), 0.35);
+  color: color-mix(in srgb, var(--color-on-surface) 35%, transparent);
 }
 
 /* 次要按钮 */
@@ -265,10 +260,10 @@ function handleUseDefault() {
   width: 100%;
   padding: 8px 16px;
   border-radius: 10px;
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+  border: 1px solid color-mix(in srgb, var(--color-on-surface) 12%, transparent);
   background: transparent;
   font-size: 13px;
-  color: rgba(var(--v-theme-on-surface), 0.65);
+  color: color-mix(in srgb, var(--color-on-surface) 65%, transparent);
   cursor: pointer;
   transition:
     background 0.18s ease,
@@ -279,13 +274,13 @@ function handleUseDefault() {
   justify-content: center;
 }
 .secondary-btn:hover {
-  background: rgba(var(--v-theme-on-surface), 0.05);
-  border-color: rgba(var(--v-theme-on-surface), 0.2);
+  background: color-mix(in srgb, var(--color-on-surface) 5%, transparent);
+  border-color: color-mix(in srgb, var(--color-on-surface) 20%, transparent);
 }
 
 .secondary-desc {
   font-size: 11px;
-  color: rgba(var(--v-theme-on-surface), 0.3);
+  color: color-mix(in srgb, var(--color-on-surface) 30%, transparent);
   margin: 6px 0 0;
 }
 
@@ -297,15 +292,15 @@ function handleUseDefault() {
 .create-input :deep(.v-field__outline__start),
 .create-input :deep(.v-field__outline__end),
 .create-input :deep(.v-field__outline__notch) {
-  border-color: rgba(var(--v-theme-on-surface), 0.18) !important;
+  border-color: color-mix(in srgb, var(--color-on-surface) 18%, transparent) !important;
 }
 .create-input :deep(.v-field--focused .v-field__outline__start),
 .create-input :deep(.v-field--focused .v-field__outline__end),
 .create-input :deep(.v-field--focused .v-field__outline__notch) {
-  border-color: rgb(var(--v-theme-primary)) !important;
+  border-color: var(--color-primary) !important;
 }
 .create-input :deep(input::placeholder) {
-  color: rgba(var(--v-theme-on-surface), 0.38);
+  color: color-mix(in srgb, var(--color-on-surface) 38%, transparent);
 }
 
 /* 已选路径 */
@@ -318,14 +313,14 @@ function handleUseDefault() {
   align-items: center;
   padding: 8px 12px;
   border-radius: 10px;
-  background: rgba(var(--v-theme-success), 0.07);
-  border: 1px solid rgba(var(--v-theme-success), 0.2);
+  background: color-mix(in srgb, var(--color-success) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-success) 20%, transparent);
   text-align: left;
 }
 
 .path-text {
   font-size: 11.5px;
-  color: rgba(var(--v-theme-on-surface), 0.65);
+  color: color-mix(in srgb, var(--color-on-surface) 65%, transparent);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

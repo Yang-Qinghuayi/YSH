@@ -1,19 +1,19 @@
 <template>
   <v-dialog v-model="showMenu">
     <v-card
-      :class="[smAndUp ? 'menu-card--wide' : 'w-100 pa-4']"
+      :class="[smAndUp ? 'menu-card--wide' : 'w-full p-4']"
       color="surface"
-      class="d-flex align-center flex-column mx-auto"
+      class="flex items-center flex-col mx-auto"
     >
       <v-card-title class="text-center">菜单</v-card-title>
-      <FontSizeSlider class="w-100 mt-4" />
-      <FontWeightSlider class="w-100 mt-4" />
+      <FontSizeSlider class="w-full mt-4" />
+      <FontWeightSlider class="w-full mt-4" />
 
-      <div class="w-100 mt-4">
-        <div class="menu-row d-flex justify-space-between align-center px-3 py-3">
+      <div class="w-full mt-4">
+        <div class="menu-row flex justify-between items-center px-3 py-3">
           <div>
-            <p class="text-high-emphasis">连续滚动</p>
-            <p class="text-body-small text-medium-emphasis">像信息流一样上下滑动翻页</p>
+            <p class="text-on-surface/87">连续滚动</p>
+            <p class="text-xs text-on-surface/60">像信息流一样上下滑动翻页</p>
           </div>
           <v-switch
             v-model="scrollMode"
@@ -25,9 +25,9 @@
         </div>
       </div>
 
-      <div class="w-100 mt-4">
-        <div class="menu-row d-flex justify-space-between align-center px-3 py-3">
-          <p class="text-high-emphasis">双列显示</p>
+      <div class="w-full mt-4">
+        <div class="menu-row flex justify-between items-center px-3 py-3">
+          <p class="text-on-surface/87">双列显示</p>
           <v-switch
             v-model="setTwoColumn"
             hide-details
@@ -39,9 +39,9 @@
         </div>
       </div>
 
-      <div class="w-100 mt-4">
-        <div class="menu-row d-flex justify-space-between align-center px-3 py-3">
-          <p class="text-high-emphasis">覆盖字体</p>
+      <div class="w-full mt-4">
+        <div class="menu-row flex justify-between items-center px-3 py-3">
+          <p class="text-on-surface/87">覆盖字体</p>
           <v-switch
             v-model="overrideFont"
             hide-details
@@ -53,15 +53,15 @@
         </div>
       </div>
 
-      <div class="w-100 mt-4">
-        <div class="menu-row d-flex justify-space-between align-center px-3 py-3">
-          <p class="text-high-emphasis">选择字体</p>
+      <div class="w-full mt-4">
+        <div class="menu-row flex justify-between items-center px-3 py-3">
+          <p class="text-on-surface/87">选择字体</p>
           <v-menu>
             <template #activator="{ props }">
-              <v-chip class="text-medium-emphasis my-1" v-bind="props">{{ defaultCJKFont }}</v-chip>
+              <v-chip class="text-on-surface/60 my-1" v-bind="props">{{ defaultCJKFont }}</v-chip>
             </template>
 
-            <v-list elevation="6" class="pa-0">
+            <v-list elevation="6" class="p-0">
               <v-list-item
                 v-for="(item, index) in CJKFonts"
                 :key="index"
@@ -204,9 +204,9 @@ watch(setTwoColumn, () => {
 <style scoped>
 /* 菜单里的开关行：毛玻璃卡片（原 Tailwind 的 bg-gray-300/30 + backdrop-blur + shadow） */
 .menu-row {
-  background: rgb(var(--v-theme-surface-variant) / 55%);
+  background: color-mix(in srgb, var(--color-surface-variant) 55%, transparent);
   backdrop-filter: blur(24px);
-  border: 1px solid rgb(var(--v-theme-outline) / 55%);
+  border: 1px solid color-mix(in srgb, var(--color-outline) 55%, transparent);
   border-radius: 8px;
   box-shadow:
     0 4px 6px -1px rgb(0 0 0 / 10%),

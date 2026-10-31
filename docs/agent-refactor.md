@@ -117,13 +117,13 @@ src/services/agent/
 本重构最初基于 `ae51962`。合并 `ysh`（13 个新提交）时按「保留拆分结构 + 移植主干语义改动」处理，
 主干那批提交里夹了一次全仓格式化，因此以下列真实语义改动为准：
 
-| 主干改动                                                                                     | 在重构后的落点                                                                                                 |
-| -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| 移除 `openai` SDK，改 `fetch` + SSE（新增 `src/types/llm.ts`）                               | `agent/llm.ts` 重写为 `createLlmClient` + `readSseData` + `withTimeout`；其余模块的类型改从 `@/types/llm` 导入 |
-| 测试网络边界从 `openai` 桩改为 `fetch` 桩（`tests/stubs/fetch.mjs`）                         | `agentChat` / `chapterFinalize` e2e 改用 `installFetchStub()`；`tests/stubs/openai.mjs` 删除                   |
-| Vuetify 4 工具类迁移（`flex-1`→`flex-1-1`、`gap-N`→`ga-N`、`text-h6`→`text-title-large` 等） | 拆分出的组件同步改名，并重跑 `scripts/gen-vuetify-utilities.mjs`（产物与主干一致）                             |
-| `chapterFinalize` 未使用赋值清理                                                             | `agent/finalize.ts` 同步                                                                                       |
-| 加载器新增「裸包无扩展名相对路径」解析                                                       | `tests/stubs/loader.mjs` 与本次的「源码省略扩展名」解析合并成一个函数                                          |
+| 主干改动                                                                                     | 在重构后的落点                                                                                                                                                                                               |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 移除 `openai` SDK，改 `fetch` + SSE（新增 `src/types/llm.ts`）                               | `agent/llm.ts` 重写为 `createLlmClient` + `readSseData` + `withTimeout`；其余模块的类型改从 `@/types/llm` 导入                                                                                               |
+| 测试网络边界从 `openai` 桩改为 `fetch` 桩（`tests/stubs/fetch.mjs`）                         | `agentChat` / `chapterFinalize` e2e 改用 `installFetchStub()`；`tests/stubs/openai.mjs` 删除                                                                                                                 |
+| Vuetify 4 工具类迁移（`flex-1`→`flex-1-1`、`gap-N`→`ga-N`、`text-h6`→`text-title-large` 等） | 拆分出的组件同步改名；工具类后续已整体切回 Tailwind v4（`d-flex`→`flex`、`ga-2`→`gap-2`、`text-title-large`→`text-2xl`），`scripts/gen-vuetify-utilities.mjs` 与 `src/styles/vuetify-utilities.css` 随之删除 |
+| `chapterFinalize` 未使用赋值清理                                                             | `agent/finalize.ts` 同步                                                                                                                                                                                     |
+| 加载器新增「裸包无扩展名相对路径」解析                                                       | `tests/stubs/loader.mjs` 与本次的「源码省略扩展名」解析合并成一个函数                                                                                                                                        |
 
 ---
 

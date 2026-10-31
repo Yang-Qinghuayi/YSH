@@ -1,7 +1,8 @@
-// Vuetify 样式按需：只引入层顺序/reset 与工具类（d-flex / pa-3 / text-medium-emphasis…），
-// 组件样式由 vite-plugin-vuetify 的 autoImport 按需注入，不再 import 'vuetify/styles'（301 KB）。
+// Vuetify 样式按需：只引入层顺序 / reset，组件样式由 vite-plugin-vuetify 的
+// autoImport 按需注入，不再 import 'vuetify/styles'（301 KB）。
+// 工具类一律用 Tailwind（入口 src/styles/tailwind.css），Vuetify 的
+// utilities.css 不再引入。
 import 'vuetify/lib/styles/core.css';
-import '@/styles/vuetify-utilities.css';
 
 import type { App } from 'vue';
 import { createVuetify } from 'vuetify';
@@ -13,36 +14,36 @@ const baseTheme = {
   dark: false,
   colors: {
     primary: '#b85e4b',
-    onPrimary: '#fff8f6',
-    primaryContainer: '#ffd9cd',
+    'on-primary': '#fff8f6',
+    'primary-container': '#ffd9cd',
     secondary: '#8f6b50',
-    onSecondary: '#fff9f6',
-    secondaryContainer: '#f6e2bf',
+    'on-secondary': '#fff9f6',
+    'secondary-container': '#f6e2bf',
     tertiary: '#8f6b50',
-    onTertiary: '#fff9f6',
-    tertiaryContainer: '#f4ddce',
+    'on-tertiary': '#fff9f6',
+    'tertiary-container': '#f4ddce',
     error: '#b3261e',
-    errorContainer: '#ffdad4',
+    'error-container': '#ffdad4',
     success: '#2f6b4f',
-    onSuccess: '#ffffff',
-    successContainer: '#cfe9d8',
+    'on-success': '#ffffff',
+    'success-container': '#cfe9d8',
     info: '#3b5f8f',
-    onInfo: '#ffffff',
+    'on-info': '#ffffff',
     warning: '#8a5a00',
-    onWarning: '#ffffff',
-    onError: '#ffffff',
-    onErrorContainer: '#410001',
+    'on-warning': '#ffffff',
+    'on-error': '#ffffff',
+    'on-error-container': '#410001',
     background: '#fff4ef',
-    onBackground: '#432920',
+    'on-background': '#432920',
     surface: '#fff7f2',
-    onSurface: '#432920',
-    surfaceVariant: '#f5ece6',
-    onSurfaceVariant: '#725247',
+    'on-surface': '#432920',
+    'surface-variant': '#f5ece6',
+    'on-surface-variant': '#725247',
     outline: '#ddbeaf',
-    outlineVariant: '#b48d7e',
-    inverseSurface: '#34211d',
-    inverseOnSurface: '#fff0ea',
-    inversePrimary: '#ffd9cd',
+    'outline-variant': '#b48d7e',
+    'inverse-surface': '#34211d',
+    'inverse-on-surface': '#fff0ea',
+    'inverse-primary': '#ffd9cd',
   },
 };
 
@@ -60,6 +61,12 @@ export const useVuetify = (app: App) => {
     },
     theme: {
       defaultTheme: 'light',
+      // utilities: false —— 不让 Vuetify 生成自己的 .text-primary / .bg-* /
+      // .border-* 颜色类。那些类在运行时注入的 theme-foreground /
+      // theme-background 层里，声明时机晚于 Tailwind 的 utilities，
+      // 同名同类时会盖掉 Tailwind 的结果；关掉后颜色类只有 Tailwind 一个来源。
+      // （--v-theme-* 变量照常生成，Vuetify 组件内部与 Tailwind 的 --color-* 都依赖它们）
+      utilities: false,
       themes: {
         light: { dark: false, colors: baseTheme.colors },
         dark: { dark: true, colors: baseTheme.colors },

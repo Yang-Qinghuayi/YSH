@@ -67,6 +67,15 @@ patch/minor 全线升级，几个必须成组上 majors：`pinia` 4、`vue-route
 
 20 个 `.vue` 文件的工具类全部换成 Vuetify 4 的 M3 类名（`text-h6` → `text-title-large`、`text-body-2` → `text-body-medium`、`gap-2` → `ga-2`、`rounded-full` → `rounded-pill`…），Tailwind 专属效果（玻璃拟态、视口高度、TOC 面板）落到同文件 `<style scoped>`。
 
+> **2026-10-30 反转**：这一节的方向已撤回，工具类重新统一到 Tailwind v4。
+>
+> - 接入方式：`@tailwindcss/vite` 插件（**没有**引入 `@tailwindcss/postcss` / `postcss` / `autoprefixer`），入口 `src/styles/tailwind.css`。
+> - 迁移：`d-flex`→`flex`、`ga-2`→`gap-2`、`ma-3`/`pa-3`→`m-3`/`p-3`、`w-100`→`w-full`、`text-truncate`→`truncate`、`rounded-pill`→`rounded-full`、`text-body-small`→`text-xs`、`text-title-large`→`text-2xl`、`text-medium-emphasis`→`text-on-surface/60`（共 80 种 / 约 440 处，覆盖 30 个文件）。
+> - `@theme` 里把 `--v-theme-*` 接成 Tailwind 颜色（`--color-surface` 等），`bg-surface` / `text-primary` / `border-outline/30` 直接跟随 Material You 换肤。
+> - 层顺序在 `src/styles/tailwind.css` 顶部显式钉死：Vuetify 各层在前、Tailwind 的 `theme/base/components/utilities` 在后，所以 `fixed` 这类工具类能压住 `.v-btn { position: relative }`，book.vue 里那条未分层兜底规则随之删除。
+> - `src/styles/vuetify-utilities.css` 与 `scripts/gen-vuetify-utilities.mjs` 删除（Vuetify 组件内部不使用工具类，删掉无副作用）。
+> - 代价：依赖回到 `@tailwindcss/oxide`（2.9 MB）+ `lightningcss`（两份 ≈19 MB）原生二进制；入口 CSS 48 KB / gzip 9 KB。
+
 ### 3.4 路由级代码分割
 
 `router/index.ts` 里只有 `Home` / `Library` 保持静态导入，阅读器、设置、写作工作台改为 `() => import(...)`。

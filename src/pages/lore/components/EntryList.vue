@@ -1,5 +1,5 @@
 <template>
-  <div class="entry-list d-flex flex-column ga-1">
+  <div class="entry-list flex flex-col gap-1">
     <!-- 条目列表 -->
     <div
       v-for="entry in entries"
@@ -29,7 +29,7 @@
         @keyup.esc="cancelRename"
         @click.stop
       />
-      <span v-else class="entry-name text-truncate">{{ entry.name }}</span>
+      <span v-else class="entry-name truncate">{{ entry.name }}</span>
 
       <!-- 禁用图标 -->
       <v-icon
@@ -158,11 +158,11 @@ function cancelRename() {
   gap: 7px;
 }
 .entry-item:hover {
-  background: rgba(var(--v-theme-on-surface), 0.055);
+  background: color-mix(in srgb, var(--color-on-surface) 5.5%, transparent);
 }
 .entry-active {
-  background: rgba(var(--v-theme-primary), 0.1);
-  box-shadow: inset 0 0 0 1px rgba(var(--v-theme-primary), 0.2);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 20%, transparent);
 }
 
 .entry-star,
@@ -170,29 +170,29 @@ function cancelRename() {
   flex-shrink: 0;
 }
 .entry-dot {
-  color: rgba(var(--v-theme-on-surface), 0.3);
+  color: color-mix(in srgb, var(--color-on-surface) 30%, transparent);
 }
 
 .entry-name {
   flex: 1;
   font-size: 13px;
   font-weight: 450;
-  color: rgba(var(--v-theme-on-surface), 0.82);
+  color: color-mix(in srgb, var(--color-on-surface) 82%, transparent);
   transition: color 0.18s ease;
   min-width: 0;
 }
 .entry-active .entry-name {
-  color: rgb(var(--v-theme-primary));
+  color: var(--color-primary);
   font-weight: 500;
 }
 
 /* 禁用条目 */
 .entry-disabled .entry-name {
-  color: rgba(var(--v-theme-on-surface), 0.38);
+  color: color-mix(in srgb, var(--color-on-surface) 38%, transparent);
 }
 .entry-disabled-icon {
   flex-shrink: 0;
-  color: rgba(var(--v-theme-on-surface), 0.3);
+  color: color-mix(in srgb, var(--color-on-surface) 30%, transparent);
 }
 
 /* 内联重命名输入框 */
@@ -201,11 +201,11 @@ function cancelRename() {
   min-width: 0;
   font-size: 13px;
   font-weight: 500;
-  color: rgb(var(--v-theme-primary));
+  color: var(--color-primary);
   background: transparent;
   border: none;
   outline: none;
-  border-bottom: 1px solid rgba(var(--v-theme-primary), 0.5);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-primary) 50%, transparent);
   padding: 0 2px;
   line-height: 1.4;
 }
@@ -224,7 +224,7 @@ function cancelRename() {
   background: transparent;
   cursor: pointer;
   padding: 0;
-  color: rgba(var(--v-theme-error), 0.7);
+  color: color-mix(in srgb, var(--color-error) 70%, transparent);
   transition:
     opacity 0.18s ease,
     background 0.15s ease;
@@ -235,13 +235,13 @@ function cancelRename() {
   pointer-events: auto;
 }
 .entry-del:hover {
-  background: rgba(var(--v-theme-error), 0.1);
+  background: color-mix(in srgb, var(--color-error) 10%, transparent);
 }
 
 /* 空状态 */
 .entry-empty {
   font-size: 12px;
-  color: rgba(var(--v-theme-on-surface), 0.35);
+  color: color-mix(in srgb, var(--color-on-surface) 35%, transparent);
   padding: 4px 8px;
 }
 
@@ -259,19 +259,19 @@ function cancelRename() {
   margin-top: 4px;
   padding: 7px 12px;
   border-radius: 10px;
-  border: 1px solid rgba(var(--v-theme-primary), 0.35);
-  background: rgba(var(--v-theme-primary), 0.05);
-  color: rgba(var(--v-theme-on-surface), 0.88);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 5%, transparent);
+  color: color-mix(in srgb, var(--color-on-surface) 88%, transparent);
   font-size: 13px;
   outline: none;
   box-sizing: border-box;
   transition: border-color 0.18s ease;
 }
 .create-input::placeholder {
-  color: rgba(var(--v-theme-on-surface), 0.3);
+  color: color-mix(in srgb, var(--color-on-surface) 30%, transparent);
 }
 .create-input:focus {
-  border-color: rgba(var(--v-theme-primary), 0.6);
-  background: rgba(var(--v-theme-primary), 0.07);
+  border-color: color-mix(in srgb, var(--color-primary) 60%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 7%, transparent);
 }
 </style>
