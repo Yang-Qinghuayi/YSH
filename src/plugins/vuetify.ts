@@ -47,6 +47,11 @@ const baseTheme = {
 export const useVuetify = (app: App) => {
   // 组件与指令由 vite-plugin-vuetify 的 autoImport 按需注入。
   const vuetify = createVuetify({
+    defaults: {
+      // 开启时使用主题主色；关闭时也保留清晰的中性轨道，便于辨认状态。
+      VSwitch: { color: 'primary', baseColor: 'outline' },
+      VSlider: { color: 'primary' },
+    },
     icons: {
       defaultSet: 'mdi',
       aliases,
