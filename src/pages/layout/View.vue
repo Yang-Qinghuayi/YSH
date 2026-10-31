@@ -1,12 +1,8 @@
 <template>
-  <v-main
-    class="overflow-y-auto"
-    :class="{ 'reader-main': isBook }"
-    :style="isBook ? undefined : { height: 'calc(100vh - 16px)' }"
-  >
+  <v-main class="overflow-y-auto" :class="{ 'reader-main': isBook }">
     <v-container
       class="pl-0 pb-4 pt-0"
-      :class="{ 'reader-container': isBook }"
+      :class="{ 'viewport-container': isBook || isNovel, 'reader-container': isBook }"
       style="height: 100%"
       fluid
     >
@@ -28,20 +24,27 @@
 <script setup lang="ts">
 const route = useRoute();
 const isBook = computed(() => route.name === 'book');
+const isNovel = computed(() => route.name === 'novel');
 </script>
 
 <style scoped>
-.reader-main {
+.v-main {
   height: 100dvh;
+}
+
+.reader-main {
   overflow: hidden !important;
 }
 
-.reader-container {
+.viewport-container {
   display: flex;
   flex-direction: column;
+  min-height: 0;
+}
+
+.reader-container {
   padding-right: 0;
   padding-bottom: 0 !important;
-  min-height: 0;
 }
 
 .view-drag-region {

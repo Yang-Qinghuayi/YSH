@@ -45,7 +45,7 @@
           v-if="bookDoc && showBigCatalog && lgAndUp"
           :book-id
           :doc="bookDoc"
-          class="border-[3px] border-primary/20 rounded-[10px]"
+          class="mr-4 border-[3px] border-primary/20 rounded-[10px]"
         >
         </TOCView>
       </transition>
