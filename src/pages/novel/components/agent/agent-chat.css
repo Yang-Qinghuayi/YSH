@@ -4,15 +4,15 @@
  * 所有颜色取自 Vuetify 的 --v-theme-* 变量，跟随调色板与深色模式。
  * ============================================================ */
 .agent-panel {
-  --ap-line: rgba(var(--v-theme-on-surface), 0.075);
-  --ap-line-strong: rgba(var(--v-theme-on-surface), 0.12);
-  --ap-tint: rgba(var(--v-theme-on-surface), 0.035);
+  --ap-line: color-mix(in srgb, var(--color-on-surface) 7.5%, transparent);
+  --ap-line-strong: color-mix(in srgb, var(--color-on-surface) 12%, transparent);
+  --ap-tint: color-mix(in srgb, var(--color-on-surface) 3.5%, transparent);
   height: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: rgb(var(--v-theme-surface));
+  background: var(--color-surface);
 }
 
 /* ===== 头部 ===== */
@@ -35,7 +35,7 @@
   font-weight: 600;
   letter-spacing: 0.01em;
   white-space: nowrap;
-  color: rgba(var(--v-theme-on-surface), 0.88);
+  color: color-mix(in srgb, var(--color-on-surface) 88%, transparent);
 }
 .agent-panel .agent-panel__target {
   font-size: 10.5px !important;
@@ -51,11 +51,11 @@
   border-radius: 10px;
   background: linear-gradient(
     135deg,
-    rgba(var(--v-theme-primary), 0.18),
-    rgba(var(--v-theme-primary), 0.08)
+    color-mix(in srgb, var(--color-primary) 18%, transparent),
+    color-mix(in srgb, var(--color-primary) 8%, transparent)
   );
-  box-shadow: inset 0 0 0 1px rgba(var(--v-theme-primary), 0.1);
-  color: rgb(var(--v-theme-primary));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 10%, transparent);
+  color: var(--color-primary);
 }
 .agent-panel .agent-panel__head .lg-icon-btn {
   width: 28px;
@@ -69,22 +69,22 @@
   font-size: 11.5px;
   padding: 5px 11px;
   white-space: nowrap;
-  color: rgb(var(--v-theme-primary));
-  background: rgba(var(--v-theme-primary), 0.09);
-  border-color: rgba(var(--v-theme-primary), 0.16);
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 9%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary) 16%, transparent);
 }
 .agent-panel .finalize-btn:hover:not(:disabled) {
-  background: rgba(var(--v-theme-primary), 0.16);
-  color: rgb(var(--v-theme-primary));
+  background: color-mix(in srgb, var(--color-primary) 16%, transparent);
+  color: var(--color-primary);
 }
 .agent-panel .finalize-btn--done {
-  color: rgb(var(--v-theme-success));
-  background: rgba(var(--v-theme-success), 0.09);
-  border-color: rgba(var(--v-theme-success), 0.18);
+  color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 9%, transparent);
+  border-color: color-mix(in srgb, var(--color-success) 18%, transparent);
 }
 .agent-panel .finalize-btn--done:hover:not(:disabled) {
-  background: rgba(var(--v-theme-success), 0.16);
-  color: rgb(var(--v-theme-success));
+  background: color-mix(in srgb, var(--color-success) 16%, transparent);
+  color: var(--color-success);
 }
 .agent-panel .finalize-btn:disabled {
   opacity: 0.4;
@@ -108,7 +108,7 @@
   gap: 8px;
 }
 .agent-panel .context-meter__top {
-  color: rgba(var(--v-theme-on-surface), 0.6);
+  color: color-mix(in srgb, var(--color-on-surface) 60%, transparent);
   font-size: 11px;
 }
 .agent-panel .context-meter__top span {
@@ -117,7 +117,7 @@
   gap: 5px;
 }
 .agent-panel .context-meter__top strong {
-  color: rgb(var(--v-theme-primary));
+  color: var(--color-primary);
   font-size: 11.5px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -127,7 +127,7 @@
   margin: 6px 0 5px;
   border-radius: 999px;
   overflow: hidden;
-  background: rgba(var(--v-theme-on-surface), 0.1);
+  background: color-mix(in srgb, var(--color-on-surface) 10%, transparent);
 }
 .agent-panel .context-meter__fill {
   height: 100%;
@@ -135,21 +135,25 @@
   /* 只用主色的明度渐变，避免不同调色板下 tertiary 色相跳变 */
   background: linear-gradient(
     90deg,
-    rgba(var(--v-theme-primary), 0.55),
-    rgb(var(--v-theme-primary))
+    color-mix(in srgb, var(--color-primary) 55%, transparent),
+    var(--color-primary)
   );
   transition: width 0.35s ease;
 }
 .agent-panel .context-meter__bottom {
-  color: rgba(var(--v-theme-on-surface), 0.42);
+  color: color-mix(in srgb, var(--color-on-surface) 42%, transparent);
   font-size: 10px;
   font-variant-numeric: tabular-nums;
 }
 .agent-panel .context-meter--warning .context-meter__top strong {
-  color: rgb(var(--v-theme-error));
+  color: var(--color-error);
 }
 .agent-panel .context-meter--warning .context-meter__fill {
-  background: linear-gradient(90deg, rgba(var(--v-theme-error), 0.55), rgb(var(--v-theme-error)));
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-error) 55%, transparent),
+    var(--color-error)
+  );
 }
 .agent-panel .agent-panel__status {
   display: flex;
@@ -158,12 +162,12 @@
   padding: 6px 9px;
   flex-shrink: 0;
   border-radius: 10px;
-  background: rgba(var(--v-theme-primary), 0.07);
-  border: 1px solid rgba(var(--v-theme-primary), 0.12);
+  background: color-mix(in srgb, var(--color-primary) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 12%, transparent);
 }
 .agent-panel .agent-panel__status-text {
   font-size: 11.5px;
-  color: rgba(var(--v-theme-on-surface), 0.7);
+  color: color-mix(in srgb, var(--color-on-surface) 70%, transparent);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -200,19 +204,19 @@
   width: 56px;
   height: 56px;
   border-radius: 18px;
-  background: rgba(var(--v-theme-primary), 0.1);
-  box-shadow: inset 0 0 0 1px rgba(var(--v-theme-primary), 0.1);
-  color: rgb(var(--v-theme-primary));
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 10%, transparent);
+  color: var(--color-primary);
   margin-bottom: 4px;
 }
 .agent-panel .empty-title {
   font-size: 15px;
   font-weight: 600;
-  color: rgba(var(--v-theme-on-surface), 0.85);
+  color: color-mix(in srgb, var(--color-on-surface) 85%, transparent);
 }
 .agent-panel .empty-sub {
   font-size: 12px;
-  color: rgba(var(--v-theme-on-surface), 0.48);
+  color: color-mix(in srgb, var(--color-on-surface) 48%, transparent);
   line-height: 1.75;
 }
 .agent-panel .empty-hints {
@@ -224,7 +228,7 @@
   padding: 10px 12px;
   border-radius: 14px;
   border: 1px solid var(--ap-line);
-  background: rgba(var(--v-theme-on-surface), 0.02);
+  background: color-mix(in srgb, var(--color-on-surface) 2%, transparent);
 }
 .agent-panel .empty-hint-item {
   display: flex;
@@ -233,11 +237,11 @@
   font-size: 11.5px;
   line-height: 1.5;
   text-align: left;
-  color: rgba(var(--v-theme-on-surface), 0.58);
+  color: color-mix(in srgb, var(--color-on-surface) 58%, transparent);
 }
 .agent-panel .empty-hint-item .v-icon {
   flex-shrink: 0;
-  color: rgba(var(--v-theme-primary), 0.65);
+  color: color-mix(in srgb, var(--color-primary) 65%, transparent);
 }
 
 /* 用户消息（右对齐气泡） */
@@ -250,9 +254,9 @@
   max-width: 100%;
   padding: 9px 13px;
   border-radius: 14px 14px 5px 14px;
-  background: rgba(var(--v-theme-primary), 0.12);
-  border: 1px solid rgba(var(--v-theme-primary), 0.1);
-  color: rgba(var(--v-theme-on-surface), 0.9);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 10%, transparent);
+  color: color-mix(in srgb, var(--color-on-surface) 90%, transparent);
   font-size: 12.8px;
   line-height: 1.7;
   white-space: pre-wrap;
@@ -275,8 +279,8 @@
   flex: 0 0 26px;
   margin-top: 1px;
   border-radius: 9px;
-  background: rgba(var(--v-theme-primary), 0.1);
-  color: rgb(var(--v-theme-primary));
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  color: var(--color-primary);
 }
 .agent-panel .chat-assistant__bubble {
   flex: 1;
@@ -284,17 +288,17 @@
   padding: 8px 11px;
   border-radius: 5px 14px 14px 14px;
   border: 1px solid var(--ap-line);
-  background: rgba(var(--v-theme-on-surface), 0.04);
+  background: color-mix(in srgb, var(--color-on-surface) 4%, transparent);
 }
 .agent-panel .chat-assistant__text {
   font-size: 12.8px;
   line-height: 1.75;
-  color: rgba(var(--v-theme-on-surface), 0.82);
+  color: color-mix(in srgb, var(--color-on-surface) 82%, transparent);
   white-space: pre-wrap;
   word-break: break-word;
 }
 .agent-panel .chat-cursor {
-  color: rgb(var(--v-theme-primary));
+  color: var(--color-primary);
   animation: chat-blink 1s steps(1) infinite;
 }
 @keyframes chat-blink {
@@ -309,10 +313,10 @@
   border-radius: 12px;
 }
 .agent-panel .chat-tool--running {
-  border-color: rgba(var(--v-theme-primary), 0.22);
+  border-color: color-mix(in srgb, var(--color-primary) 22%, transparent);
 }
 .agent-panel .chat-tool--error {
-  border-color: rgba(var(--v-theme-error), 0.25);
+  border-color: color-mix(in srgb, var(--color-error) 25%, transparent);
 }
 .agent-panel .chat-tool__head {
   display: flex;
@@ -331,17 +335,17 @@
   font-family: ui-monospace, 'SF Mono', 'Menlo', var(--font-sans), monospace;
   font-size: 11.5px;
   font-weight: 600;
-  color: rgb(var(--v-theme-primary));
+  color: var(--color-primary);
   flex-shrink: 0;
 }
 .agent-panel .chat-tool__summary {
   font-size: 11px;
-  color: rgba(var(--v-theme-on-surface), 0.5);
+  color: color-mix(in srgb, var(--color-on-surface) 50%, transparent);
   flex: 1;
   min-width: 0;
 }
 .agent-panel .chat-tool__chevron {
-  color: rgba(var(--v-theme-on-surface), 0.32);
+  color: color-mix(in srgb, var(--color-on-surface) 32%, transparent);
   flex-shrink: 0;
 }
 .agent-panel .chat-tool__detail {
@@ -349,10 +353,10 @@
   padding: 8px 10px;
   border-radius: 10px;
   border: 1px solid var(--ap-line);
-  background: rgba(var(--v-theme-on-surface), 0.04);
+  background: color-mix(in srgb, var(--color-on-surface) 4%, transparent);
   font-size: 11px;
   line-height: 1.65;
-  color: rgba(var(--v-theme-on-surface), 0.62);
+  color: color-mix(in srgb, var(--color-on-surface) 62%, transparent);
   white-space: pre-wrap;
   word-break: break-word;
   max-height: 160px;
@@ -369,11 +373,11 @@
   flex-wrap: wrap;
   gap: 5px;
   font-size: 11px;
-  color: rgba(var(--v-theme-on-surface), 0.7);
+  color: color-mix(in srgb, var(--color-on-surface) 70%, transparent);
   margin-bottom: 6px;
 }
 .agent-panel .chat-write-meta .v-icon {
-  color: rgb(var(--v-theme-primary));
+  color: var(--color-primary);
 }
 .agent-panel .chat-write-undo {
   margin-left: auto;
@@ -382,7 +386,7 @@
   gap: 3px;
   border: none;
   background: transparent;
-  color: rgba(var(--v-theme-error), 0.85);
+  color: color-mix(in srgb, var(--color-error) 85%, transparent);
   font-size: 11px;
   cursor: pointer;
   padding: 2px 6px;
@@ -390,7 +394,7 @@
   transition: background 0.15s ease;
 }
 .agent-panel .chat-write-undo:hover:not(:disabled) {
-  background: rgba(var(--v-theme-error), 0.1);
+  background: color-mix(in srgb, var(--color-error) 10%, transparent);
 }
 .agent-panel .chat-write-undo:disabled {
   opacity: 0.4;
@@ -399,11 +403,11 @@
 .agent-panel .chat-write-preview {
   padding: 9px 11px;
   border-radius: 11px;
-  border: 1px solid rgba(var(--v-theme-primary), 0.16);
-  background: rgba(var(--v-theme-primary), 0.045);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 16%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 4.5%, transparent);
   font-size: 12.3px;
   line-height: 1.85;
-  color: rgba(var(--v-theme-on-surface), 0.8);
+  color: color-mix(in srgb, var(--color-on-surface) 80%, transparent);
   white-space: pre-wrap;
   word-break: break-word;
   max-height: 220px;
@@ -414,7 +418,7 @@
 }
 @keyframes chat-pulse {
   50% {
-    border-color: rgba(var(--v-theme-primary), 0.38);
+    border-color: color-mix(in srgb, var(--color-primary) 38%, transparent);
   }
 }
 
@@ -444,33 +448,33 @@
   height: 22px;
   flex-shrink: 0;
   border-radius: 7px;
-  background: rgba(var(--v-theme-primary), 0.1);
-  color: rgb(var(--v-theme-primary));
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  color: var(--color-primary);
 }
 .agent-panel .chat-plan__title {
   font-size: 12.5px;
   font-weight: 600;
-  color: rgba(var(--v-theme-on-surface), 0.85);
+  color: color-mix(in srgb, var(--color-on-surface) 85%, transparent);
 }
 .agent-panel .chat-plan__tag {
   font-size: 10px;
   padding: 1px 7px;
   border-radius: 999px;
-  background: rgba(var(--v-theme-on-surface), 0.07);
-  color: rgba(var(--v-theme-on-surface), 0.55);
+  background: color-mix(in srgb, var(--color-on-surface) 7%, transparent);
+  color: color-mix(in srgb, var(--color-on-surface) 55%, transparent);
 }
 .agent-panel .chat-plan__tag--success {
-  background: rgba(var(--v-theme-success), 0.12);
-  color: rgb(var(--v-theme-success));
+  background: color-mix(in srgb, var(--color-success) 12%, transparent);
+  color: var(--color-success);
 }
 .agent-panel .chat-plan__tag--error {
-  background: rgba(var(--v-theme-error), 0.1);
-  color: rgb(var(--v-theme-error));
+  background: color-mix(in srgb, var(--color-error) 10%, transparent);
+  color: var(--color-error);
 }
 .agent-panel .chat-plan__pending {
   font-size: 10.5px;
   font-weight: 600;
-  color: rgb(var(--v-theme-primary));
+  color: var(--color-primary);
   animation: chat-blink 1.4s ease-in-out infinite;
 }
 .agent-panel .chat-plan__block {
@@ -480,25 +484,25 @@
   border-radius: 11px;
 }
 .agent-panel .chat-plan__block .v-field {
-  background: rgb(var(--v-theme-surface));
+  background: var(--color-surface);
 }
 .agent-panel .chat-plan__block .v-field__input {
   font-size: 12px;
   line-height: 1.7;
   /* 显式指定文本色：Vuetify 深色主题的继承色与面板实际的浅色底不一致 */
-  color: rgba(var(--v-theme-on-surface), 0.85);
+  color: color-mix(in srgb, var(--color-on-surface) 85%, transparent);
 }
 .agent-panel .chat-plan__outline {
   font-size: 12px;
   line-height: 1.75;
-  color: rgba(var(--v-theme-on-surface), 0.72);
+  color: color-mix(in srgb, var(--color-on-surface) 72%, transparent);
   white-space: pre-wrap;
   word-break: break-word;
 }
 .agent-panel .chat-plan__approach {
   font-size: 12px;
   line-height: 1.7;
-  color: rgba(var(--v-theme-on-surface), 0.62);
+  color: color-mix(in srgb, var(--color-on-surface) 62%, transparent);
   white-space: pre-wrap;
 }
 .agent-panel .chip-wrap {
@@ -516,22 +520,22 @@
 }
 .agent-panel .chat-plan__confirm {
   flex: 1;
-  background: rgb(var(--v-theme-primary));
-  color: rgb(var(--v-theme-on-primary));
+  background: var(--color-primary);
+  color: var(--color-on-primary);
   border-color: transparent;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(var(--v-theme-primary), 0.2);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-primary) 20%, transparent);
 }
 .agent-panel .chat-plan__confirm:hover:not(:disabled) {
-  background: rgb(var(--v-theme-primary));
-  color: rgb(var(--v-theme-on-primary));
+  background: var(--color-primary);
+  color: var(--color-on-primary);
   filter: brightness(1.07);
-  box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.28);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-primary) 28%, transparent);
 }
 .agent-panel .chat-plan__cancel {
   flex: 0 0 auto;
   background: transparent;
-  color: rgba(var(--v-theme-on-surface), 0.6);
+  color: color-mix(in srgb, var(--color-on-surface) 60%, transparent);
 }
 
 /* 系统提示 */
@@ -540,10 +544,10 @@
   text-align: center;
   font-size: 10.5px;
   line-height: 1.5;
-  color: rgba(var(--v-theme-on-surface), 0.45);
+  color: color-mix(in srgb, var(--color-on-surface) 45%, transparent);
   padding: 3px 10px;
   border-radius: 999px;
-  background: rgba(var(--v-theme-on-surface), 0.035);
+  background: color-mix(in srgb, var(--color-on-surface) 3.5%, transparent);
   border: 1px solid var(--ap-line);
 }
 
@@ -556,7 +560,7 @@
   gap: 8px;
   padding: 10px 12px 12px;
   border-top: 1px solid var(--ap-line-strong);
-  background: rgba(var(--v-theme-on-surface), 0.025);
+  background: color-mix(in srgb, var(--color-on-surface) 2.5%, transparent);
   box-shadow: 0 -12px 22px -20px rgba(0, 0, 0, 0.35);
 }
 /* 转录区滚到底栏时给一个柔和过渡，避免内容被生硬地切断 */
@@ -570,8 +574,8 @@
   pointer-events: none;
   background: linear-gradient(
     to bottom,
-    rgba(var(--v-theme-surface), 0),
-    rgb(var(--v-theme-surface))
+    color-mix(in srgb, var(--color-surface) 0%, transparent),
+    var(--color-surface)
   );
 }
 
@@ -592,7 +596,7 @@
 .agent-panel .length-label {
   font-size: 11px;
   white-space: nowrap;
-  color: rgba(var(--v-theme-on-surface), 0.5);
+  color: color-mix(in srgb, var(--color-on-surface) 50%, transparent);
 }
 .agent-panel .length-select {
   width: 108px;
@@ -607,7 +611,7 @@
   min-height: 32px;
   padding: 4px 4px 4px 8px;
   font-size: 11.5px;
-  color: rgba(var(--v-theme-on-surface), 0.8);
+  color: color-mix(in srgb, var(--color-on-surface) 80%, transparent);
 }
 .agent-panel .length-select .v-select__selection-text {
   white-space: nowrap;
@@ -618,7 +622,7 @@
   text-align: right;
   font-size: 10.5px;
   line-height: 1.4;
-  color: rgb(var(--v-theme-warning, 230, 162, 60));
+  color: var(--color-warning, rgb(230 162 60));
 }
 .agent-panel .chip-row {
   display: flex;
@@ -644,24 +648,24 @@
   padding: 6px 6px 6px 12px;
   border-radius: 16px;
   border: 1px solid var(--ap-line-strong);
-  background: rgb(var(--v-theme-surface));
+  background: var(--color-surface);
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease;
 }
 .agent-panel .agent-panel__input:focus-within {
-  border-color: rgba(var(--v-theme-primary), 0.45);
-  box-shadow: 0 0 0 3px rgba(var(--v-theme-primary), 0.09);
+  border-color: color-mix(in srgb, var(--color-primary) 45%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 9%, transparent);
 }
 .agent-panel .agent-panel__textarea .v-field__input {
   font-size: 12.8px;
   line-height: 1.6;
   min-height: 34px;
   padding: 6px 0;
-  color: rgba(var(--v-theme-on-surface), 0.88);
+  color: color-mix(in srgb, var(--color-on-surface) 88%, transparent);
 }
 .agent-panel .agent-panel__textarea textarea::placeholder {
-  color: rgba(var(--v-theme-on-surface), 0.38);
+  color: color-mix(in srgb, var(--color-on-surface) 38%, transparent);
 }
 /* 输入区在最底部，@ 提及菜单必须向上弹，否则会被卡片裁掉 */
 .agent-panel .agent-panel__input .mention-menu {
@@ -683,8 +687,8 @@
   border-radius: 11px;
   border: none;
   cursor: pointer;
-  background: rgb(var(--v-theme-primary));
-  color: rgb(var(--v-theme-on-primary));
+  background: var(--color-primary);
+  color: var(--color-on-primary);
   transition:
     opacity 0.15s ease,
     transform 0.15s ease,
@@ -692,10 +696,10 @@
 }
 .agent-panel .send-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(var(--v-theme-primary), 0.28);
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--color-primary) 28%, transparent);
 }
 .agent-panel .send-btn:focus-visible {
-  outline: 2px solid rgba(var(--v-theme-primary), 0.55);
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 55%, transparent);
   outline-offset: 2px;
 }
 .agent-panel .send-btn:disabled {
@@ -703,8 +707,8 @@
   cursor: default;
 }
 .agent-panel .send-btn--stop {
-  background: rgba(var(--v-theme-error), 0.14);
-  color: rgb(var(--v-theme-error));
+  background: color-mix(in srgb, var(--color-error) 14%, transparent);
+  color: var(--color-error);
 }
 
 /* ===== 面板级自适应（按卡片真实宽度，而非视口） ===== */

@@ -2,83 +2,7 @@ import { usePreferredDark } from '@vueuse/core';
 import { useTheme } from 'vuetify';
 
 import { useSettingStore } from '@/store/setting';
-import { applyMaterialYouSeed, clearMaterialYouSeedOverrides } from '@/utils/materialYou';
-
-/**
- * 读取 computed CSS 变量值（同步，设置 data-palette 后立即可用）
- */
-function getCssVar(name: string): string {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-}
-
-/**
- * 将 Material You CSS 变量同步到 Vuetify 主题
- * 确保 color="primary" 等 Vuetify prop 与 CSS 变量保持一致
- */
-function syncVuetifyTheme(vuetifyTheme: ReturnType<typeof useTheme>, isDark: boolean) {
-  const primary = getCssVar('--primary');
-  const onPrimary = getCssVar('--on-primary');
-  const primaryContainer = getCssVar('--primary-container');
-  const secondaryContainer = getCssVar('--secondary-container');
-  const tertiary = getCssVar('--tertiary');
-  const onTertiary = getCssVar('--on-tertiary');
-  const tertiaryContainer = getCssVar('--tertiary-container');
-  const surface = getCssVar('--surface');
-  const background = getCssVar('--background');
-  const onSurface = getCssVar('--on-surface');
-  const onSurfaceVariant = getCssVar('--on-surface-variant');
-  const outline = getCssVar('--outline');
-  const outlineStrong = getCssVar('--outline-strong');
-  const inverseSurface = getCssVar('--inverse-surface');
-  const inverseOnSurface = getCssVar('--inverse-on-surface');
-  const surfaceElev1 = getCssVar('--surface-elev-1');
-  const error = getCssVar('--error');
-
-  const colors = {
-    primary,
-    onPrimary,
-    primaryContainer,
-    onPrimaryContainer: onSurface,
-    // Noctua 没有独立的 secondary，用 tertiary 映射
-    secondary: tertiary,
-    onSecondary: onTertiary,
-    secondaryContainer,
-    onSecondaryContainer: onSurface,
-    tertiary,
-    onTertiary,
-    tertiaryContainer,
-    onTertiaryContainer: onSurface,
-    error,
-    errorContainer: '#ffdad4',
-    onError: '#ffffff',
-    onErrorContainer: '#410001',
-    // 语义色（Toast / 状态提示）：Material You 没有 success/warning 角色，
-    // 统一在这里补齐，随深浅色保持一致的可读对比度
-    success: getCssVar('--success') || '#2f6b4f',
-    onSuccess: '#ffffff',
-    successContainer: getCssVar('--success-container') || '#cfe9d8',
-    info: getCssVar('--info') || '#3b5f8f',
-    onInfo: '#ffffff',
-    warning: getCssVar('--warning') || '#8a5a00',
-    onWarning: '#ffffff',
-    background,
-    onBackground: onSurface,
-    surface,
-    onSurface,
-    surfaceVariant: surfaceElev1,
-    onSurfaceVariant,
-    outline,
-    outlineVariant: outlineStrong,
-    inverseSurface,
-    inverseOnSurface,
-    inversePrimary: primaryContainer,
-  };
-
-  // 更新当前激活的主题（light 或 dark）
-  const themeName = isDark ? 'dark' : 'light';
-
-  vuetifyTheme.themes.value[themeName].colors = colors as any;
-}
+import { getMaterialYouThemeColors } from '@/utils/materialYou';
 
 /** 字体键名 → CSS font-family 完整值 */
 export const UI_FONT_OPTIONS = [
@@ -100,7 +24,16 @@ const UI_FONT_MAP = Object.fromEntries(UI_FONT_OPTIONS.map((f) => [f.key, f.css]
 
 /**
  * Material You 主题管理 composable
- * 替换原来的 useCurrentTheme + useDynamicChangeTheme
+ *
+ * 色值链路（唯一来源 → 消费方）：
+ *   种子色 → getMaterialYouThemeColors()（utils/materialYou.ts，M3 角色色）
+ *          → Vuetify 响应式 theme → --v-theme-*（三元组，Vuetify 组件消费）
+ *          → --color-*（styles/tailwind.css 的 @theme，包一层 rgb()）
+ *          → Tailwind 工具类（含 /60 这类透明度）与手写 CSS 的 var(--color-*)
+ *
+ * 以前这里有一段「写 CSS 变量 → getComputedStyle 回读 → 喂给 Vuetify」的
+ * 搬运逻辑，以及 global.scss 里 4 套手写静态调色板，都已删除：预设与自定义
+ * 种子现在走同一条 MCU 路径。
  */
 export function useMaterialYouTheme() {
   const settingStore = useSettingStore();
@@ -108,34 +41,29 @@ export function useMaterialYouTheme() {
   const prefersDark = usePreferredDark();
 
   const applyTheme = () => {
-    const { palette, seedEnabled, materialSeed, uiFont } = settingStore;
+    const { materialSeed, uiFont } = settingStore;
 
-    // 0. 同步全局字体变量
+    // 1. 全局字体变量
     const fontFamily = UI_FONT_MAP[uiFont] ?? UI_FONT_MAP['LXGW WenKai'];
     document.documentElement.style.setProperty('--font-sans', fontFamily);
 
-    // 1. 设置 data-palette 属性（触发 CSS 选择器规则）
-    // 陶土缪斯是 :root 默认值，无需 data-palette；其余调色板显式设置
-    if (palette === 'material-terracotta-muse') {
-      delete document.documentElement.dataset.palette;
-    } else {
-      document.documentElement.dataset.palette = palette;
-    }
+    // 2. 用种子色生成 light / dark 两套角色色，直接写进 Vuetify 主题
+    //    （seedEnabled 只影响设置界面上哪个色点高亮，不再影响走哪条链路）
+    //
+    //    用 Object.assign 而不是整个替换 colors：Vuetify 默认主题里还有
+    //    surface-bright / border-color 等这里不产出的角色，整体替换会把它们
+    //    一起丢掉，组件里引用 --v-theme-surface-bright 的地方就会失效。
+    Object.assign(
+      vuetifyTheme.themes.value.light.colors,
+      getMaterialYouThemeColors(materialSeed, false) as any
+    );
+    Object.assign(
+      vuetifyTheme.themes.value.dark.colors,
+      getMaterialYouThemeColors(materialSeed, true) as any
+    );
 
-    // 2. 跟随系统深色偏好切换 Vuetify theme
-    const isDark = prefersDark.value;
-
-    // 3. 应用/清除 Material You 种子色内联样式覆盖（深色时生成深色角色色）
-    if (seedEnabled) {
-      applyMaterialYouSeed(materialSeed, isDark);
-    } else {
-      clearMaterialYouSeedOverrides();
-    }
-
-    vuetifyTheme.change(isDark ? 'dark' : 'light');
-
-    // 4. 同步 CSS 变量到 Vuetify theme 对象（让 color="primary" 等 prop 生效）
-    syncVuetifyTheme(vuetifyTheme, isDark);
+    // 3. 切换主题 → Vuetify 重新生成 --v-theme-*，--color-* 随之派生
+    vuetifyTheme.change(prefersDark.value ? 'dark' : 'light');
   };
 
   watchEffect(applyTheme);

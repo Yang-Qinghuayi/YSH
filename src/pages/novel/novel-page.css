@@ -20,7 +20,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background: rgb(var(--v-theme-surface));
+  background: var(--color-surface);
   transition: width 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -40,8 +40,8 @@
   padding-bottom: 12px;
 }
 .rail .lg-icon-btn.rail-active {
-  background: rgba(var(--v-theme-primary), 0.14);
-  color: rgb(var(--v-theme-primary));
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  color: var(--color-primary);
 }
 
 /* 视图切换 Tab（目录 / Agent）：扁平分段控件 */
@@ -52,8 +52,8 @@
   padding: 4px;
   flex-shrink: 0;
   border-radius: 14px;
-  border-color: rgba(var(--v-theme-on-surface), 0.06);
-  background: rgba(var(--v-theme-on-surface), 0.035);
+  border-color: color-mix(in srgb, var(--color-on-surface) 6%, transparent);
+  background: color-mix(in srgb, var(--color-on-surface) 3.5%, transparent);
   box-shadow: none;
 }
 .sidebar-tab {
@@ -64,7 +64,7 @@
   border-radius: 10px;
   border: none;
   background: transparent;
-  color: rgba(var(--v-theme-on-surface), 0.55);
+  color: color-mix(in srgb, var(--color-on-surface) 55%, transparent);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -73,11 +73,11 @@
     color 0.18s ease;
 }
 .sidebar-tab:hover {
-  background: rgba(var(--v-theme-on-surface), 0.05);
+  background: color-mix(in srgb, var(--color-on-surface) 5%, transparent);
 }
 .sidebar-tab--active {
-  background: rgb(var(--v-theme-surface));
-  color: rgb(var(--v-theme-primary));
+  background: var(--color-surface);
+  color: var(--color-primary);
   font-weight: 600;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
@@ -114,9 +114,9 @@
   width: 38px;
   height: 38px;
   border-radius: 12px;
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
-  background: rgba(var(--v-theme-on-surface), 0.05);
-  color: rgba(var(--v-theme-on-surface), 0.55);
+  border: 1px solid color-mix(in srgb, var(--color-on-surface) 10%, transparent);
+  background: color-mix(in srgb, var(--color-on-surface) 5%, transparent);
+  color: color-mix(in srgb, var(--color-on-surface) 55%, transparent);
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
@@ -125,9 +125,9 @@
     color 0.18s ease;
 }
 .rail-avatar--active {
-  background: rgba(var(--v-theme-primary), 0.14);
-  color: rgb(var(--v-theme-primary));
-  border-color: rgba(var(--v-theme-primary), 0.22);
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  color: var(--color-primary);
+  border-color: color-mix(in srgb, var(--color-primary) 22%, transparent);
 }
 .rail-avatar:hover {
   filter: brightness(1.05);
@@ -147,7 +147,7 @@
   transition: background 0.15s ease;
 }
 .sidebar-card--clickable:hover {
-  background: rgba(var(--v-theme-on-surface), 0.04);
+  background: color-mix(in srgb, var(--color-on-surface) 4%, transparent);
 }
 .sidebar-card__head {
   display: flex;
@@ -178,13 +178,13 @@
 .current-novel-title {
   font-size: 13px;
   font-weight: 600;
-  color: rgba(var(--v-theme-on-surface), 0.85);
+  color: color-mix(in srgb, var(--color-on-surface) 85%, transparent);
   line-height: 1.3;
   margin-bottom: 6px;
 }
 .current-novel-title--empty {
   font-weight: 400;
-  color: rgba(var(--v-theme-on-surface), 0.4);
+  color: color-mix(in srgb, var(--color-on-surface) 40%, transparent);
 }
 .current-novel-actions {
   display: flex;
@@ -195,12 +195,12 @@
   justify-content: center;
   padding: 4px 8px;
   font-size: 11px;
-  background: rgba(var(--v-theme-on-surface), 0.05);
-  color: rgba(var(--v-theme-on-surface), 0.7);
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  background: color-mix(in srgb, var(--color-on-surface) 5%, transparent);
+  color: color-mix(in srgb, var(--color-on-surface) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-on-surface) 8%, transparent);
 }
 .mini-action:hover {
-  background: rgba(var(--v-theme-on-surface), 0.1);
+  background: color-mix(in srgb, var(--color-on-surface) 10%, transparent);
 }
 .mini-action--ghost {
   background: transparent;
@@ -218,7 +218,7 @@
 }
 .empty-hint {
   font-size: 11.5px;
-  color: rgba(var(--v-theme-on-surface), 0.35);
+  color: color-mix(in srgb, var(--color-on-surface) 35%, transparent);
   padding: 2px 4px;
 }
 
@@ -251,31 +251,31 @@
   width: 76px;
   height: 76px;
   border-radius: 24px;
-  background: rgba(var(--v-theme-primary), 0.1);
-  color: rgb(var(--v-theme-primary));
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  color: var(--color-primary);
   margin-bottom: 6px;
 }
 .empty-title {
   font-size: 17px;
   font-weight: 600;
-  color: rgba(var(--v-theme-on-surface), 0.85);
+  color: color-mix(in srgb, var(--color-on-surface) 85%, transparent);
 }
 .empty-sub {
   font-size: 13px;
-  color: rgba(var(--v-theme-on-surface), 0.45);
+  color: color-mix(in srgb, var(--color-on-surface) 45%, transparent);
   max-width: 320px;
   line-height: 1.6;
 }
 .empty-btn {
   margin-top: 10px;
   padding: 9px 18px;
-  background: rgba(var(--v-theme-primary), 0.12);
-  color: rgb(var(--v-theme-primary));
-  border-color: rgba(var(--v-theme-primary), 0.2);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  color: var(--color-primary);
+  border-color: color-mix(in srgb, var(--color-primary) 20%, transparent);
 }
 .empty-btn:hover {
-  background: rgba(var(--v-theme-primary), 0.18);
-  color: rgb(var(--v-theme-primary));
+  background: color-mix(in srgb, var(--color-primary) 18%, transparent);
+  color: var(--color-primary);
 }
 .empty-actions {
   display: flex;
@@ -283,13 +283,13 @@
   margin-top: 10px;
 }
 .empty-btn--ghost {
-  background: rgba(var(--v-theme-on-surface), 0.05);
-  color: rgba(var(--v-theme-on-surface), 0.7);
-  border-color: rgba(var(--v-theme-on-surface), 0.12);
+  background: color-mix(in srgb, var(--color-on-surface) 5%, transparent);
+  color: color-mix(in srgb, var(--color-on-surface) 70%, transparent);
+  border-color: color-mix(in srgb, var(--color-on-surface) 12%, transparent);
 }
 .empty-btn--ghost:hover {
-  background: rgba(var(--v-theme-on-surface), 0.1);
-  color: rgba(var(--v-theme-on-surface), 0.85);
+  background: color-mix(in srgb, var(--color-on-surface) 10%, transparent);
+  color: color-mix(in srgb, var(--color-on-surface) 85%, transparent);
 }
 
 /* 可点击的角色 chip */
@@ -314,7 +314,7 @@
 .settings-title {
   font-size: 16px;
   font-weight: 600;
-  color: rgba(var(--v-theme-on-surface), 0.85);
+  color: color-mix(in srgb, var(--color-on-surface) 85%, transparent);
 }
 .settings-body {
   display: flex;
@@ -333,18 +333,18 @@
 }
 .setting-name {
   font-size: 13px;
-  color: rgba(var(--v-theme-on-surface), 0.7);
+  color: color-mix(in srgb, var(--color-on-surface) 70%, transparent);
 }
 .setting-value {
   font-size: 12px;
   font-weight: 600;
-  color: rgb(var(--v-theme-primary));
+  color: var(--color-primary);
 }
 .setting-range-labels {
   display: flex;
   justify-content: space-between;
   font-size: 11px;
-  color: rgba(var(--v-theme-on-surface), 0.3);
+  color: color-mix(in srgb, var(--color-on-surface) 30%, transparent);
   margin-top: -4px;
 }
 .key-row {
@@ -365,8 +365,8 @@
   border-radius: 12px;
   font-size: 11.5px;
   line-height: 1.55;
-  color: rgba(var(--v-theme-on-surface), 0.62);
-  background: rgba(var(--v-theme-primary), 0.07);
+  color: color-mix(in srgb, var(--color-on-surface) 62%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 7%, transparent);
 }
 .model-warn {
   margin-top: -6px;
@@ -374,19 +374,19 @@
   border-radius: 12px;
   font-size: 11.5px;
   line-height: 1.55;
-  color: rgba(var(--v-theme-on-surface), 0.62);
-  background: rgba(var(--v-theme-warning, 255, 179, 0), 0.12);
-  border: 1px solid rgba(var(--v-theme-warning, 255, 179, 0), 0.22);
+  color: color-mix(in srgb, var(--color-on-surface) 62%, transparent);
+  background: color-mix(in srgb, var(--color-warning, rgb(255 179 0)) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-warning, rgb(255 179 0)) 22%, transparent);
 }
 .setting-divider {
   height: 1px;
-  background: rgba(var(--v-theme-on-surface), 0.08);
+  background: color-mix(in srgb, var(--color-on-surface) 8%, transparent);
   margin: 8px 0;
 }
 .setting-section-title {
   font-size: 13px;
   font-weight: 600;
-  color: rgba(var(--v-theme-on-surface), 0.7);
+  color: color-mix(in srgb, var(--color-on-surface) 70%, transparent);
   margin-bottom: 4px;
 }
 

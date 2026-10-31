@@ -108,12 +108,12 @@ function cancelNewChapter() {
 }
 
 .list-item:hover {
-  background: rgba(var(--v-theme-on-surface), 0.055);
+  background: color-mix(in srgb, var(--color-on-surface) 5.5%, transparent);
 }
 
 .list-item--active {
-  background: rgba(var(--v-theme-primary), 0.1);
-  box-shadow: inset 0 0 0 1px rgba(var(--v-theme-primary), 0.2);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 20%, transparent);
 }
 
 /* 章节序号 */
@@ -121,7 +121,7 @@ function cancelNewChapter() {
   font-size: 10px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: rgba(var(--v-theme-on-surface), 0.32);
+  color: color-mix(in srgb, var(--color-on-surface) 32%, transparent);
   width: 18px;
   flex-shrink: 0;
   letter-spacing: 0.02em;
@@ -133,8 +133,8 @@ function cancelNewChapter() {
     background 0.18s ease;
 }
 .list-item--active .list-item__order {
-  color: rgb(var(--v-theme-primary));
-  background: rgba(var(--v-theme-primary), 0.16);
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 16%, transparent);
 }
 
 .list-item__title {
@@ -144,11 +144,11 @@ function cancelNewChapter() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: rgba(var(--v-theme-on-surface), 0.82);
+  color: color-mix(in srgb, var(--color-on-surface) 82%, transparent);
   transition: color 0.18s ease;
 }
 .list-item--active .list-item__title {
-  color: rgb(var(--v-theme-primary));
+  color: var(--color-primary);
   font-weight: 500;
 }
 
@@ -156,7 +156,7 @@ function cancelNewChapter() {
 .list-item__wc {
   font-size: 10px;
   font-variant-numeric: tabular-nums;
-  color: rgba(var(--v-theme-on-surface), 0.3);
+  color: color-mix(in srgb, var(--color-on-surface) 30%, transparent);
   flex-shrink: 0;
   letter-spacing: 0.01em;
   transition: color 0.18s ease;
@@ -182,7 +182,7 @@ function cancelNewChapter() {
   background: transparent;
   cursor: pointer;
   padding: 0;
-  color: rgba(var(--v-theme-error), 0.7);
+  color: color-mix(in srgb, var(--color-error) 70%, transparent);
   transition:
     opacity 0.18s ease,
     background 0.15s ease;
@@ -193,13 +193,13 @@ function cancelNewChapter() {
   pointer-events: auto;
 }
 .list-item__del:hover {
-  background: rgba(var(--v-theme-error), 0.1);
+  background: color-mix(in srgb, var(--color-error) 10%, transparent);
 }
 
 /* 空状态 */
 .list-empty {
   font-size: 12px;
-  color: rgba(var(--v-theme-on-surface), 0.35);
+  color: color-mix(in srgb, var(--color-on-surface) 35%, transparent);
   padding: 4px 8px;
 }
 
@@ -220,14 +220,14 @@ function cancelNewChapter() {
 .create-input :deep(.v-field__outline__start),
 .create-input :deep(.v-field__outline__end),
 .create-input :deep(.v-field__outline__notch) {
-  border-color: rgba(var(--v-theme-on-surface), 0.18) !important;
+  border-color: color-mix(in srgb, var(--color-on-surface) 18%, transparent) !important;
 }
 .create-input :deep(.v-field--focused .v-field__outline__start),
 .create-input :deep(.v-field--focused .v-field__outline__end),
 .create-input :deep(.v-field--focused .v-field__outline__notch) {
-  border-color: rgb(var(--v-theme-primary)) !important;
+  border-color: var(--color-primary) !important;
 }
 .create-input :deep(input::placeholder) {
-  color: rgba(var(--v-theme-on-surface), 0.38);
+  color: color-mix(in srgb, var(--color-on-surface) 38%, transparent);
 }
 </style>

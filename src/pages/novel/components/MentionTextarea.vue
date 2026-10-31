@@ -176,19 +176,19 @@ watch(menuOpen, (v) => emit('menu-open', v));
 
 .mention-item:hover,
 .mention-item--active {
-  background: rgba(var(--v-theme-primary), 0.1);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
 }
 
 .mention-name {
   font-size: 13px;
   font-weight: 500;
-  color: rgb(var(--v-theme-primary));
+  color: var(--color-primary);
   flex-shrink: 0;
 }
 
 .mention-detail {
   font-size: 12px;
-  color: rgba(var(--v-theme-on-surface), 0.45);
+  color: color-mix(in srgb, var(--color-on-surface) 45%, transparent);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

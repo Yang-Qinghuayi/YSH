@@ -21,7 +21,7 @@
         :color="message.status === 'done' ? 'success' : 'error'"
       />
       <span class="chat-tool__name">{{ toolLabel(message.tool) }}</span>
-      <span class="chat-tool__summary text-truncate">{{ message.argsSummary }}</span>
+      <span class="chat-tool__summary truncate">{{ message.argsSummary }}</span>
       <v-icon
         v-if="message.resultText || message.write"
         :icon="expanded ? mdiChevronUp : mdiChevronDown"

@@ -70,7 +70,7 @@
 
       <AgentChatPanel
         v-if="sidebarTab === 'agent' && currentNovel"
-        class="agent-sidebar-card lg-card flex-1-1"
+        class="agent-sidebar-card lg-card flex-1"
         :novel="currentNovel"
         :chapter="currentChapterMeta"
         :content-length="currentChapterContent.length"
@@ -85,7 +85,7 @@
       />
       <div
         v-else-if="sidebarTab === 'agent'"
-        class="agent-sidebar-card lg-card d-flex align-center justify-center flex-1-1"
+        class="agent-sidebar-card lg-card flex items-center justify-center flex-1"
       >
         <span class="empty-hint">未打开小说</span>
       </div>

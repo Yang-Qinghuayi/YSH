@@ -1,5 +1,5 @@
 <template>
-  <div ref="bodyRef" class="agent-panel__body flex-1-1 lg-scroll" @scroll="onScroll">
+  <div ref="bodyRef" class="agent-panel__body flex-1 lg-scroll" @scroll="onScroll">
     <AgentEmptyState v-if="!messages.length" />
 
     <template v-for="message in messages" :key="message.id">

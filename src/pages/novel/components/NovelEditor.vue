@@ -73,13 +73,13 @@ function createEditor(content: string) {
       padding: '24px 28px 100px',
       maxWidth: '740px',
       margin: '0 auto',
-      caretColor: 'rgb(var(--v-theme-primary))',
+      caretColor: 'var(--color-primary)',
     },
     '.cm-line': { paddingLeft: '0', paddingRight: '0' },
     '.cm-focused': { outline: 'none' },
-    '.cm-cursor': { borderLeftColor: 'rgb(var(--v-theme-primary))' },
+    '.cm-cursor': { borderLeftColor: 'var(--color-primary)' },
     '.cm-selectionBackground': {
-      background: 'rgba(var(--v-theme-primary), 0.15) !important',
+      background: 'color-mix(in srgb, var(--color-primary) 15%, transparent) !important',
     },
   });
 
@@ -206,14 +206,14 @@ onBeforeUnmount(() => {
 .editor-header {
   height: 48px;
   flex-shrink: 0;
-  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.06);
-  background: rgb(var(--v-theme-surface));
+  border-bottom: 1px solid color-mix(in srgb, var(--color-on-surface) 6%, transparent);
+  background: var(--color-surface);
 }
 
 .editor-title {
   font-size: 14px;
   font-weight: 500;
-  color: rgba(var(--v-theme-on-surface), 0.78);
+  color: color-mix(in srgb, var(--color-on-surface) 78%, transparent);
   max-width: 300px;
 }
 
@@ -230,7 +230,7 @@ onBeforeUnmount(() => {
   outline: none;
 }
 .editor-area :deep(.cm-placeholder) {
-  color: rgba(var(--v-theme-on-surface), 0.28);
+  color: color-mix(in srgb, var(--color-on-surface) 28%, transparent);
   font-style: italic;
 }
 </style>

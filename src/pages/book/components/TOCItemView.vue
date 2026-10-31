@@ -1,7 +1,7 @@
 <template>
-  <div class="w-100" style="padding-top: 1px">
+  <div class="w-full min-w-0 pt-px">
     <v-list-item
-      :class="['rounded-pill', item.subitems ? 'pa-0' : '']"
+      :class="['rounded-full', item.subitems ? 'p-0' : '']"
       :aria-expanded="isExpanded"
       :aria-selected="isActive"
       :data-href="getContentMd5(item.href)"
@@ -9,8 +9,15 @@
       active-class="text-primary"
       @click="handleClickItem as any"
     >
-      <div class="d-flex align-center">
-        <v-btn v-if="item.subitems" size="small" icon variant="text" @click.stop="toggleExpand">
+      <div class="flex items-center w-full min-w-0">
+        <v-btn
+          v-if="item.subitems"
+          class="shrink-0"
+          size="small"
+          icon
+          variant="text"
+          @click.stop="toggleExpand"
+        >
           <svg
             viewBox="0 0 8 10"
             width="8"
@@ -24,15 +31,15 @@
           </svg>
         </v-btn>
         <span
-          class="text-truncate"
+          class="truncate grow min-w-0"
           :class="item.subitems ? 'ml-0' : 'ml-2'"
-          style="max-width: calc(100% - 24px); white-space: nowrap; text-overflow: ellipsis"
+          :title="item.label"
         >
           {{ item.label }}
         </span>
       </div>
     </v-list-item>
-    <ol v-if="item.subitems && isExpanded" role="group">
+    <ol v-if="item.subitems && isExpanded" role="group" class="ps-4">
       <TOCItemView
         v-for="(subitem, index) in item.subitems"
         :key="`${index}-${subitem.href}`"
@@ -96,7 +103,7 @@ watch(
 <style scoped>
 /* 展开箭头：旋转动画 + 继承文字颜色 */
 .toc-caret {
-  color: rgb(var(--v-theme-on-surface));
+  color: var(--color-on-surface);
   transition: transform 0.15s ease;
   transform: rotate(0deg);
 }

@@ -1,18 +1,20 @@
 <template>
+  <!-- 宽度必须写死：不写宽度时，面板作为 flex item 的 flex-basis:auto 会取
+       max-content，而条目文字是 nowrap，于是最长的一条标题决定面板宽度，
+       正文被越挤越窄。桌面固定 w-64（16rem），移动端抽屉里占满整行。 -->
   <div
     ref="viewRef"
     role="tree"
-    :class="inSheet ? 'w-100 pa-3' : 'w-64 pa-3 flex-shrink-0'"
-    :style="
-      inSheet
-        ? { maxHeight: 'calc(75dvh - 40px)', overflowY: 'auto' }
-        : { position: 'relative', zIndex: 200, height: '80vh', overflowY: 'auto' }
-    "
+    :class="[
+      'relative z-[200] overflow-y-auto overflow-x-hidden p-3',
+      inSheet ? 'w-full' : 'w-64 shrink-0',
+    ]"
+    :style="inSheet ? { maxHeight: 'calc(75dvh - 40px)' } : { height: '80vh' }"
   >
-    <div class="text-lg text-truncate ma-3 mb-0 text-center">
+    <div class="truncate text-center m-3 mb-0 text-lg font-medium leading-7">
       {{ doc.metadata.title }}
     </div>
-    <div class="text-truncate text-center ma-2">
+    <div class="truncate text-center m-2">
       {{ authorName }}
     </div>
     <TOCItemView
@@ -113,14 +115,3 @@ watch([progress, () => doc, () => sidebarStore.sideBarBookKey], async ([newProgr
   scrollToProgress(newProgress);
 });
 </script>
-
-<style scoped>
-.toc-panel {
-  width: 16rem;
-}
-
-.toc-title {
-  font-size: 1.125rem;
-  line-height: 1.75rem;
-}
-</style>

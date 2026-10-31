@@ -20,18 +20,18 @@
         >
         </v-img>
         <!-- 名称 -->
-        <div class="d-flex align-center justify-space-between my-2">
-          <div class="font-weight-bold text-high-emphasis text-truncate ml-2">
+        <div class="flex items-center justify-between my-2">
+          <div class="font-bold text-on-surface/87 truncate ml-2">
             {{ book.title }}
           </div>
           <v-menu open-on-hover open-delay="100" close-delay="100">
             <template #activator="{ props }">
               <v-btn variant="text" color="primary" icon size="small" v-bind="props">
-                <v-icon class="text-medium-emphasis">{{ mdiDotsHorizontal }}</v-icon>
+                <v-icon class="text-on-surface/60">{{ mdiDotsHorizontal }}</v-icon>
               </v-btn>
             </template>
 
-            <v-list elevation="6" class="pa-0">
+            <v-list elevation="6" class="p-0">
               <v-list-item
                 v-for="(item, index) in items"
                 :key="index"

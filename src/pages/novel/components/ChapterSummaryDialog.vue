@@ -1,13 +1,13 @@
 <template>
   <v-dialog v-model="visible" max-width="620" scrollable>
     <v-card v-if="chapter" rounded="xl" class="lg-dialog">
-      <v-card-title class="d-flex align-center ga-3 pt-5 px-5">
+      <v-card-title class="flex items-center gap-3 pt-5 px-5">
         <span class="title-badge">
           <v-icon :icon="mdiTextBoxOutline" size="18" />
         </span>
         <div class="min-w-0">
-          <div class="text-title-large text-truncate">本章概要</div>
-          <div class="sub-title text-truncate">{{ chapter.title }}</div>
+          <div class="text-2xl truncate">本章概要</div>
+          <div class="sub-title truncate">{{ chapter.title }}</div>
         </div>
         <v-spacer />
         <span v-if="chapter.finalizedAt" class="status-chip status-chip--done">
@@ -16,7 +16,7 @@
         <span v-else class="status-chip">未定稿</span>
       </v-card-title>
 
-      <v-card-text class="pa-5">
+      <v-card-text class="p-5">
         <v-textarea
           v-model="draft"
           placeholder="本章还没有概要。写完本章后点「定稿本章」自动生成，也可以直接在这里手写。"
@@ -107,7 +107,7 @@ function formatTime(ts: number): string {
 
 <style scoped>
 .lg-dialog {
-  background: rgb(var(--v-theme-surface));
+  background: var(--color-surface);
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
 }
 .title-badge {
@@ -118,33 +118,33 @@ function formatTime(ts: number): string {
   height: 34px;
   flex-shrink: 0;
   border-radius: 11px;
-  background: rgba(var(--v-theme-primary), 0.14);
-  color: rgb(var(--v-theme-primary));
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  color: var(--color-primary);
 }
 .min-w-0 {
   min-width: 0;
 }
 .sub-title {
   font-size: 12px;
-  color: rgba(var(--v-theme-on-surface), 0.5);
+  color: color-mix(in srgb, var(--color-on-surface) 50%, transparent);
   line-height: 1.3;
 }
 .status-chip {
   font-size: 11px;
   padding: 3px 9px;
   border-radius: 999px;
-  background: rgba(var(--v-theme-on-surface), 0.06);
-  color: rgba(var(--v-theme-on-surface), 0.55);
+  background: color-mix(in srgb, var(--color-on-surface) 6%, transparent);
+  color: color-mix(in srgb, var(--color-on-surface) 55%, transparent);
   white-space: nowrap;
 }
 .status-chip--done {
-  background: rgba(var(--v-theme-success), 0.12);
-  color: rgb(var(--v-theme-success));
+  background: color-mix(in srgb, var(--color-success) 12%, transparent);
+  color: var(--color-success);
 }
 .hint {
   margin-top: 10px;
   font-size: 12px;
   line-height: 1.6;
-  color: rgba(var(--v-theme-on-surface), 0.5);
+  color: color-mix(in srgb, var(--color-on-surface) 50%, transparent);
 }
 </style>

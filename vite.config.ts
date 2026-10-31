@@ -1,3 +1,4 @@
+import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import path from 'path';
 import AutoImport from 'unplugin-auto-import/vite';
@@ -19,6 +20,8 @@ export default defineConfig(({ command }) => {
     envDir: path.resolve(__dirname, './'),
     root: __dirname,
     plugins: [
+      // Tailwind v4 走 Vite 插件，不再需要 postcss / autoprefixer / @tailwindcss/postcss
+      tailwindcss(),
       vue(),
       vuetify({
         // 按需注册：只把模板里用到的 <v-*> 组件及其样式打进产物，

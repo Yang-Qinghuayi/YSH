@@ -2,8 +2,8 @@
   <div class="overview-bar lg-card">
     <!-- 标题简介 -->
     <div v-if="novel" class="overview-title-wrap">
-      <div class="overview-title text-truncate">{{ novel.title }}</div>
-      <div v-if="novel.synopsis" class="overview-synopsis text-truncate">{{ novel.synopsis }}</div>
+      <div class="overview-title truncate">{{ novel.title }}</div>
+      <div v-if="novel.synopsis" class="overview-synopsis truncate">{{ novel.synopsis }}</div>
     </div>
 
     <v-spacer />
@@ -107,12 +107,12 @@ const totalWordCount = computed(() => {
 .overview-title {
   font-size: 15px;
   font-weight: 600;
-  color: rgba(var(--v-theme-on-surface), 0.88);
+  color: color-mix(in srgb, var(--color-on-surface) 88%, transparent);
   line-height: 1.3;
 }
 .overview-synopsis {
   font-size: 11.5px;
-  color: rgba(var(--v-theme-on-surface), 0.45);
+  color: color-mix(in srgb, var(--color-on-surface) 45%, transparent);
   margin-top: 1px;
 }
 
@@ -129,8 +129,8 @@ const totalWordCount = computed(() => {
   gap: 4px;
   padding: 4px 9px;
   border-radius: 999px;
-  background: rgba(var(--v-theme-on-surface), 0.05);
-  color: rgba(var(--v-theme-on-surface), 0.6);
+  background: color-mix(in srgb, var(--color-on-surface) 5%, transparent);
+  color: color-mix(in srgb, var(--color-on-surface) 60%, transparent);
   font-size: 11.5px;
   line-height: 1; /* 让文字高度 = 字号，使图标与文字几何中心真正对齐 */
   transition:
@@ -138,8 +138,8 @@ const totalWordCount = computed(() => {
     color 0.18s ease;
 }
 .stat-pill:hover {
-  background: rgba(var(--v-theme-on-surface), 0.09);
-  color: rgba(var(--v-theme-on-surface), 0.8);
+  background: color-mix(in srgb, var(--color-on-surface) 9%, transparent);
+  color: color-mix(in srgb, var(--color-on-surface) 80%, transparent);
 }
 .stat-num {
   font-variant-numeric: tabular-nums;
@@ -158,7 +158,7 @@ const totalWordCount = computed(() => {
   flex-shrink: 0;
   margin-left: 4px;
   padding-left: 6px;
-  border-left: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  border-left: 1px solid color-mix(in srgb, var(--color-on-surface) 8%, transparent);
 }
 .action-btn {
   display: inline-flex;
@@ -169,15 +169,15 @@ const totalWordCount = computed(() => {
   border-radius: 9px;
   border: none;
   background: transparent;
-  color: rgba(var(--v-theme-on-surface), 0.55);
+  color: color-mix(in srgb, var(--color-on-surface) 55%, transparent);
   cursor: pointer;
   transition:
     background 0.18s ease,
     color 0.18s ease;
 }
 .action-btn:hover {
-  background: rgba(var(--v-theme-on-surface), 0.08);
-  color: rgba(var(--v-theme-on-surface), 0.85);
+  background: color-mix(in srgb, var(--color-on-surface) 8%, transparent);
+  color: color-mix(in srgb, var(--color-on-surface) 85%, transparent);
 }
 .action-btn--disabled,
 .action-btn--disabled:hover {
