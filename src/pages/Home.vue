@@ -101,7 +101,7 @@ $transition-time: 350ms;
   overflow-x: hidden;
 
   .v-application__wrap {
-    min-height: initial !important;
+    min-height: 100dvh;
   }
 }
 </style>
