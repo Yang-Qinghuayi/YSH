@@ -12,7 +12,9 @@
  * ============================================================ */
 @layer vuetify-core, vuetify-components, vuetify-overrides, vuetify-utilities, vuetify-final, theme, base, components, utilities;
 
-@import 'tailwindcss';
+/* Vuetify 提供基础 reset；不要让 Preflight 重置组件的边框、按钮和表单。 */
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
 
 /* ------------------------------------------------------------------
  * 颜色令牌：@theme（注意不是 @theme inline）

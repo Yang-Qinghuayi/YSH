@@ -1,10 +1,5 @@
-// Vuetify 样式按需：只引入层顺序 / reset，组件样式由 vite-plugin-vuetify 的
-// autoImport 按需注入，不再 import 'vuetify/styles'（301 KB）。
-// 工具类一律用 Tailwind（入口 src/styles/tailwind.css），Vuetify 的
-// utilities.css 不再引入。
-import 'vuetify/lib/styles/core.css';
-import 'vuetify/lib/components/VLayout/VLayout.css';
-import '@/styles/vuetify-utilities.css';
+// 加载 Vuetify 的基础样式与组件所依赖的工具类；组件样式由各组件模块引入。
+import 'vuetify/styles';
 
 import type { App } from 'vue';
 import { createVuetify } from 'vuetify';
@@ -50,8 +45,7 @@ const baseTheme = {
 };
 
 export const useVuetify = (app: App) => {
-  // 组件与指令由 vite-plugin-vuetify 的 autoImport 按需注入，
-  // 样式同样是按组件按需引入（不再 import 'vuetify/styles'）。
+  // 组件与指令由 vite-plugin-vuetify 的 autoImport 按需注入。
   const vuetify = createVuetify({
     icons: {
       defaultSet: 'mdi',
