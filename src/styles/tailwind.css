@@ -16,6 +16,14 @@
 @import 'tailwindcss/theme.css' layer(theme);
 @import 'tailwindcss/utilities.css' layer(utilities);
 
+/*
+ * Vuetify 的 color / track-color / base-color 会在运行时生成 bg-* / text-*，
+ * 这些类名不一定以完整字符串出现在模板里，Tailwind 静态扫描无法发现。
+ * 表单控件依赖下面几个类显示主题色；保留精简清单，避免重新启用整套
+ * Vuetify 颜色工具类而再次与 Tailwind 的同名类冲突。
+ */
+@source inline("bg-primary bg-outline text-outline");
+
 /* ------------------------------------------------------------------
  * 颜色令牌：@theme（注意不是 @theme inline）
  *

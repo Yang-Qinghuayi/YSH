@@ -3,7 +3,7 @@
     <div class="flex justify-center items-center w-full h-full">
       <!-- 桌面端目录按钮 -->
       <v-btn
-        v-if="lgAndUp"
+        v-if="hasToc && lgAndUp"
         class="fixed top-5 right-5 z-[1000]"
         icon
         color="secondary"
@@ -17,7 +17,7 @@
 
       <!-- 移动端目录按钮（浮于内容上方，避开底部 Tab 栏） -->
       <v-btn
-        v-if="isMobile"
+        v-if="hasToc && isMobile"
         class="fixed bottom-20 right-4 z-[1000]"
         icon
         color="secondary"
@@ -42,7 +42,7 @@
       <!-- 桌面端：侧边目录面板 -->
       <transition name="toc-fade">
         <TOCView
-          v-if="bookDoc && showBigCatalog && lgAndUp"
+          v-if="bookDoc && hasToc && showBigCatalog && lgAndUp"
           :book-id
           :doc="bookDoc"
           class="mr-4 border-[3px] border-primary/20 rounded-[10px]"
@@ -52,7 +52,7 @@
     </div>
 
     <!-- 移动端：底部抽屉目录 -->
-    <v-bottom-sheet v-if="isMobile" v-model="showMobileTOC" max-height="75vh">
+    <v-bottom-sheet v-if="hasToc && isMobile" v-model="showMobileTOC" max-height="75vh">
       <v-sheet class="rounded-t-xl overflow-hidden">
         <div class="flex justify-center pt-2 pb-1">
           <div class="h-1 w-10 rounded-full bg-outline/40"></div>
@@ -130,6 +130,12 @@ const containerRef = ref<HTMLDivElement | null>(null);
 const viewRef = ref<FoliateView | null>(null);
 
 const bookDoc = ref<BookDoc | null>();
+const hasToc = computed(() => Boolean(bookDoc.value?.toc?.length));
+
+// 切到无目录书籍时关闭移动抽屉；桌面端的 showBigCatalog 是用户偏好，不覆写。
+watch(hasToc, (available) => {
+  if (!available) showMobileTOC.value = false;
+});
 
 const appService = ref<AppService | null>(null);
 

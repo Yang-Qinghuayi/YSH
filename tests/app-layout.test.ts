@@ -13,6 +13,18 @@ test('the application shell fills the viewport on every route', () => {
   assert.match(layout, /viewport-container.*isBook \|\| isNovel/);
 });
 
+test('the reader hides every TOC control when the current book has no entries', () => {
+  const reader = read('src/pages/book/book.vue');
+  assert.match(
+    reader,
+    /const hasToc = computed\(\(\) => Boolean\(bookDoc\.value\?\.toc\?\.length\)\)/
+  );
+  assert.match(reader, /v-if="hasToc && lgAndUp"/);
+  assert.match(reader, /v-if="hasToc && isMobile"/);
+  assert.match(reader, /v-if="bookDoc && hasToc && showBigCatalog && lgAndUp"/);
+  assert.match(reader, /v-if="hasToc && isMobile" v-model="showMobileTOC"/);
+});
+
 test('the writing page uses available layout height and the desktop TOC has an outer margin', () => {
   const novel = read('src/pages/novel/novel-page.css');
   const reader = read('src/pages/book/book.vue');

@@ -34,15 +34,15 @@
       <!-- 阅读交互 -->
       <div>
         <div class="font-bold mb-3">阅读</div>
-        <div
-          class="flex justify-between items-center px-3 py-3 bg-surface-variant text-on-surface-variant shadow-md rounded-lg"
-        >
-          <div>
-            <p class="mb-0">三击复制段落</p>
+        <div class="flex justify-between items-center gap-4 py-3 border-b border-outline/40">
+          <div class="min-w-0">
+            <p class="mb-0 text-on-surface">三击复制段落</p>
             <p class="text-xs text-on-surface/60 mb-0">三击正文选中一段时，静默复制到剪贴板</p>
           </div>
           <v-switch
             v-model="settingStore.copyParagraphOnClick"
+            class="shrink-0"
+            aria-label="三击复制段落"
             hide-details
             density="compact"
             color="primary"
