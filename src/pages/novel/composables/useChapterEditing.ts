@@ -69,6 +69,31 @@ export function useChapterEditing(deps: ChapterEditingDeps) {
     }
   }
 
+  /**
+   * 进入页面 / 加载小说后自动打开最新一章。
+   * 「最新」= order 最大（同 order 取列表靠后者），让用户不用面对空白舞台。
+   * @returns 是否成功打开了章节（没有章节 / 已有当前章时为 false）
+   */
+  async function openLatestChapter(): Promise<boolean> {
+    const novel = currentNovel.value;
+    if (!novel || currentChapter.value) return false;
+    const latest = novel.chapters.reduce<ChapterMeta | null>(
+      (acc, c) => (!acc || c.order >= acc.order ? c : acc),
+      null
+    );
+    if (!latest) return false;
+    try {
+      const content = await loadChapterContent(latest.filename);
+      if (currentNovel.value?.id !== novel.id || currentChapter.value) return false;
+      novelStore.openChapter(latest, content);
+      deps.onChapterChanged();
+      return true;
+    } catch (e) {
+      deps.notify.error('加载章节失败：' + (e instanceof Error ? e.message : String(e)));
+      return false;
+    }
+  }
+
   async function handleCreateChapter(title: string) {
     if (!currentNovel.value) return;
     try {
@@ -195,6 +220,7 @@ export function useChapterEditing(deps: ChapterEditingDeps) {
     searchInChapters,
     loadMissingWordCounts,
     handleSelectChapter,
+    openLatestChapter,
     handleCreateChapter,
     handleDeleteChapter,
     handleContentChange,

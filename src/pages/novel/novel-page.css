@@ -244,17 +244,6 @@
   padding: 40px 48px;
   text-align: center;
 }
-.empty-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 76px;
-  height: 76px;
-  border-radius: 24px;
-  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
-  color: var(--color-primary);
-  margin-bottom: 6px;
-}
 .empty-title {
   font-size: 17px;
   font-weight: 600;

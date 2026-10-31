@@ -4,7 +4,7 @@
  * index.vue 只做布局，不再包含业务细节。
  */
 
-import { onBeforeUnmount, provide, ref } from 'vue';
+import { onBeforeUnmount, provide, ref, watch } from 'vue';
 
 import type { EntryMeta } from '@/types/lore';
 
@@ -51,7 +51,10 @@ export function useNovelPageController() {
     },
     onNovelLoaded: (novel) => {
       void controllers.chapters.loadMissingWordCounts(novel);
-      void controllers.chat.loadChatSessionForChapter();
+      // 进入页面即打开最新一章，避免主区停在空白提示上；无章节时回到 Agent 空白会话
+      void controllers.chapters.openLatestChapter().then((opened) => {
+        if (!opened) void controllers.chat.loadChatSessionForChapter();
+      });
     },
   });
 
@@ -96,6 +99,11 @@ export function useNovelPageController() {
     if (controllers.finalization.stop()) return;
     controllers.chat.stopChat();
   }
+
+  // 切到 Agent 面板时若主区还没打开章节（例如刚删掉当前章），同样自动打开最新一章
+  watch(ui.sidebarTab, (tab) => {
+    if (tab === 'agent') void controllers.chapters.openLatestChapter();
+  });
 
   onBeforeUnmount(() => controllers.chat.abortOnUnmount());
 
