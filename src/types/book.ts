@@ -61,6 +61,8 @@ export interface BookLayout {
   swapClickArea: boolean;
   continuousScroll: boolean;
   maxColumnCount: number;
+  /** 正文排版区域占可用阅读区域的百分比（50–100），单双列共用。 */
+  contentWidth: number;
   maxInlineSize: number;
   maxBlockSize: number;
   animated: boolean;

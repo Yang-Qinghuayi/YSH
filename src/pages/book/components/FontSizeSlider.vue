@@ -1,36 +1,29 @@
 <template>
-  <div class="w-full px-3">
-    <div class="flex justify-between items-center mb-1">
-      <span class="text-sm text-on-surface-variant">字号</span>
-      <span class="text-sm text-on-surface-variant">{{ defaultFontSize }} px</span>
-    </div>
-    <v-slider
-      v-model="defaultFontSize"
-      :min="12"
-      :max="40"
-      :step="1"
-      color="primary"
-      track-color="outline"
-      thumb-color="primary"
-      hide-details
-    />
-  </div>
+  <ReadingSlider
+    v-model="fontSize"
+    label="字号"
+    :icon="mdiFormatSize"
+    :min="12"
+    :max="40"
+    unit="px"
+    min-label="小"
+    max-label="大"
+    :disabled="!viewSettings"
+  />
 </template>
 
-<script lang="ts" setup>
+<script setup lang="ts">
+import { mdiFormatSize } from '@mdi/js';
+import { computed } from 'vue';
+
 import { useViewSettings } from '@/hooks/useViewSettings';
 import { DEFAULT_BOOK_FONT } from '@/services/constants';
 
+import ReadingSlider from './ReadingSlider.vue';
+
 const { viewSettings, updateSetting } = useViewSettings();
-const defaultFontSize = ref(DEFAULT_BOOK_FONT.defaultFontSize);
-
-watchEffect(() => {
-  if (viewSettings.value) {
-    defaultFontSize.value = viewSettings.value.defaultFontSize ?? DEFAULT_BOOK_FONT.defaultFontSize;
-  }
-});
-
-watch(defaultFontSize, () => {
-  updateSetting('defaultFontSize', defaultFontSize.value);
+const fontSize = computed({
+  get: () => viewSettings.value?.defaultFontSize ?? DEFAULT_BOOK_FONT.defaultFontSize,
+  set: (value: number) => void updateSetting('defaultFontSize', value),
 });
 </script>

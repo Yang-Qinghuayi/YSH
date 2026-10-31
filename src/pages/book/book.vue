@@ -68,7 +68,7 @@
 <script setup lang="ts">
 import '@/foliate-js/view.js';
 
-import { useMediaQuery } from '@vueuse/core';
+import { useMediaQuery, useResizeObserver } from '@vueuse/core';
 import { useDisplay, useTheme } from 'vuetify';
 
 import { transformContent } from '@/services/transformService';
@@ -85,7 +85,7 @@ import {
   handleWheel,
 } from '@/utils/iframeEventHandlers';
 import { getStyles, mountAdditionalFonts, transformStylesheet } from '@/utils/style';
-import { applyRendererSettings } from '@/utils/viewSettingsHelper';
+import { applyReaderWidth, applyRendererSettings } from '@/utils/viewSettingsHelper';
 
 import Menu from './components/Menu.vue';
 import TOCView from './components/TOCView.vue';
@@ -128,6 +128,13 @@ import useBookShortcuts from './hooks/useBookShortcuts';
 const { sideBarBookKey, setSideBarBookKey } = useSidebarStore();
 const containerRef = ref<HTMLDivElement | null>(null);
 const viewRef = ref<FoliateView | null>(null);
+
+// 百分比宽度以正文容器为基准，展开目录、窗口缩放和手机旋转后仍保持相同比例。
+useResizeObserver(containerRef, () => {
+  const view = viewRef.value;
+  const settings = getViewSettings(bookId.value);
+  if (view?.renderer && settings) applyReaderWidth(view, settings);
+});
 
 const bookDoc = ref<BookDoc | null>();
 const hasToc = computed(() => Boolean(bookDoc.value?.toc?.length));
@@ -260,7 +267,17 @@ onMounted(async () => {
   await initBook();
 });
 
-const initBook = async () => {
+// keep-alive 首次激活也会触发 onActivated，与 onMounted 合并为一次打开，
+// 避免两个 view.open / close 交错，重载时丢失分页器和阅读位置。
+let openingBook: Promise<void> | null = null;
+const initBook = () => {
+  openingBook ??= openBook().finally(() => {
+    openingBook = null;
+  });
+  return openingBook;
+};
+
+const openBook = async () => {
   const view = viewRef.value;
   if (!view) return;
   if (!bookId.value) return;

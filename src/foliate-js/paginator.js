@@ -926,11 +926,22 @@ class View {
     }
 }
 
+// An explicit column count is a reading preference, not an adaptive maximum.
+// Keep the upstream automatic calculation when no preference was supplied.
+export const getColumnCount = ({ flow, columnCount, maxColumnCount, maxInlineSize, size, vertical }) => {
+    if (flow === 'scrolled') return 1
+    const limit = Math.max(1, maxColumnCount + (vertical ? 1 : 0))
+    if (Number.isFinite(columnCount) && columnCount > 0)
+        return Math.min(limit, Math.max(1, Math.floor(columnCount)))
+    return Math.max(1, Math.min(limit,
+        Math.ceil(Math.floor(size) / Math.max(1, Math.floor(maxInlineSize)))))
+}
+
 // NOTE: everything here assumes the so-called "negative scroll type" for RTL
 export class Paginator extends HTMLElement {
     static observedAttributes = [
         'flow', 'gap', 'margin-top', 'margin-bottom', 'margin-left', 'margin-right',
-        'max-inline-size', 'max-block-size', 'max-column-count',
+        'max-inline-size', 'max-block-size', 'max-column-count', 'column-count',
         'no-preload', 'no-background', 'no-continuous-scroll',
     ]
     #root = this.attachShadow({ mode: 'open' })
@@ -1125,7 +1136,7 @@ export class Paginator extends HTMLElement {
                 // Backward preloading is handled eagerly in the (non-debounced)
                 // scroll listener below, mirroring the forward buffer.
             } else if (!this.scrolled) {
-              this.#afterScroll('container-scroll')
+                this.#afterScroll('container-scroll')
             }
         }, 250)
         this.#container.addEventListener('scroll', () => {
@@ -1287,6 +1298,7 @@ export class Paginator extends HTMLElement {
     attributeChangedCallback(name, _, value) {
         switch (name) {
             case 'flow':
+            case 'column-count':
                 this.render()
                 break
             case 'gap':
@@ -1520,12 +1532,14 @@ export class Paginator extends HTMLElement {
         const flow = this.getAttribute('flow')
         const hostRect = this.getBoundingClientRect()
         const hostSize = vertical ? hostRect.height : hostRect.width
-        const divisor = flow === 'scrolled'
-            ? 1
-            : Math.min(
-                maxColumnCount + (vertical ? 1 : 0),
-                Math.ceil(Math.floor(hostSize) / Math.floor(maxInlineSize)),
-            )
+        const divisor = getColumnCount({
+            flow,
+            columnCount: Number(this.getAttribute('column-count')),
+            maxColumnCount,
+            maxInlineSize,
+            size: hostSize,
+            vertical,
+        })
         // Set --_column-count BEFORE measuring the container so the read
         // below reflects the grid template that will actually be used.
         this.#top.style.setProperty('--_column-count', divisor)
