@@ -22,18 +22,55 @@
   --default-font-family: var(--font-sans);
   --default-mono-font-family: var(--font-sans);
 
-  /* 颜色：全部指向 Vuetify 主题变量，换肤 / 深色模式自动生效 */
-  --color-background: rgb(var(--v-theme-background));
-  --color-surface: rgb(var(--v-theme-surface));
-  --color-surface-variant: rgb(var(--v-theme-surface-variant));
-  --color-on-surface: rgb(var(--v-theme-on-surface));
-  --color-on-surface-variant: rgb(var(--v-theme-on-surface-variant));
+  /* ------------------------------------------------------------------
+   * 颜色：全部指向 Vuetify 主题变量（--v-theme-*，RGB 三元组格式）。
+   *
+   * ⚠️ 这份清单必须覆盖 hooks/useMaterialYouTheme.ts 里 syncVuetifyTheme()
+   *    写进 Vuetify theme 的每一个颜色 key —— Vuetify 只会为「theme 里有
+   *    定义的 key」生成 --v-theme-* 变量。漏一个，对应的 Tailwind 类
+   *    （text-success / bg-tertiary-container …）不会报错，只是静默失效，
+   *    和之前 w-64 那次是同一类坑。
+   *    命名规则：Vuetify 把 camelCase 的 key 转成 kebab-case，
+   *    例如 onPrimaryContainer → --v-theme-on-primary-container。
+   * ------------------------------------------------------------------ */
+
+  /* M3 主体角色色 */
   --color-primary: rgb(var(--v-theme-primary));
   --color-on-primary: rgb(var(--v-theme-on-primary));
+  --color-primary-container: rgb(var(--v-theme-primary-container));
+  --color-on-primary-container: rgb(var(--v-theme-on-primary-container));
   --color-secondary: rgb(var(--v-theme-secondary));
   --color-on-secondary: rgb(var(--v-theme-on-secondary));
-  --color-error: rgb(var(--v-theme-error));
-  --color-on-error: rgb(var(--v-theme-on-error));
+  --color-secondary-container: rgb(var(--v-theme-secondary-container));
+  --color-on-secondary-container: rgb(var(--v-theme-on-secondary-container));
+  --color-tertiary: rgb(var(--v-theme-tertiary));
+  --color-on-tertiary: rgb(var(--v-theme-on-tertiary));
+  --color-tertiary-container: rgb(var(--v-theme-tertiary-container));
+  --color-on-tertiary-container: rgb(var(--v-theme-on-tertiary-container));
+
+  /* 表面 / 背景 / 描边 */
+  --color-background: rgb(var(--v-theme-background));
+  --color-on-background: rgb(var(--v-theme-on-background));
+  --color-surface: rgb(var(--v-theme-surface));
+  --color-on-surface: rgb(var(--v-theme-on-surface));
+  --color-surface-variant: rgb(var(--v-theme-surface-variant));
+  --color-on-surface-variant: rgb(var(--v-theme-on-surface-variant));
   --color-outline: rgb(var(--v-theme-outline));
   --color-outline-variant: rgb(var(--v-theme-outline-variant));
+  --color-inverse-surface: rgb(var(--v-theme-inverse-surface));
+  --color-inverse-on-surface: rgb(var(--v-theme-inverse-on-surface));
+  --color-inverse-primary: rgb(var(--v-theme-inverse-primary));
+
+  /* 语义色（M3 没有这些 role，由 syncVuetifyTheme 补齐） */
+  --color-error: rgb(var(--v-theme-error));
+  --color-on-error: rgb(var(--v-theme-on-error));
+  --color-error-container: rgb(var(--v-theme-error-container));
+  --color-on-error-container: rgb(var(--v-theme-on-error-container));
+  --color-success: rgb(var(--v-theme-success));
+  --color-on-success: rgb(var(--v-theme-on-success));
+  --color-success-container: rgb(var(--v-theme-success-container));
+  --color-info: rgb(var(--v-theme-info));
+  --color-on-info: rgb(var(--v-theme-on-info));
+  --color-warning: rgb(var(--v-theme-warning));
+  --color-on-warning: rgb(var(--v-theme-on-warning));
 }
