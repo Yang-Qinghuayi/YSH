@@ -1,6 +1,7 @@
 // Vuetify 样式按需：只引入层顺序/reset 与工具类（d-flex / pa-3 / text-medium-emphasis…），
 // 组件样式由 vite-plugin-vuetify 的 autoImport 按需注入，不再 import 'vuetify/styles'（301 KB）。
 import 'vuetify/lib/styles/core.css';
+import 'vuetify/lib/components/VLayout/VLayout.css';
 import '@/styles/vuetify-utilities.css';
 
 import type { App } from 'vue';
