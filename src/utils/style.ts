@@ -11,6 +11,7 @@ import type { Palette } from '@/styles/themes';
 import type { ViewSettings } from '@/types/book';
 
 import { getOSPlatform } from './misc';
+import { readReaderTheme } from './readerTheme';
 
 const getFontStyles = (
   serif: string,
@@ -188,6 +189,7 @@ const getLayoutStyles = (
     --theme-bg-color: ${bg};
     --theme-fg-color: ${fg};
     --theme-primary-color: ${primary};
+    --override-color: true;
     --default-text-align: ${justify ? 'justify' : 'start'};
     hanging-punctuation: allow-end last;
     orphans: 2;
@@ -303,18 +305,14 @@ export interface ThemeCode {
 }
 
 export const getThemeCode = (): ThemeCode => {
-  // 直接读取应用外壳实际使用的 Material You CSS 变量，确保注入 iframe 的
-  // --theme-bg-color / 前景 / 主色与应用背景完全一致，不再依赖静态 themes
-  // （项目已切换到 Material You 动态主题，静态 themes 会与应用不同步导致书籍区白底）。
-  const isDarkMode =
-    typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const styles =
-    typeof document !== 'undefined' ? getComputedStyle(document.documentElement) : null;
-  const get = (name: string, fallback: string) => styles?.getPropertyValue(name).trim() || fallback;
-  const bg = get('--background', isDarkMode ? '#0a0a0a' : '#fff4ef');
-  const fg = get('--foreground', isDarkMode ? '#ededed' : '#341f19');
-  const primary = get('--primary', '#b85e4b');
-  return { bg, fg, primary, palette: {} as Palette, isDarkMode } as ThemeCode;
+  // Vuetify 的主题变量可能在应用容器上覆盖根节点；读取实际阅读器所在的主题。
+  const element =
+    typeof document !== 'undefined'
+      ? (document.querySelector('.v-application') ?? document.documentElement)
+      : null;
+  const styles = element ? getComputedStyle(element) : null;
+  const theme = readReaderTheme(styles);
+  return { ...theme, palette: {} as Palette };
 };
 
 export const getStyles = (viewSettings: ViewSettings, themeCode?: ThemeCode) => {
