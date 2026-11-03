@@ -1,0 +1,15 @@
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css';
+@import 'nativewind/theme';
+
+@theme inline {
+  --color-primary: var(--app-primary);
+  --color-on-primary: var(--app-on-primary);
+  --color-background: var(--app-background);
+  --color-on-background: var(--app-on-background);
+  --color-surface: var(--app-surface);
+  --color-on-surface: var(--app-on-surface);
+  --color-surface-container: var(--app-surface-container);
+  --color-on-surface-variant: var(--app-on-surface-variant);
+  --color-outline: var(--app-outline);
+}

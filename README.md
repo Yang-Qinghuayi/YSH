@@ -23,6 +23,21 @@
 
 YSH 是一款本地优先的跨平台桌面应用，将电子书阅读、AI 辅助小说创作与世界观资料库管理整合在一起。所有数据存储在本地，不依赖任何云服务。
 
+## 移动端阅读器（React Native）
+
+新增的 Android/iOS 手机和平板工程位于 **[`mobile/`](mobile/README.md)**，与下面的 Vue/Tauri 应用独立运行。
+
+- Readium 原生集成，支持无 DRM 的 EPUB/PDF；永久不支持 LCP。
+- NativeWind v5 RC、Material 3 种子主题、SQLite 本地书库、阅读进度、书签与笔记。
+- 手机/平板响应式布局；不提供 Web/Windows/macOS 版本，不迁移 Agent。
+- **当前为首版实现，已做类型/自动化/JS 打包及原生工程生成检查，尚未完成原生编译和真机验收。**
+
+快速开始：安装 Node 24+ 和目标平台原生开发环境，执行 `cd mobile && npm ci`，再执行 `npm run android` 或在 macOS 执行 `npm run ios`。不能使用 Expo Go。
+
+项目介绍、完整运行步骤、工具版本与验证边界见 **[移动端 README](mobile/README.md)**；设备验收见 [测试矩阵](mobile/DEVICE-TESTING.md)。
+
+---
+
 ## 功能
 
 ### 电子书阅读
