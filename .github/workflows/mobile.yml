@@ -1,0 +1,31 @@
+name: Mobile checks
+on:
+  pull_request:
+    paths: ['mobile/**', '.github/workflows/mobile.yml']
+  push:
+    paths: ['mobile/**', '.github/workflows/mobile.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  javascript:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: npm run format:check
+      - run: npm run bundle:check
+      - run: npx expo prebuild --no-install
+# This job verifies JS and generated native configuration, not Swift/Kotlin builds or devices.
